@@ -1,145 +1,203 @@
-import { SIZE, C, polar, zoneAt, seats, spots, pots, spawn } from './world.js';
-import { findPath, nearestFree } from './path.js';
-import { drawWorld, drawLight, drawCharacter } from './render.js';
+import * as THREE from 'three';
+import { RoomEnvironment } from '../vendor/RoomEnvironment.js';
+import { buildWorld } from './build.js';
+import { makeAvatar, poseAvatar } from './avatar.js';
+import { findPath, nearestFree } from './nav.js';
+import { floorY, seats, SPOTS, SPAWN, planters, polar, COUNTER, CEIL } from './layout.js';
 import { ICONS } from './icons.js';
 
 const canvas = document.getElementById('cafe');
-const g = canvas.getContext('2d');
 const bar = document.getElementById('actions');
 const enter = document.getElementById('enter');
 
-// ---------- 내 캐릭터 ----------
-const HOODIES = ['#8fb7e0', '#f2a7a0', '#a7d3a6', '#f4d27a', '#b9a6e0', '#f5f0e6'];
-const HAIRS = ['#3b2a22', '#5a3b2a', '#22201f', '#7a5634'];
-const BAGS = ['#5b6b8a', '#8a5b5b', '#6b8a5b', '#444'];
-const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+// ---------- 렌더러·장면 ----------
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.92;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xcfe3ee);
+scene.fog = new THREE.Fog(0xcfe3ee, 70, 160);
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0xd9cfc0, 0.7));
+// 천창으로 들어오는 햇빛
+const sun = new THREE.DirectionalLight(0xfff1dc, 1.6);
+sun.position.set(-14, 40, -10);
+sun.target.position.set(0, 0, 0);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+const sc = sun.shadow.camera;
+sc.left = -30; sc.right = 30; sc.top = 30; sc.bottom = -30; sc.near = 10; sc.far = 80;
+sun.shadow.bias = -0.0005;
+sun.shadow.normalBias = 0.03;
+scene.add(sun, sun.target);
+// 실내 간접조명 느낌
+const warm = new THREE.PointLight(0xffd59a, 30, 30, 1.6);
+warm.position.set(0, 8, 0);
+scene.add(warm);
+
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 400);
+
+const { anim, interactive } = buildWorld(scene);
+
+// ---------- 캐릭터 ----------
+const HOODIES = [0x8fb7e0, 0xf2a7a0, 0xa7d3a6, 0xf4d27a, 0xb9a6e0, 0xf5f0e6];
+const HAIRS = [0x3b2a22, 0x5a3b2a, 0x22201f, 0x7a5634];
+const BAGS = [0x5b6b8a, 0x8a5b5b, 0x6b8a5b, 0x444444];
+const pick = (a) => a[Math.floor(Math.random() * a.length)];
 
 function loadLook() {
   try {
-    const saved = JSON.parse(localStorage.getItem('navs-cafe-look') || 'null');
-    if (saved && saved.hoodie) return saved;
-  } catch (e) { /* 저장소를 못 쓰는 환경 */ }
+    const v = JSON.parse(localStorage.getItem('navs-cafe-look3d') || 'null');
+    if (v && v.hoodie) return v;
+  } catch (e) { /* 저장 불가 환경 */ }
   const look = { hoodie: pick(HOODIES), hair: pick(HAIRS), bag: pick(BAGS), style: Math.random() < 0.5 ? 0 : 1 };
-  try { localStorage.setItem('navs-cafe-look', JSON.stringify(look)); } catch (e) { /* 무시 */ }
+  try { localStorage.setItem('navs-cafe-look3d', JSON.stringify(look)); } catch (e) { /* 무시 */ }
   return look;
 }
 
-const me = {
-  ...loadLook(),
-  x: spawn.x,
-  y: spawn.y,
-  face: 0,
-  state: 'idle', // idle | walk | sit
-  action: null,  // gaze | read | pray | wave | water | sip
-  item: null,    // cup
-  path: [],
-  seat: null,
-  phase: Math.random() * 10,
-  blink: false,
-  task: null,    // 이동이 끝난 뒤 이어서 할 일
-};
+function makeChar(look, x, z) {
+  const av = makeAvatar(look);
+  scene.add(av);
+  return { av, x, z, y: floorY(x, z), face: Math.PI, state: 'idle', action: null, item: null, path: [], seat: null, task: null, phase: Math.random() * 10 };
+}
 
-const SPEED = 130;
+const me = makeChar(loadLook(), SPAWN.x, SPAWN.z);
+
+// 상주 캐릭터: 카운터 바리스타, 입구의 사장님 (각자 화면에서만 움직임)
+const baristaPos = polar(COUNTER.r + 1.1, -54);
+const barista = makeChar({ hoodie: 0x3f4a5a, hair: 0x2b211c, bag: 0x3f4a5a, style: 1, pants: 0x2f2f35 }, baristaPos.x, baristaPos.z);
+barista.av.userData.body.children.find((c) => c.geometry && c.geometry.type === 'BoxGeometry' && c.position.z < -0.1).visible = false; // 백팩 없음
+const apron = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.36, 0.02), new THREE.MeshStandardMaterial({ color: 0xe9e1d3 }));
+apron.position.set(0, 0.48, 0.17);
+barista.av.userData.body.add(apron);
+const ownerPos = { x: 3.2, z: 22.2 };
+const owner = makeChar({ hoodie: 0xd9cbb5, hair: 0x6b6b6b, bag: 0xd9cbb5, style: 0, pants: 0x55504a }, ownerPos.x, ownerPos.z);
+owner.av.userData.body.children.find((c) => c.geometry && c.geometry.type === 'BoxGeometry' && c.position.z < -0.1).visible = false;
+const npcs = [barista, owner];
 
 // ---------- 이동 ----------
-function standUp() {
-  if (me.seat) {
-    me.seat.taken = false;
-    const ap = me.seat.approach;
-    me.x = ap.x;
-    me.y = ap.y;
-    me.seat = null;
+const SPEED = 2.6;
+
+function standUp(ch) {
+  if (ch.seat) {
+    ch.seat.taken = false;
+    ch.x = ch.seat.approach.x;
+    ch.z = ch.seat.approach.z;
+    ch.seat = null;
   }
-  me.state = 'idle';
+  ch.state = 'idle';
 }
-
-function walkTo(target, task = null) {
-  standUp();
-  me.action = null;
-  me.path = findPath(me, target);
-  me.task = task;
-  me.state = me.path.length ? 'walk' : 'idle';
-  if (!me.path.length && task) runTask();
+function walkTo(ch, target, task = null) {
+  standUp(ch);
+  ch.action = null;
+  ch.path = findPath(ch, target);
+  ch.task = task;
+  ch.state = ch.path.length ? 'walk' : 'idle';
+  if (!ch.path.length && task) finishTask(ch);
 }
-
-function runTask() {
-  const t = me.task;
-  me.task = null;
+function finishTask(ch) {
+  const t = ch.task;
+  ch.task = null;
   if (t) t();
-  refreshActions();
 }
-
-function sitOn(seat) {
-  walkTo(seat.approach, () => {
+function sitOn(ch, seat) {
+  walkTo(ch, seat.approach, () => {
     if (seat.taken) return;
     seat.taken = true;
-    me.seat = seat;
-    me.x = seat.x;
-    me.y = seat.y;
-    me.face = seat.face;
-    me.state = 'sit';
+    ch.seat = seat;
+    ch.x = seat.x;
+    ch.z = seat.z;
+    ch.face = seat.face;
+    ch.state = 'sit';
   });
 }
+const faceTo = (ch, p) => { ch.face = Math.atan2(p.x - ch.x, p.z - ch.z); };
 
-function faceToward(p) {
-  me.face = (Math.atan2(p.y - me.y, p.x - me.x) * 180) / Math.PI;
-}
-
-// ---------- 활동 (글자 없이 동작만) ----------
-let actionTimer = null;
-function doAction(name, seconds = 0) {
-  clearTimeout(actionTimer);
+// ---------- 체험 동작 ----------
+let actTimer = null;
+function act(name, seconds = 0) {
+  clearTimeout(actTimer);
   me.action = name;
-  if (seconds) actionTimer = setTimeout(() => { if (me.action === name) { me.action = null; refreshActions(); } }, seconds * 1000);
-  refreshActions();
+  if (seconds) actTimer = setTimeout(() => { if (me.action === name) me.action = null; }, seconds * 1000);
+}
+let baristaBusy = 0;
+function nearestSeat(kind, near) {
+  let best = null, bd = Infinity;
+  for (const s of seats) {
+    if (s.kind !== kind || s.taken) continue;
+    const d = Math.hypot(s.x - near.x, s.z - near.z);
+    if (d < bd) { bd = d; best = s; }
+  }
+  return best;
 }
 
 const ACTIONS = {
-  gaze: () => { faceToward({ x: C.x, y: C.y - 400 }); doAction('gaze'); },
-  read: () => doAction('read'),
-  pray: () => doAction('pray'),
-  wave: () => doAction('wave', 2.4),
-  welcome: () => walkTo(spots.door, () => { me.face = 180; doAction('wave', 3); }),
-  order: () => walkTo(spots.order, () => {
-    faceToward(polar(330, 27));
-    me.state = 'idle';
+  light: () => walkTo(me, { x: 0.4, z: 0.9 }, () => { act('gaze'); }),
+  pray: () => {
+    const s = nearestSeat('kneel', me);
+    if (s) sitOn(me, s);
+    me.task = wrapTask(me.task, () => act('pray'));
+  },
+  order: () => walkTo(me, SPOTS.order, () => {
+    faceTo(me, polar(COUNTER.r, -56));
     me.action = 'wait';
-    refreshActions();
+    baristaBusy = 2.8;
     setTimeout(() => {
       if (me.action !== 'wait') return;
       me.action = null;
-      walkTo(spots.pickup, () => { faceToward(polar(330, 8)); me.item = 'cup'; });
-    }, 2600);
+      walkTo(me, SPOTS.pickup, () => { faceTo(me, polar(COUNTER.r, -40)); me.item = 'cup'; });
+    }, 2800);
   }),
-  sip: () => doAction('sip', 3),
-  water: () => {
-    let best = pots[0], bd = Infinity;
-    for (const p of pots) {
-      const d = Math.hypot(p.x - me.x, p.y - me.y);
-      if (d < bd) { bd = d; best = p; }
-    }
-    const stand = nearestFree(polar(420, best.a - 6));
-    walkTo(stand, () => { faceToward(best); doAction('water', 3); });
+  sip: () => act('sip', 3),
+  boat: () => {
+    const s = nearestSeat('boat', me);
+    if (s) sitOn(me, s);
   },
-  tray: () => walkTo(nearestFree(polar(400, 135)), () => { faceToward(polar(432, 135)); me.item = null; }),
+  read: () => {
+    const s = nearestSeat('bench', SPOTS.read);
+    if (s && Math.hypot(s.x - SPOTS.read.x, s.z - SPOTS.read.z) < 6) sitOn(me, s);
+    me.task = wrapTask(me.task, () => act('read'));
+  },
+  water: (pot) => {
+    let p = pot;
+    if (!p) {
+      let bd = Infinity;
+      for (const q of planters) { const d = Math.hypot(q.x - me.x, q.z - me.z); if (d < bd) { bd = d; p = q; } }
+    }
+    const stand = nearestFree(polar(24.4, p.a));
+    walkTo(me, stand, () => { faceTo(me, p); act('water', 3); });
+  },
+  tray: () => walkTo(me, SPOTS.tray, () => { faceTo(me, polar(25.5, 105)); me.item = null; }),
+  wave: () => act('wave', 2.4),
+  vhand: () => act('vhand', 2.6),
 };
-
-function availableActions() {
-  const zone = zoneAt(me);
-  const list = [];
-  if (me.state === 'walk' || me.action === 'wait') return list;
-  if (zone === 'hub') list.push('gaze');
-  if (zone === 'word') list.push('read');
-  if (zone === 'prayer') list.push('pray');
-  if (zone === 'fellowship' && !me.item) list.push('order');
-  if (zone === 'witness') list.push('welcome');
-  if (zone === 'rim') list.push('water');
-  if (me.item === 'cup') list.push('sip');
-  if (me.item === 'cup' && (zone === 'rim' || zone === 'witness')) list.push('tray');
-  list.push('wave');
-  return list;
+function wrapTask(first, then) {
+  return () => { if (first) first(); then(); };
 }
 
+function availableActions() {
+  const list = [];
+  if (me.state === 'walk' || me.action === 'wait') return list;
+  const near = (s) => Math.hypot(me.x - s.x, me.z - s.z) < s.r;
+  if (near(SPOTS.light)) list.push('light');
+  if (near(SPOTS.pray)) list.push('pray');
+  if (near(SPOTS.order) && !me.item) list.push('order');
+  if (near(SPOTS.boat)) list.push('boat');
+  if (near(SPOTS.read)) list.push('read');
+  if (Math.hypot(me.x, me.z) > 22.5) list.push('water');
+  if (me.item === 'cup') list.push('sip');
+  if (me.item === 'cup' && near(SPOTS.tray)) list.push('tray');
+  list.push('wave');
+  if (Math.hypot(me.x, me.z) > 22.5 || near(SPOTS.light)) list.push('vhand');
+  return list;
+}
 let shown = '';
 function refreshActions() {
   const list = availableActions();
@@ -149,148 +207,204 @@ function refreshActions() {
   bar.innerHTML = '';
   for (const name of list) {
     const b = document.createElement('button');
-    b.className = 'act' + (me.action === name ? ' on' : '');
+    const on = me.action === name || (name === 'light' && me.action === 'gaze') || (name === 'boat' && me.seat && me.seat.kind === 'boat');
+    b.className = 'act' + (on ? ' on' : '');
     b.setAttribute('aria-label', name);
     b.innerHTML = ICONS[name];
     b.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
-      if (me.action === name && name !== 'wave') { me.action = null; refreshActions(); return; }
+      if (on && name !== 'wave') { me.action = null; shown = ''; return; }
       ACTIONS[name]();
     });
     bar.appendChild(b);
   }
 }
 
-// ---------- 화면·카메라 ----------
-let vw = 0, vh = 0, dpr = 1, scale = 1;
-const cam = { x: spawn.x, y: spawn.y };
-
+// ---------- 카메라 (끌어서 돌리기, 휠/두 손가락으로 확대) ----------
+const view = { az: 0, el: 0.5, dist: 15, tx: me.x, ty: 1, tz: me.z };
 function resize() {
-  dpr = Math.min(window.devicePixelRatio || 1, 2);
-  vw = window.innerWidth;
-  vh = window.innerHeight;
-  canvas.width = Math.round(vw * dpr);
-  canvas.height = Math.round(vh * dpr);
-  canvas.style.width = vw + 'px';
-  canvas.style.height = vh + 'px';
-  const m = Math.min(vw, vh);
-  scale = m >= 820 ? m / 1000 : m / 560; // 큰 화면은 카페 전체, 휴대폰은 가까이
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.fov = w < h ? 62 : 50;
+  camera.updateProjectionMatrix();
 }
 window.addEventListener('resize', resize);
 resize();
 
-function updateCamera(dt) {
-  const halfW = vw / scale / 2, halfH = vh / scale / 2;
-  const clamp = (v, half) => (half * 2 >= SIZE ? SIZE / 2 : Math.max(half - 20, Math.min(SIZE - half + 20, v)));
-  const tx = clamp(me.x, halfW), ty = clamp(me.y, halfH);
-  const k = 1 - Math.exp(-dt * 4);
-  cam.x += (tx - cam.x) * k;
-  cam.y += (ty - cam.y) * k;
-}
-
-function screenToWorld(sx, sy) {
-  return { x: (sx - vw / 2) / scale + cam.x, y: (sy - vh / 2) / scale + cam.y };
-}
-
+const pointers = new Map();
+let drag = null, pinch = null;
 canvas.addEventListener('pointerdown', (e) => {
-  const p = screenToWorld(e.clientX, e.clientY);
-  // 의자를 눌렀으면 앉기
-  let best = null, bd = 26;
+  canvas.setPointerCapture(e.pointerId);
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (pointers.size === 1) drag = { x: e.clientX, y: e.clientY, t: performance.now(), moved: 0, az: view.az, el: view.el };
+  if (pointers.size === 2) {
+    const [a, b] = [...pointers.values()];
+    pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), dist: view.dist };
+    drag = null;
+  }
+});
+canvas.addEventListener('pointermove', (e) => {
+  if (!pointers.has(e.pointerId)) return;
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (pinch && pointers.size === 2) {
+    const [a, b] = [...pointers.values()];
+    const d = Math.hypot(a.x - b.x, a.y - b.y);
+    view.dist = clamp(pinch.dist * (pinch.d / d), 6, 34);
+  } else if (drag) {
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    drag.moved = Math.max(drag.moved, Math.hypot(dx, dy));
+    if (drag.moved > 6) {
+      view.az = drag.az - dx * 0.006;
+      view.el = clamp(drag.el + dy * 0.004, 0.12, 1.35);
+    }
+  }
+});
+function endPointer(e) {
+  if (!pointers.has(e.pointerId)) return;
+  pointers.delete(e.pointerId);
+  if (drag && drag.moved <= 6 && performance.now() - drag.t < 600) tap(e.clientX, e.clientY);
+  if (pointers.size < 2) pinch = null;
+  drag = null;
+}
+canvas.addEventListener('pointerup', endPointer);
+canvas.addEventListener('pointercancel', endPointer);
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  view.dist = clamp(view.dist * Math.exp(e.deltaY * 0.001), 6, 34);
+}, { passive: false });
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+// ---------- 누르기: 전시물 → 체험, 의자 → 앉기, 바닥 → 걷기 ----------
+const ray = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+let ripple = null;
+const rippleMesh = new THREE.Mesh(new THREE.RingGeometry(0.2, 0.28, 32), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, depthWrite: false }));
+rippleMesh.rotation.x = -Math.PI / 2;
+rippleMesh.visible = false;
+scene.add(rippleMesh);
+
+function tap(sx, sy) {
+  ndc.set((sx / window.innerWidth) * 2 - 1, -(sy / window.innerHeight) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  const hits = ray.intersectObjects(interactive, false);
+  if (hits.length && hits[0].distance < 60) {
+    const o = hits[0].object;
+    const name = o.userData.action;
+    if (name === 'water') return ACTIONS.water(o.userData.pot);
+    if (ACTIONS[name]) return ACTIONS[name]();
+  }
+  const p = new THREE.Vector3();
+  if (!ray.ray.intersectPlane(floorPlane, p)) return;
+  let best = null, bd = 0.9;
   for (const s of seats) {
     if (s.taken && s !== me.seat) continue;
-    const d = Math.hypot(s.x - p.x, s.y - p.y);
+    const d = Math.hypot(s.x - p.x, s.z - p.z);
     if (d < bd) { bd = d; best = s; }
   }
-  if (best) {
-    if (best === me.seat) return;
-    sitOn(best);
-  } else {
-    walkTo(p);
-  }
-  ripple = { x: p.x, y: p.y, t: 0 };
-  refreshActions();
-});
-
-let ripple = null;
+  if (best) { if (best !== me.seat) sitOn(me, best); }
+  else walkTo(me, { x: p.x, z: p.z });
+  ripple = { x: p.x, z: p.z, t: 0 };
+}
 
 // ---------- 루프 ----------
+function stepChar(ch, dt) {
+  if (ch.state === 'walk' && ch.path.length) {
+    const tg = ch.path[0];
+    const dx = tg.x - ch.x, dz = tg.z - ch.z;
+    const d = Math.hypot(dx, dz);
+    const step = SPEED * dt;
+    if (d > 0.01) ch.face = Math.atan2(dx, dz);
+    if (d <= step) {
+      ch.x = tg.x; ch.z = tg.z;
+      ch.path.shift();
+      if (!ch.path.length) { ch.state = 'idle'; finishTask(ch); }
+    } else {
+      ch.x += (dx / d) * step;
+      ch.z += (dz / d) * step;
+    }
+  }
+  let fy = floorY(ch.x, ch.z);
+  if (ch.seat) {
+    if (ch.seat.kind === 'bench') fy = Math.max(fy, 0) + (Math.hypot(ch.x, ch.z) < 6 ? 0.5 : 0) + 0.28;
+    if (ch.seat.kind === 'stool') fy = 0.28;
+    if (ch.seat.kind === 'boat') fy = 0.2;
+    if (ch.seat.kind === 'kneel') fy = 0.12;
+  }
+  ch.y += (fy - ch.y) * Math.min(1, dt * 10);
+  ch.av.position.set(ch.x, ch.y, ch.z);
+  // 부드럽게 돌기
+  let da = ch.face - ch.av.rotation.y;
+  da = Math.atan2(Math.sin(da), Math.cos(da));
+  ch.av.rotation.y += da * Math.min(1, dt * 10);
+}
+
 let last = performance.now();
-let blinkAt = 2;
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
   const t = now / 1000;
 
-  // 걷기
-  if (me.state === 'walk' && me.path.length) {
-    const target = me.path[0];
-    const dx = target.x - me.x, dy = target.y - me.y;
-    const d = Math.hypot(dx, dy);
-    const step = SPEED * dt;
-    if (d > 0.5) me.face = (Math.atan2(dy, dx) * 180) / Math.PI;
-    if (d <= step) {
-      me.x = target.x;
-      me.y = target.y;
-      me.path.shift();
-      if (!me.path.length) {
-        me.state = 'idle';
-        runTask();
-      }
-    } else {
-      me.x += (dx / d) * step;
-      me.y += (dy / d) * step;
-    }
-  }
-  // 깜빡임
-  blinkAt -= dt;
-  if (blinkAt < 0) { me.blink = true; if (blinkAt < -0.12) { me.blink = false; blinkAt = 2 + Math.random() * 3; } }
+  stepChar(me, dt);
+  poseAvatar(me.av, me, t, dt);
+  // 상주 캐릭터
+  baristaBusy -= dt;
+  barista.action = baristaBusy > 0 ? 'read' : null; // 음료 만드는 손동작
+  barista.face = baristaBusy > 0 ? Math.atan2(-barista.x, -barista.z) + 0.6 : Math.atan2(-barista.x, -barista.z);
+  const nearOwner = Math.hypot(me.x - owner.x, me.z - owner.z) < 5;
+  owner.action = nearOwner && Math.sin(t * 0.8) > 0.2 ? 'wave' : null;
+  owner.face = nearOwner ? Math.atan2(me.x - owner.x, me.z - owner.z) : Math.PI;
+  for (const n of npcs) { stepChar(n, dt); poseAvatar(n.av, n, t, dt); }
+  barista.av.userData.book.visible = false;
 
-  refreshActions();
-  updateCamera(dt);
-
-  g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  g.fillStyle = '#a8cf8e';
-  g.fillRect(0, 0, vw, vh);
-  g.setTransform(dpr * scale, 0, 0, dpr * scale, dpr * (vw / 2 - cam.x * scale), dpr * (vh / 2 - cam.y * scale));
-  drawWorld(g, scale * dpr);
+  const camR = Math.hypot(camera.position.x, camera.position.z);
+  for (const f of anim) f(t, { reading: me.action === 'read', praying: me.action === 'pray', me, camR }, dt * (window.__cafe.speed || 1));
 
   if (ripple) {
     ripple.t += dt;
-    const a = 1 - ripple.t / 0.5;
-    if (a <= 0) ripple = null;
+    const a = 1 - ripple.t / 0.6;
+    if (a <= 0) { ripple = null; rippleMesh.visible = false; }
     else {
-      g.strokeStyle = `rgba(255,255,255,${a * 0.8})`;
-      g.lineWidth = 2;
-      g.beginPath();
-      g.arc(ripple.x, ripple.y, 6 + ripple.t * 30, 0, Math.PI * 2);
-      g.stroke();
+      rippleMesh.visible = true;
+      rippleMesh.position.set(ripple.x, floorY(ripple.x, ripple.z) + 0.02, ripple.z);
+      rippleMesh.scale.setScalar(1 + ripple.t * 4);
+      rippleMesh.material.opacity = a * 0.9;
     }
   }
 
-  drawCharacter(g, me, t);
-  if (me.action === 'wait') {
-    for (let k = 0; k < 3; k++) {
-      const a = 0.3 + 0.7 * Math.max(0, Math.sin(t * 5 - k * 0.8));
-      g.fillStyle = `rgba(90,70,60,${a})`;
-      g.beginPath();
-      g.arc(me.x - 7 + k * 7, me.y - 52, 2.4, 0, Math.PI * 2);
-      g.fill();
-    }
+  // 카메라 따라가기
+  const k = 1 - Math.exp(-dt * 4);
+  view.tx += (me.x - view.tx) * k;
+  view.tz += (me.z - view.tz) * k;
+  view.ty += (me.y + 1 - view.ty) * k;
+  const cy = Math.min(CEIL - 1.2, view.ty + Math.sin(view.el) * view.dist);
+  const horiz = Math.cos(view.el) * view.dist;
+  let cx = view.tx + Math.sin(view.az) * horiz, cz = view.tz + Math.cos(view.az) * horiz;
+  // 카메라가 유리벽 밖으로 나가지 않게
+  const cr = Math.hypot(cx, cz), maxR = 36;
+  if (cr > maxR) {
+    // 목표점에서 카메라 방향으로 가다가 벽 안쪽에서 멈춤
+    const dx = Math.sin(view.az), dz = Math.cos(view.az);
+    const b = view.tx * dx + view.tz * dz, c = view.tx * view.tx + view.tz * view.tz - maxR * maxR;
+    const s = -b + Math.sqrt(Math.max(0, b * b - c));
+    cx = view.tx + dx * Math.max(1.5, s);
+    cz = view.tz + dz * Math.max(1.5, s);
   }
-  drawLight(g, t);
+  const hReal = Math.hypot(cx - view.tx, cz - view.tz);
+  camera.position.set(cx, Math.min(cy, view.ty + hReal * Math.tan(view.el) + 0.3), cz);
+  camera.lookAt(view.tx, view.ty, view.tz);
 
+  refreshActions();
+  renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }
 
 enter.addEventListener('click', () => {
   enter.classList.add('gone');
-  setTimeout(() => enter.remove(), 600);
-  // 들어오면 문에서 라운지 쪽으로 몇 걸음
-  walkTo(polar(330, 180));
+  setTimeout(() => enter.remove(), 700);
+  walkTo(me, { x: 0, z: 19 });
 });
-
-refreshActions();
 requestAnimationFrame(frame);
 
-// 개발 확인용(콘솔에서 상태 보기)
-window.__cafe = { me, seats, walkTo, ACTIONS, zoneAt };
+window.__cafe = { me, seats, walkTo, ACTIONS, view, sitOn, npcs };

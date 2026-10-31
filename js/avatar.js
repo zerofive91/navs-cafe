@@ -1,0 +1,251 @@
+// 귀여운 대학생 캐릭터 (2등신, 후드티 + 백팩)
+import * as THREE from 'three';
+
+const SKIN = 0xf7dcc0;
+
+export function makeAvatar(look) {
+  const m = (c, r = 0.8) => new THREE.MeshStandardMaterial({ color: c, roughness: r });
+  const hoodie = m(look.hoodie);
+  const skin = m(SKIN, 0.7);
+  const hair = m(look.hair, 0.6);
+  const pants = m(look.pants || 0x4b4f5c);
+  const shoe = m(0xf2f2f2, 0.6);
+  const dark = m(0x2f2a2a, 0.3);
+
+  const root = new THREE.Group();
+  const body = new THREE.Group(); // 앉을 때 내려가는 부분
+  root.add(body);
+
+  // 다리
+  const legGeo = new THREE.CapsuleGeometry(0.075, 0.14, 4, 8);
+  const legs = [];
+  for (const s of [-1, 1]) {
+    const pivot = new THREE.Group();
+    pivot.position.set(s * 0.1, 0.32, 0);
+    const leg = new THREE.Mesh(legGeo, pants);
+    leg.position.y = -0.14;
+    const foot = new THREE.Mesh(new THREE.SphereGeometry(0.085, 10, 8), shoe);
+    foot.scale.set(1, 0.6, 1.4);
+    foot.position.set(0, -0.27, 0.03);
+    pivot.add(leg, foot);
+    body.add(pivot);
+    legs.push(pivot);
+  }
+
+  // 몸통(후드티)
+  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.2, 0.2, 6, 14), hoodie);
+  torso.scale.set(1, 1, 0.82);
+  torso.position.y = 0.55;
+  body.add(torso);
+  // 주머니
+  const pocket = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.08, 0.02), m(shade(look.hoodie, 0.9)));
+  pocket.position.set(0, 0.47, 0.17);
+  body.add(pocket);
+  // 백팩
+  const bag = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.32, 0.14), m(look.bag));
+  bag.position.set(0, 0.58, -0.2);
+  body.add(bag);
+
+  // 팔
+  const armGeo = new THREE.CapsuleGeometry(0.06, 0.18, 4, 8);
+  const arms = [];
+  for (const s of [-1, 1]) {
+    const pivot = new THREE.Group();
+    pivot.position.set(s * 0.23, 0.7, 0);
+    const arm = new THREE.Mesh(armGeo, hoodie);
+    arm.position.y = -0.13;
+    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.06, 10, 8), skin);
+    hand.position.y = -0.27;
+    pivot.add(arm, hand);
+    body.add(pivot);
+    arms.push(pivot);
+  }
+
+  // 머리
+  const head = new THREE.Group();
+  head.position.y = 0.98;
+  body.add(head);
+  const face = new THREE.Mesh(new THREE.SphereGeometry(0.3, 24, 18), skin);
+  head.add(face);
+  const hairCap = new THREE.Mesh(new THREE.SphereGeometry(0.315, 24, 16, 0, Math.PI * 2, 0, Math.PI * 0.55), hair);
+  hairCap.rotation.x = -0.35;
+  hairCap.position.set(0, 0.02, -0.02);
+  head.add(hairCap);
+  if (look.style === 1) {
+    const bang = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 10), hair);
+    bang.scale.set(1.3, 0.6, 0.6);
+    bang.position.set(-0.1, 0.17, 0.22);
+    bang.rotation.z = 0.4;
+    head.add(bang);
+  } else {
+    const tail = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 8), hair);
+    tail.position.set(0, 0.02, -0.3);
+    head.add(tail);
+  }
+  // 후드
+  const hood = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.07, 8, 20), hoodie);
+  hood.position.set(0, -0.2, -0.08);
+  hood.rotation.x = Math.PI / 2 + 0.3;
+  head.add(hood);
+  // 눈·볼
+  const eyes = [];
+  for (const s of [-1, 1]) {
+    const e = new THREE.Mesh(new THREE.SphereGeometry(0.038, 10, 8), dark);
+    e.scale.set(1, 1.25, 0.5);
+    e.position.set(s * 0.11, 0.0, 0.275);
+    head.add(e);
+    eyes.push(e);
+    const cheek = new THREE.Mesh(new THREE.CircleGeometry(0.045, 12), new THREE.MeshBasicMaterial({ color: 0xf2a1a1, transparent: true, opacity: 0.55 }));
+    cheek.position.set(s * 0.18, -0.07, 0.262);
+    cheek.rotation.y = s * 0.55;
+    head.add(cheek);
+  }
+
+  // 들고 다니는 물건
+  const cup = new THREE.Group();
+  const cupBody = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.05, 0.13, 12), m(0xffffff, 0.5));
+  const sleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.062, 0.057, 0.05, 12), m(0xb07a4f));
+  cup.add(cupBody, sleeve);
+  cup.visible = false;
+  arms[1].add(cup);
+  cup.position.set(0, -0.33, 0.04);
+
+  const book = new THREE.Group();
+  for (const s of [-1, 1]) {
+    const pg = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.02, 0.2), m(0xfbf6ea));
+    pg.position.x = s * 0.08;
+    pg.rotation.z = s * -0.2;
+    book.add(pg);
+  }
+  const bcover = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.015, 0.22), m(0x7a5b8f));
+  bcover.position.y = -0.015;
+  book.add(bcover);
+  book.position.set(0, 0.62, 0.3);
+  book.rotation.x = 0.9;
+  book.visible = false;
+  body.add(book);
+
+  const can = new THREE.Group();
+  const canBody = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.09, 0.14, 12), m(0x8fb4cf, 0.4));
+  const spout = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.015, 0.2, 6), m(0x8fb4cf, 0.4));
+  spout.rotation.x = Math.PI / 2.6;
+  spout.position.set(0, 0.04, 0.13);
+  can.add(canBody, spout);
+  can.visible = false;
+  arms[1].add(can);
+  can.position.set(0, -0.36, 0.06);
+
+  // V-Hand 손가락 두 개
+  const vfing = new THREE.Group();
+  for (const s of [-1, 1]) {
+    const f = new THREE.Mesh(new THREE.CapsuleGeometry(0.022, 0.09, 4, 6), skin);
+    f.position.set(s * 0.03, -0.36, 0);
+    f.rotation.z = s * 0.3;
+    vfing.add(f);
+  }
+  vfing.visible = false;
+  arms[1].add(vfing);
+
+  const drops = [];
+  for (let k = 0; k < 4; k++) {
+    const d = new THREE.Mesh(new THREE.SphereGeometry(0.02, 6, 6), new THREE.MeshBasicMaterial({ color: 0x7fb6e0 }));
+    d.visible = false;
+    root.add(d);
+    drops.push(d);
+  }
+
+  root.traverse((c) => { if (c.isMesh) c.castShadow = true; });
+  root.userData = { body, legs, arms, head, eyes, cup, book, can, drops, vfing, blinkAt: 2 };
+  return root;
+}
+
+function shade(hex, k) {
+  const c = new THREE.Color(hex);
+  c.multiplyScalar(k);
+  return c;
+}
+
+// 상태에 맞춰 자세 잡기
+export function poseAvatar(av, ch, t, dt) {
+  const u = av.userData;
+  const walking = ch.state === 'walk';
+  const sitting = ch.state === 'sit';
+  const kneel = sitting && ch.seat && ch.seat.kind === 'kneel';
+  const ph = t * 9 + ch.phase;
+
+  // 기본값
+  let bodyY = walking ? Math.abs(Math.sin(ph)) * 0.04 : Math.sin(t * 2 + ch.phase) * 0.008;
+  let legA = walking ? Math.sin(ph) * 0.6 : 0;
+  let armL = walking ? -Math.sin(ph) * 0.5 : 0.05;
+  let armR = walking ? Math.sin(ph) * 0.5 : 0.05;
+  let armLz = 0.08, armRz = -0.08;
+  let headX = 0, headY = 0;
+
+  if (sitting) {
+    bodyY = kneel ? -0.2 : -0.12;
+    legA = kneel ? 0 : -1.4;
+  }
+  if (kneel) {
+    u.legs.forEach((l) => { l.rotation.x = 1.5; l.position.z = -0.05; });
+  } else {
+    u.legs.forEach((l, i) => { l.rotation.x = i ? -legA : legA; l.position.z = 0; });
+    if (sitting) u.legs.forEach((l) => { l.rotation.x = -1.4; });
+  }
+
+  switch (ch.action) {
+    case 'pray':
+      armL = -1.2; armR = -1.2; armLz = -0.55; armRz = 0.55; headX = 0.35;
+      break;
+    case 'read':
+      armL = -1.0; armR = -1.0; armLz = -0.35; armRz = 0.35; headX = 0.4;
+      break;
+    case 'gaze':
+      headX = -0.45; armL = 0.1; armR = 0.1;
+      break;
+    case 'wave':
+      armR = Math.PI * 0.85 + Math.sin(t * 10) * 0.25; armRz = -0.3;
+      break;
+    case 'vhand':
+      armR = Math.PI * 0.92; armRz = -0.15; headX = -0.08;
+      break;
+    case 'sip':
+      armR = -2.2; armRz = 0.4; headX = -0.1;
+      break;
+    case 'water':
+      armR = -1.0; armRz = 0.1; headX = 0.3;
+      break;
+    case 'wait':
+      headX = Math.sin(t * 1.5) * 0.05;
+      break;
+  }
+  if (ch.item === 'cup' && ch.action !== 'sip' && !walking) { armR = -0.6; }
+  if (ch.item === 'cup' && walking) { armR = -0.6; }
+
+  u.body.position.y = bodyY;
+  u.arms[0].rotation.x = armL;
+  u.arms[1].rotation.x = armR;
+  u.arms[0].rotation.z = armLz;
+  u.arms[1].rotation.z = armRz;
+  u.head.rotation.x = headX;
+  u.head.rotation.y = headY;
+
+  u.cup.visible = ch.item === 'cup';
+  u.book.visible = ch.action === 'read';
+  u.can.visible = ch.action === 'water';
+  u.vfing.visible = ch.action === 'vhand';
+
+  // 물방울
+  u.drops.forEach((d, k) => {
+    d.visible = ch.action === 'water';
+    if (!d.visible) return;
+    const p = (t * 1.6 + k / 4) % 1;
+    const fwd = new THREE.Vector3(0.28, 0, 0.55).applyAxisAngle(new THREE.Vector3(0, 1, 0), av.rotation.y);
+    d.position.set(fwd.x, 0.45 - p * 0.45, fwd.z);
+  });
+
+  // 눈 깜빡임 / 기도할 때 눈 감기
+  u.blinkAt -= dt;
+  let closed = ch.action === 'pray';
+  if (u.blinkAt < 0) { closed = true; if (u.blinkAt < -0.12) u.blinkAt = 2 + Math.random() * 3; }
+  u.eyes.forEach((e) => { e.scale.y = closed ? 0.2 : 1.25; });
+}
