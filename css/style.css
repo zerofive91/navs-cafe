@@ -94,25 +94,52 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
   opacity: 0.85;
   margin-bottom: 0.6em;
 }
-#enter .door {
+/* 들어가는 방법 세 가지: 혼자 · 함께 · 초대 */
+#enter .modes {
   position: absolute;
-  left: 50%;
-  bottom: calc(9vh + env(safe-area-inset-bottom));
-  width: 74px;
-  height: 74px;
-  margin-left: -37px;
+  left: 0;
+  right: 0;
+  bottom: calc(8vh + env(safe-area-inset-bottom));
+  display: flex;
+  justify-content: center;
+  gap: clamp(18px, 7vw, 40px);
+}
+#enter .mode {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: #fffaf0;
+  font: 600 15px/1 "Noto Serif KR", serif;
+  letter-spacing: 0.08em;
+  text-shadow: 0 1px 8px rgba(60, 40, 15, 0.55);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+#enter .mode .ring {
+  width: 66px;
+  height: 66px;
   border-radius: 50%;
   display: grid;
   place-items: center;
   color: #8f6744;
   background: rgba(255, 250, 238, 0.92);
-  box-shadow: 0 0 0 0 rgba(255, 236, 190, 0.7), 0 6px 22px rgba(60, 40, 15, 0.3);
-  animation: glow 2.6s ease-out infinite;
+  box-shadow: 0 6px 22px rgba(60, 40, 15, 0.3);
+  transition: transform 0.15s;
 }
+#enter .mode .ring svg { width: 30px; height: 30px; }
+#enter .mode:active .ring { transform: scale(0.92); }
+#enter .mode.main .ring { animation: glow 2.6s ease-out infinite; }
+#enter .mode.big .ring { width: 78px; height: 78px; }
+#enter .mode[disabled] { opacity: 0.6; cursor: progress; }
+#enter .mode[disabled] .ring svg { animation: spin 1.4s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 @media (min-aspect-ratio: 1/1) {
   #enter .title { top: calc(7vh + env(safe-area-inset-top)); font-size: clamp(28px, 4.6vw, 54px); }
   #enter .title br { display: none; }
-  #enter .door { bottom: calc(7vh + env(safe-area-inset-bottom)); }
+  #enter .modes { bottom: calc(6vh + env(safe-area-inset-bottom)); }
 }
 #enter.gone { opacity: 0; pointer-events: none; }
 @keyframes drift { from { transform: scale(1.04); } to { transform: scale(1.12) translateY(-1.5%); } }
@@ -120,7 +147,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
   0% { box-shadow: 0 0 0 0 rgba(255, 236, 190, 0.75), 0 6px 22px rgba(60, 40, 15, 0.3); }
   100% { box-shadow: 0 0 0 26px rgba(255, 236, 190, 0), 0 6px 22px rgba(60, 40, 15, 0.3); }
 }
-@media (prefers-reduced-motion: reduce) { #enter .art, #enter .door { animation: none; } }
+@media (prefers-reduced-motion: reduce) { #enter .art, #enter .mode .ring { animation: none; } }
 
 /* 위쪽: 장소 바로가기 + 시점 전환 */
 #places {
@@ -345,3 +372,25 @@ html.rot #musicPanel { max-height: calc(100vw - 64px); }
   transition: background 0.8s ease, box-shadow 0.8s ease;
 }
 #belly i.on { background: #ffe6a8; box-shadow: 0 0 14px 4px rgba(255, 220, 150, 0.6); }
+/* 함께 있기: 지금 같은 카페에 있는 사람 수 */
+.place.people { width: auto; min-width: 42px; padding: 0 10px 0 8px; border-radius: 21px; gap: 4px; grid-auto-flow: column; background: #fffaf0; color: #6b4f3a; margin-left: 4px; font: 600 14px/1 "Noto Serif KR", serif; }
+.place.people svg { width: 20px; height: 20px; }
+/* 잠깐 떠오르는 안내 (링크 복사, 카페가 가득 참 등) */
+#toast {
+  position: fixed;
+  left: 50%;
+  top: calc(70px + env(safe-area-inset-top));
+  transform: translateX(-50%);
+  max-width: calc(100vw - 32px);
+  padding: 10px 16px;
+  border-radius: 18px;
+  background: rgba(255, 250, 240, 0.95);
+  color: #5a4232;
+  font: 500 14px/1.45 "Noto Serif KR", serif;
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(60, 40, 20, 0.2);
+  z-index: 30;
+}
+#toast[hidden] { display: none; }
+/* 첫 화면에서는 두루마리 표시를 숨김 */
+#enter:not(.gone) ~ #scrollChip { display: none; }

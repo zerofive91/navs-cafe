@@ -11,6 +11,7 @@ import { initMusic } from './music.js';
 import { showVerse, showNext } from './verses.js';
 import { initPark } from './park.js';
 import { initScrolls } from './scrolls.js';
+import { initTogether, inviteCodeFromUrl, newInviteCode, inviteLink, RANDOM_CAP, INVITE_CAP } from './together.js';
 
 const canvas = document.getElementById('cafe');
 const bar = document.getElementById('actions');
@@ -130,7 +131,8 @@ function makeChar(look, x, z) {
   return { av, x, z, y: floorY(x, z), face: Math.PI, state: 'idle', action: null, item: null, path: [], seat: null, task: null, phase: Math.random() * 10 };
 }
 
-const me = makeChar(loadLook(), SPAWN.x, SPAWN.z);
+const myLook = loadLook();
+const me = makeChar(myLook, SPAWN.x, SPAWN.z);
 
 // 상주 캐릭터: 카운터 바리스타, 입구의 사장님 (각자 화면에서만 움직임)
 const baristaPos = polar(COUNTER.r + 1.1, -54);
@@ -396,7 +398,7 @@ function sitHere(kind) {
 }
 function nearestPerson(maxD) {
   let best = null, bd = maxD;
-  for (const n of npcs) {
+  for (const n of [...npcs, ...together.people.values()]) {
     const d = Math.hypot(n.x - me.x, n.z - me.z);
     if (d < bd) { bd = d; best = n; }
   }
@@ -885,6 +887,7 @@ function frame(now) {
   if (owner.action !== 'vhand') owner.action = nearOwner && Math.sin(t * 0.8) > 0.2 ? 'wave' : null;
   owner.face = nearOwner ? Math.atan2(me.x - owner.x, me.z - owner.z) : Math.PI;
   for (const n of npcs) { stepChar(n, dt); poseAvatar(n.av, n, t, dt); }
+  together.step(dt, t);
   stepGifts(dt);
   barista.av.userData.book.visible = false;
 
@@ -961,13 +964,82 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
-enter.addEventListener('click', () => {
+// ---------- 들어가기: 혼자 / 함께(랜덤 10명, 넘으면 다음 카페) / 초대 링크 ----------
+const together = initTogether({ scene, me, look: myLook, makeChar, poseAvatar, upgradeCup });
+const toastEl = document.getElementById('toast');
+let toastT = null;
+function toast(msg, sec = 3) {
+  toastEl.textContent = msg;
+  toastEl.hidden = false;
+  clearTimeout(toastT);
+  toastT = setTimeout(() => { toastEl.hidden = true; }, sec * 1000);
+}
+// 위쪽 사람 수 단추: 초대 카페에서는 누르면 초대 링크를 다시 공유
+const peopleBtn = document.createElement('button');
+peopleBtn.className = 'place people';
+peopleBtn.hidden = true;
+placesEl.insertBefore(peopleBtn, viewBtn);
+async function shareInvite() {
+  const url = inviteLink(together.st.code);
+  try {
+    if (navigator.share && PHONE) { await navigator.share({ title: 'Wheel Life Cafe', url }); return; }
+  } catch (e) { if (e && e.name === 'AbortError') return; }
+  try { await navigator.clipboard.writeText(url); toast('초대 링크를 복사했어요. 함께할 사람에게 보내 주세요.'); }
+  catch (e) { window.prompt('초대 링크', url); }
+}
+peopleBtn.addEventListener('pointerdown', (e) => {
+  e.stopPropagation();
+  const s = together.st;
+  if (s.mode === 'invite') shareInvite();
+  else toast(s.cafe > 1 ? `${s.cafe}호점 · ${s.count}/${RANDOM_CAP}명` : `${s.count}/${RANDOM_CAP}명`, 2);
+});
+together.st.onChange = (s) => {
+  peopleBtn.hidden = s.mode === 'solo';
+  peopleBtn.innerHTML = (s.mode === 'invite' ? ICONS.invite : ICONS.people) + `<span>${s.count}</span>`;
+  peopleBtn.setAttribute('aria-label', s.mode === 'invite' ? '초대 링크 공유' : '함께 있는 사람');
+};
+
+function goIn() {
   enter.classList.add('gone');
   setTimeout(() => enter.remove(), 700);
-  music.resume();
   walkTo(me, { x: 0, z: 19 });
   setTimeout(maybeHint, 1200);
-});
+}
+async function choose(mode, btn) {
+  music.resume();
+  if (mode === 'solo') { together.start('solo'); return goIn(); }
+  for (const b of enter.querySelectorAll('.mode')) b.disabled = true;
+  let code = inviteCodeFromUrl();
+  if (mode === 'invite' && !code) {
+    code = newInviteCode();
+    history.replaceState(null, '', '?c=' + code);
+  }
+  const r = await together.start(mode, code);
+  goIn();
+  if (r === 'full') toast(`이 초대 카페는 가득 찼어요(${INVITE_CAP}명). 혼자 둘러보는 중이에요.`, 5);
+  else if (r !== 'ok') toast('지금은 함께하기에 연결하지 못했어요. 혼자 둘러보는 중이에요.', 5);
+  else if (mode === 'random' && together.st.cafe > 1) toast(`1호점이 가득 차서 ${together.st.cafe}호점으로 왔어요.`, 4);
+  else if (mode === 'invite' && !inviteCodeFromUrl.arrived) setTimeout(shareInvite, 600);
+}
+{
+  const modes = enter.querySelector('.modes');
+  const add = (mode, icon, label, cls = '') => {
+    const b = document.createElement('button');
+    b.className = 'mode ' + cls;
+    b.innerHTML = `<span class="ring">${ICONS[icon]}</span><span>${label}</span>`;
+    b.addEventListener('click', () => choose(mode, b));
+    modes.appendChild(b);
+  };
+  if (inviteCodeFromUrl()) {
+    // 초대 링크로 온 사람: 초대한 카페로 들어가는 문 하나
+    inviteCodeFromUrl.arrived = true;
+    add('invite', 'door', '초대받은 카페', 'main big');
+  } else {
+    add('solo', 'solo', '혼자');
+    add('random', 'together', '함께', 'main');
+    add('invite', 'invite', '초대');
+  }
+}
 const signs = initSigns({ scene, me, npcs, interactive, act, sfx, fxSprite, burst, sun, walkTo, faceTo });
 const park = initPark({ scene, me, interactive, act, sfx, fxSprite, burst, walkTo, faceTo, standUp });
 Object.assign(ACTIONS, park.actions);
@@ -980,4 +1052,4 @@ setTimeout(() => {
   for (const n of npcs) if (n.av) upgradeCup(n.av);
 }, 300);
 
-window.__cafe = { me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs, placed, park, scrolls, renderer };
+window.__cafe = { together, me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs, placed, park, scrolls, renderer };

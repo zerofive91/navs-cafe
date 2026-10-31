@@ -82,4 +82,10 @@ export const ICONS = {
   water: svg('<path d="M6 14h14v8a3 3 0 0 1-3 3h-8a3 3 0 0 1-3-3z"/><path d="M20 16l7-5"/><path d="M9 14c0-4 2-6 5-6"/><path d="M27 15v2M25 19v2"/>'),
   // 쟁반 반납 (순종)
   tray: svg('<path d="M5 20h22"/><path d="M8 20a8 8 0 0 1 16 0"/><path d="M16 10V8"/><path d="M16 26v-3M11 26h10"/>'),
+  // 함께 있기: 혼자 / 랜덤으로 함께 / 초대 링크 / 지금 함께 있는 사람
+  solo: svg('<circle cx="16" cy="10" r="4"/><path d="M8 27v-3a8 8 0 0 1 16 0v3"/>'),
+  together: svg('<circle cx="16" cy="9" r="3.4"/><circle cx="7.5" cy="13" r="2.8"/><circle cx="24.5" cy="13" r="2.8"/><path d="M10 27v-3a6 6 0 0 1 12 0v3"/><path d="M3 26v-2a4.5 4.5 0 0 1 7-3.7M29 26v-2a4.5 4.5 0 0 0-7-3.7"/>'),
+  invite: svg('<path d="M13.5 18.5l5-5"/><path d="M11 15l-3 3a4.2 4.2 0 0 0 6 6l3-3"/><path d="M21 17l3-3a4.2 4.2 0 0 0-6-6l-3 3"/>'),
+  door: svg('<path d="M9 28V8a7 7 0 0 1 14 0v20M5 28h22"/><circle cx="19" cy="18" r="1" fill="currentColor"/>'),
+  people: svg('<circle cx="12" cy="11" r="3.6"/><circle cx="22" cy="12.5" r="3"/><path d="M5 26v-2a7 7 0 0 1 14 0v2"/><path d="M19.5 26v-2a6 6 0 0 1 8-5.6"/>'),
 };
