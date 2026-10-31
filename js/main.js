@@ -10,6 +10,7 @@ import { initSigns } from './signs.js';
 import { initMusic } from './music.js';
 import { showVerse, showNext } from './verses.js';
 import { initPark } from './park.js';
+import { initScrolls } from './scrolls.js';
 import { initTogether, inviteCodeFromUrl, newInviteCode, inviteLink, RANDOM_CAP, INVITE_CAP } from './together.js';
 
 const canvas = document.getElementById('cafe');
@@ -860,7 +861,7 @@ function verseHooks() {
   if (me.action !== prevAct) {
     prevAct = me.action;
     const k = ACTION_VERSE[me.action];
-    if (k) showVerse(k, { delay: me.action === 'pray' || me.action === 'read' || me.action === 'gaze' ? 2.5 : 1.2 });
+    if (k && !(me.action === 'gaze' && Math.hypot(me.x, me.z) > 8)) showVerse(k, { delay: me.action === 'pray' || me.action === 'read' || me.action === 'gaze' ? 2.5 : 1.2 });
   }
   const sk = me.state === 'sit' && me.seat ? me.seat.kind : null;
   if (sk !== prevSeat) {
@@ -918,7 +919,7 @@ function frame(now) {
     d = Math.atan2(Math.sin(d), Math.cos(d));
     if (Math.abs(d) < 2.4) view.az += d * Math.min(1, dt * (stickDriving ? 1.4 : 1.8));
   }
-  me.av.visible = view.mode !== 'first';
+  me.av.visible = view.mode !== 'first' && !me.hidden;
   if (view.mode === 'first') {
     // 1인칭: 캐릭터 눈 높이에서 바라보는 방향
     const eye = new THREE.Vector3(me.x, me.y + 1.25, me.z);
@@ -949,6 +950,7 @@ function frame(now) {
   stepWakes(dt);
   signs.step(dt * (window.__cafe.speed || 1));
   park.step(dt * (window.__cafe.speed || 1), t);
+  scrolls.step(dt * (window.__cafe.speed || 1), t);
   // 그림자 범위가 캐릭터를 따라감 (넓은 정원에서도 그림자)
   {
     const sx = Math.round(me.x / 4) * 4, sz = Math.round(me.z / 4) * 4;
@@ -1026,6 +1028,7 @@ window.__enterReady = true;
 const signs = initSigns({ scene, me, npcs, interactive, act, sfx, fxSprite, burst, sun, walkTo, faceTo });
 const park = initPark({ scene, me, interactive, act, sfx, fxSprite, burst, walkTo, faceTo, standUp });
 Object.assign(ACTIONS, park.actions);
+const scrolls = initScrolls({ scene, me, sfx, fxSprite, burst, icon: ICONS.scroll });
 requestAnimationFrame(frame);
 if (window.__pick) choose(window.__pick);
 // 첫 화면이 뜬 뒤 소품 모델을 천천히 불러와 바꿔 끼움
@@ -1035,4 +1038,4 @@ setTimeout(() => {
   for (const n of npcs) if (n.av) upgradeCup(n.av);
 }, 300);
 
-window.__cafe = { together, me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs, placed, park, renderer };
+window.__cafe = { together, me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs, placed, park, scrolls, renderer };

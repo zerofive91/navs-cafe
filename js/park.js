@@ -5,6 +5,8 @@ import { GLTFLoader } from '../vendor/loaders/GLTFLoader.js';
 import { PARK, POOL, GATE, R_PARK, R_WALK, R_GARDEN, LANES, polar, deg, inPool, poolDepth, parkClear, isFree } from './layout.js';
 import { place } from './props.js';
 import { showVerse, showNext } from './verses.js';
+import { addStories } from './stories.js';
+import { addCourses } from './courses.js';
 
 const G0 = -0.5; // 잔디 높이
 const loader = new GLTFLoader();
@@ -1381,6 +1383,12 @@ export function initPark({ scene, me, interactive, act, sfx, fxSprite, burst, wa
       }
     }
   });
+
+  // 성경 이야기 체험과 숲속 코스
+  const ctx = { scene, me, act, sfx, fxSprite, burst, faceTo, standUp, walkTo, actions, avail, steps, mixers, go, tapTo, audio, loadFresh,
+    H: { M, MAT, shadow, zoneGroup, at, box, flat, ease, G0 } };
+  addStories(ctx);
+  addCourses(ctx);
 
   return {
     actions,

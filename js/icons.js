@@ -3,6 +3,10 @@ const svg = (body) =>
   `<svg viewBox="0 0 32 32" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
 
 export const ICONS = {
+  trumpet: svg('<path d="M4 13v6l5-1V14z"/><path d="M9 14l13-6v16L9 18"/><path d="M25 12a5 5 0 0 1 0 8"/><path d="M12 19l1 5h3l-1-4.5"/>'),
+  sling: svg('<circle cx="22" cy="9" r="3"/><path d="M6 27c2-6 6-10 13-15"/><path d="M6 27c4-3 9-6 13-15"/><path d="M5 21l2 6 6-1"/>'),
+  jonah: svg('<path d="M4 16c4-6 12-8 18-4l6-4v16l-6-4c-6 4-14 2-18-4z"/><circle cx="9" cy="14.5" r="1"/><path d="M4 16h5"/>'),
+  scroll: svg('<path d="M9 6h14a3 3 0 0 1 0 6h-2v12a3 3 0 0 1-3 3H8"/><path d="M9 6a3 3 0 0 0-3 3v15a3 3 0 0 0 3 3h0a3 3 0 0 0 3-3V9a3 3 0 0 0-3-3z"/><path d="M15 15h3M15 19h3"/>'),
   // 메뉴: 커피, 차, 크루아상, 도넛, 머핀 / 먹기
   coffee: svg('<path d="M9 11h14l-1.5 15a2 2 0 0 1-2 1.8h-7a2 2 0 0 1-2-1.8z"/><path d="M8 11h16M10.5 7h11l1 4h-13z"/><path d="M9.8 17h12.4"/>'),
   tea: svg('<path d="M6 12h16v8a6 6 0 0 1-6 6h-4a6 6 0 0 1-6-6z"/><path d="M22 14h2a3 3 0 0 1 0 6h-2"/><path d="M14 12V6M14 6l3 3h-3"/>'),

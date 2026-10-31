@@ -140,7 +140,21 @@ export const PARK = {
   badminton: zone('badminton', 65, 337, 11, 6),
   pingpong: zone('pingpong', 65, 0, 7, 6),
   meadow: zone('meadow', 63, 40, 22, 14),   // 푸른 초장: 동물들이 노님
+  // 안쪽 띠 빈자리: 성경 이야기 체험
+  jericho: zone('jericho', 46, 76, 12, 12), // 여리고 성 (수 6, 히 11:30)
+  david: zone('david', 46, 104, 12, 11),    // 다윗과 골리앗 (삼상 17)
+  jonah: zone('jonah', 46, 164, 12, 11),    // 요나와 큰 물고기 (욘 1-2)
 };
+// 성경 이야기 구역의 막힌 곳: 여리고 성벽(무너지면 풀림), 골리앗, 요나의 못
+export const JERICHO = { ...PARK.jericho.at(0, 0), R: 3.4 };
+for (let k = 0; k < 20; k++) {
+  const a = (k / 20) * Math.PI * 2;
+  obstacles.push({ x: JERICHO.x + Math.cos(a) * JERICHO.R, z: JERICHO.z + Math.sin(a) * JERICHO.R, r: 0.6, h: 1.9, tag: 'jericho' });
+}
+export const GOLIATH = PARK.david.at(3.6, 1.2);
+block(GOLIATH.x, GOLIATH.z, 0.9);
+export const JONAH_POND = { ...PARK.jonah.at(1.6, 0.4), r: 3.6 };
+block(JONAH_POND.x, JONAH_POND.z, JONAH_POND.r - 0.2);
 // 수영장 물: 가장자리 1m는 완만한 경사, 가운데 깊이 0.75m
 export const POOL = { w: 12, d: 5.4, depth: 0.75, water: -0.5 - 0.2 };
 export function poolDepth(x, z) {
@@ -166,7 +180,91 @@ const onPaths = (x, z) => {
   if (Math.abs(x) < 4 && z > 0) return true; // 입구 길
   return false;
 };
-export function parkClear(x, z, pad = 1.5) { return !inAnyZone(x, z, pad) && !onPaths(x, z); }
+export function parkClear(x, z, pad = 1.5) { return !inAnyZone(x, z, pad) && !onPaths(x, z) && !nearTrail(x, z, 3); }
+
+// ---------- 숲속 코스: 둘레길에서 숲으로 들어가는 오솔길 ----------
+// 점은 (반지름, 각도). 정거장은 길을 따라 간 비율(f)과 놓일 쪽(side: 1 오른쪽, -1 왼쪽)
+const TRAIL_DEF = {
+  pilgrim: { pts: [[56, 265], [66, 265], [75, 261], [82, 254], [89, 258], [94, 266], [99, 272], [104, 266], [108, 259], [113, 262], [119, 265]],
+    st: [[0.05, 1], [0.14, -1], [0.24, 0], [0.34, 1], [0.45, -1], [0.56, 1], [0.66, -1], [0.76, 1], [0.87, 0], [1, 0]] },
+  gospel: { pts: [[56, 16], [66, 16], [76, 20], [85, 14], [93, 18], [101, 22], [109, 18]],
+    st: [[0.07, 1], [0.18, -1], [0.3, 1], [0.42, -1], [0.52, 1], [0.63, 0], [0.8, -1], [1, 0]] },
+  heaven: { pts: [[56, 227], [66, 227], [76, 224], [86, 230], [95, 226], [104, 222], [113, 227]],
+    st: [[0.08, 1], [0.2, -1], [0.33, 1], [0.46, -1], [0.58, 1], [0.7, 0], [0.84, -1], [1, 0]] },
+  jesus: { pts: [[56, 68], [66, 68], [76, 72], [85, 66], [93, 70], [101, 75], [110, 70]],
+    st: [[0.07, 1], [0.18, 0], [0.3, -1], [0.41, 1], [0.52, -1], [0.62, 1], [0.73, -1], [0.85, 1], [1, 0]] },
+};
+function catmull(pts, step = 0.5) {
+  const P = pts.map(([r, a]) => polar(r, a));
+  const out = [];
+  for (let i = 0; i < P.length - 1; i++) {
+    const p0 = P[Math.max(0, i - 1)], p1 = P[i], p2 = P[i + 1], p3 = P[Math.min(P.length - 1, i + 2)];
+    const n = Math.ceil(Math.hypot(p2.x - p1.x, p2.z - p1.z) / step);
+    for (let k = 0; k < n; k++) {
+      const t = k / n, t2 = t * t, t3 = t2 * t;
+      const f = (a, b, c, d) => 0.5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3);
+      out.push({ x: f(p0.x, p1.x, p2.x, p3.x), z: f(p0.z, p1.z, p2.z, p3.z) });
+    }
+  }
+  out.push(P[P.length - 1]);
+  let L = 0;
+  out.forEach((q, i) => { if (i) L += Math.hypot(q.x - out[i - 1].x, q.z - out[i - 1].z); q.s = L; });
+  return out;
+}
+export const TRAIL_W = 1.3; // 걸을 수 있는 반폭
+export const TRAILS = {};
+for (const [id, d] of Object.entries(TRAIL_DEF)) {
+  const S = catmull(d.pts);
+  const L = S[S.length - 1].s;
+  const sample = (f) => {
+    const s = f * L;
+    let i = S.findIndex((q) => q.s >= s); if (i < 1) i = 1;
+    const a = S[i - 1], b = S[i], k = (s - a.s) / Math.max(1e-6, b.s - a.s);
+    const dx = b.x - a.x, dz = b.z - a.z, dl = Math.hypot(dx, dz) || 1;
+    return { x: a.x + dx * k, z: a.z + dz * k, dir: { x: dx / dl, z: dz / dl } };
+  };
+  const stations = d.st.map(([f, side]) => {
+    const p = sample(f);
+    const right = { x: -p.dir.z, z: p.dir.x };
+    const off = side ? 3.2 : 0;
+    return { f, side, x: p.x, z: p.z, dir: p.dir, right, show: { x: p.x + right.x * off * side, z: p.z + right.z * off * side } };
+  });
+  TRAILS[id] = { id, samples: S, len: L, sample, stations, end: stations[stations.length - 1] };
+}
+const trailSamples = Object.values(TRAILS).flatMap((t) => t.samples);
+export function nearTrail(x, z, d) {
+  for (const q of trailSamples) if (Math.abs(q.x - x) < d && Math.abs(q.z - z) < d && Math.hypot(q.x - x, q.z - z) < d) return true;
+  for (const t of Object.values(TRAILS)) if (Math.hypot(t.end.x - x, t.end.z - z) < 9 + d - 3) return true;
+  return false;
+}
+// 정원 밖에서 걸을 수 있는 곳: 오솔길, 정거장 둘레, 길 끝 빈터
+const TM = { half: 128, cell: 0.5 };
+TM.n = Math.ceil((TM.half * 2) / TM.cell);
+const trailMask = new Uint8Array(TM.n * TM.n);
+{
+  const mark = (x, z, r) => {
+    const i0 = Math.floor((x - r + TM.half) / TM.cell), i1 = Math.floor((x + r + TM.half) / TM.cell);
+    const j0 = Math.floor((z - r + TM.half) / TM.cell), j1 = Math.floor((z + r + TM.half) / TM.cell);
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+      const cx = -TM.half + (i + 0.5) * TM.cell, cz = -TM.half + (j + 0.5) * TM.cell;
+      if (i >= 0 && j >= 0 && i < TM.n && j < TM.n && Math.hypot(cx - x, cz - z) < r) trailMask[j * TM.n + i] = 1;
+    }
+  };
+  for (const t of Object.values(TRAILS)) {
+    for (const q of t.samples) mark(q.x, q.z, TRAIL_W);
+    for (const s of t.stations) if (s.side) mark(s.x + s.right.x * s.side * 1.4, s.z + s.right.z * s.side * 1.4, 2);
+    mark(t.end.x, t.end.z, 7);
+  }
+}
+function onTrail(x, z) {
+  const i = Math.floor((x + TM.half) / TM.cell), j = Math.floor((z + TM.half) / TM.cell);
+  return i >= 0 && j >= 0 && i < TM.n && j < TM.n && trailMask[j * TM.n + i] === 1;
+}
+for (const t of Object.values(TRAILS)) {
+  for (const st of t.stations) if (st.side) block(st.show.x, st.show.z, 0.8, 1.4);
+  const e = t.end; block(e.x + e.dir.x * 5, e.z + e.dir.z * 5, 1.4);
+}
+export const WALK_MAX = Math.max(...Object.values(TRAILS).map((t) => Math.hypot(t.end.x, t.end.z) + 8));
 
 // 숲 나무: 테마파크 바깥의 숲과, 정원 안 구역 사이에 드문드문 (정원 안쪽에 있는 나무는 피해 다님)
 export const TREES = [];
@@ -178,6 +276,7 @@ export const TREES = [];
     const r = 77 + rnd() * 40;
     const h = 5 + rnd() * 7;
     if (Math.abs(a - Math.PI / 2) < 0.06) continue; // 입구 앞 길
+    if (nearTrail(Math.cos(a) * r, Math.sin(a) * r, 4)) continue; // 숲속 코스
     TREES.push({ x: Math.cos(a) * r, z: Math.sin(a) * r, h, dark: rnd() < 0.5 });
   }
   for (let k = 0; k < 260 && TREES.length < 205; k++) {
@@ -315,7 +414,7 @@ export const SPOTS = {
 export const BODY = 0.35;
 export function isFree(x, z, hop = 0) {
   const r = Math.hypot(x, z);
-  if (r > R_GARDEN) return false;
+  if (r > R_GARDEN && !onTrail(x, z)) return false;
   if (r > R_HALL - 0.7 && r < R_HALL + 1.1) {
     // 유리벽은 입구로만 드나듦
     if (!(z > 0 && Math.abs(x) < 1.15)) return false;
