@@ -3,6 +3,9 @@ const svg = (body) =>
   `<svg viewBox="0 0 32 32" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
 
 export const ICONS = {
+  // 3인칭(캐릭터 뒤에서) / 1인칭(눈으로) 시점
+  third: svg('<circle cx="19" cy="9" r="3"/><path d="M14 26v-6a5 5 0 0 1 10 0v6"/><path d="M4 18l4-2v6l-4-2z"/><rect x="8" y="15" width="5" height="8" rx="1"/>'),
+  first: svg('<path d="M3 16s5-8 13-8 13 8 13 8-5 8-13 8S3 16 3 16z"/><circle cx="16" cy="16" r="4"/>'),
   // 빛 바라보기 (그리스도)
   gaze: svg('<circle cx="16" cy="16" r="5"/><path d="M16 4v4M16 24v4M4 16h4M24 16h4M7.5 7.5l2.8 2.8M21.7 21.7l2.8 2.8M7.5 24.5l2.8-2.8M21.7 10.3l2.8-2.8"/>'),
   // 빛 아래 서기 (그리스도)
