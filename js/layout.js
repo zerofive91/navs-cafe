@@ -8,8 +8,9 @@ export const R_RIM_IN = 23.5; // 둘레 회랑 안쪽 경계
 export const R_HUB = 5;       // 가운데 단
 export const SPOKE = 2;       // 바퀴살 길 절반 폭
 export const CEIL = 11;       // 층고
-export const R_GARDEN = 46;   // 걸어 다닐 수 있는 바깥 정원 끝
+export const R_GARDEN = 74;   // 걸어 다닐 수 있는 바깥 정원(말씀 테마파크) 끝
 export const R_WALK = 34;     // 건물을 한 바퀴 도는 정원 산책길(가운데)
+export const R_PARK = 56;     // 테마파크를 한 바퀴 도는 바깥 둘레길
 
 export const deg = (d) => (d * Math.PI) / 180;
 // 각도 기준: 0 = 동, 90 = 남, -90 = 북, 180 = 서
@@ -27,7 +28,11 @@ export const WITNESS_POOL_R = 5.2;
 // 바닥 높이: 가운데 단과 바퀴살·둘레 길은 살짝 올라와 있음
 export function floorY(x, z) {
   const r = Math.hypot(x, z);
-  if (r >= R_HALL) return r < R_HALL + 0.6 ? 0 : -0.5; // 기단 위, 그 밖은 잔디
+  if (r >= R_HALL) {
+    if (r < R_HALL + 0.6) return 0; // 기단 위
+    const d = poolDepth(x, z);
+    return d ? -0.5 - d : -0.5; // 잔디, 수영장 안은 물속 바닥
+  }
   const w = onWater(x, z);
   if (w) return w.y; // 물 위를 걸음
   if (r < R_HUB) return 0.5;
@@ -45,7 +50,8 @@ export function onWater(x, z) {
 
 // 장애물(원)
 export const obstacles = [];
-const block = (x, z, r) => obstacles.push({ x, z, r });
+// h: 높이(점프해서 이보다 높이 뜨면 넘어갈 수 있음). 실내 물건은 넘을 수 없음
+const block = (x, z, r, h = Infinity) => obstacles.push({ x, z, r, h });
 
 // 기둥: 바퀴살 사이 대각선 방향
 export const columns = [];
@@ -101,17 +107,86 @@ export const LOUNGES = [-15, 45, -105, 165].map((a) => ({ a, chair: polar(26.3, 
 for (const l of LOUNGES) { block(l.chair.x, l.chair.z, 0.5); block(l.table.x, l.table.z, 0.35); }
 
 // ---------- 바깥 정원 ----------
-// 숲 나무(정원 안쪽에 있는 나무는 피해 다님)
+// ---------- 말씀 테마파크 ----------
+// 각 구역은 (반지름 r, 각도 a)에 놓이고, 구역 안 좌표 u는 둘레 방향, v는 바깥 방향(미터)
+function zone(name, r, a, w, d) {
+  const c = polar(r, a);
+  const t = { x: -Math.sin(deg(a)), z: Math.cos(deg(a)) }; // 둘레 방향
+  const n = { x: Math.cos(deg(a)), z: Math.sin(deg(a)) };  // 바깥 방향
+  return {
+    name, r, a, w, d, x: c.x, z: c.z, t, n,
+    rot: Math.atan2(t.x, t.z), // 모델의 +z를 둘레 방향으로
+    at(u, v = 0) { return { x: c.x + t.x * u + n.x * v, z: c.z + t.z * u + n.z * v }; },
+    local(x, z) { const dx = x - c.x, dz = z - c.z; return { u: dx * t.x + dz * t.z, v: dx * n.x + dz * n.z }; },
+    inside(x, z, pad = 0) { const l = this.local(x, z); return Math.abs(l.u) < w / 2 + pad && Math.abs(l.v) < d / 2 + pad; },
+  };
+}
+export const PARK = {
+  // 안쪽 띠 (산책길과 둘레길 사이)
+  market: zone('market', 46, 0, 12, 6),     // 간식·음료 가게
+  sower: zone('sower', 46, 60, 12, 7),      // 씨 뿌리는 비유의 밭
+  mustard: zone('mustard', 46, 120, 8, 8),  // 겨자씨
+  vine: zone('vine', 46, 180, 8, 5),        // 포도나무 그늘
+  fold: zone('fold', 46, 240, 9, 9),        // 양 우리 (잃은 양)
+  well: zone('well', 46, 300, 6, 6),        // 우물 (요 4:14)
+  // 바깥 띠 (둘레길 바깥)
+  pool: zone('pool', 65, 120, 14, 7),
+  camp: zone('camp', 65, 150, 13, 10),
+  bbq: zone('bbq', 65, 173, 9, 7),
+  ark: zone('ark', 65, 205, 30, 15),   // 방주 + 짝지어 줄 선 동물들
+  soccer: zone('soccer', 65, 245, 22, 13),
+  basket: zone('basket', 65, 280, 12, 10),
+  tennis: zone('tennis', 65, 310, 17, 9),
+  badminton: zone('badminton', 65, 337, 11, 6),
+  pingpong: zone('pingpong', 65, 0, 7, 6),
+  meadow: zone('meadow', 63, 40, 22, 14),   // 푸른 초장: 동물들이 노님
+};
+// 수영장 물: 가장자리 1m는 완만한 경사, 가운데 깊이 0.75m
+export const POOL = { w: 12, d: 5.4, depth: 0.75, water: -0.5 - 0.2 };
+export function poolDepth(x, z) {
+  const l = PARK.pool.local(x, z);
+  const eu = POOL.w / 2 - Math.abs(l.u), ev = POOL.d / 2 - Math.abs(l.v);
+  if (eu <= 0 || ev <= 0) return 0;
+  return POOL.depth * Math.min(1, Math.min(eu, ev) / 1.2);
+}
+export const inPool = (x, z) => poolDepth(x, z) > 0.25;
+// 좁은 문 (마 7:13): 입구 길 위, 산책길과 둘레길 사이
+export const GATE = { r: 44, w: 1.0 };
+// 둘레길과 이어지는 오솔길 각도
+export const LANES = [30, 90, 150, 210, 270, 330];
+const inAnyZone = (x, z, pad) => Object.values(PARK).some((zn) => zn.inside(x, z, pad));
+const onPaths = (x, z) => {
+  const r = Math.hypot(x, z);
+  if (Math.abs(r - R_PARK) < 3 || Math.abs(r - R_WALK) < 3) return true;
+  const a = (Math.atan2(z, x) * 180) / Math.PI;
+  for (const la of LANES) {
+    let d = Math.abs(((a - la + 540) % 360) - 180);
+    if (r > R_WALK && r < R_PARK + 1 && d * (Math.PI / 180) * r < 2.6) return true;
+  }
+  if (Math.abs(x) < 4 && z > 0) return true; // 입구 길
+  return false;
+};
+export function parkClear(x, z, pad = 1.5) { return !inAnyZone(x, z, pad) && !onPaths(x, z); }
+
+// 숲 나무: 테마파크 바깥의 숲과, 정원 안 구역 사이에 드문드문 (정원 안쪽에 있는 나무는 피해 다님)
 export const TREES = [];
 {
   let s = 5;
   const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
-  for (let k = 0; k < 110; k++) {
+  for (let k = 0; k < 170; k++) {
     const a = rnd() * Math.PI * 2;
-    const r = 38.5 + rnd() * 48;
-    const h = 4 + rnd() * 6;
-    if (Math.abs(a - Math.PI / 2) < 0.1 && r < 62) continue; // 입구 앞 길
+    const r = 77 + rnd() * 40;
+    const h = 5 + rnd() * 7;
+    if (Math.abs(a - Math.PI / 2) < 0.06) continue; // 입구 앞 길
     TREES.push({ x: Math.cos(a) * r, z: Math.sin(a) * r, h, dark: rnd() < 0.5 });
+  }
+  for (let k = 0; k < 260 && TREES.length < 205; k++) {
+    const a = rnd() * Math.PI * 2;
+    const r = 39 + rnd() * 34;
+    const h = 4 + rnd() * 5;
+    const x = Math.cos(a) * r, z = Math.sin(a) * r;
+    if (!parkClear(x, z, 4.5) || Math.hypot(x, z) > R_GARDEN - 1) continue;
+    TREES.push({ x, z, h, dark: rnd() < 0.5 });
   }
 }
 // 둥근 꽃밭 6곳, 산책길 바깥쪽 벤치 6개, 길가 등
@@ -120,9 +195,37 @@ export const GARDEN_BENCHES = [0, 60, 120, 180, 240, 300].map((a) => ({ a, ...po
 export const GARDEN_LAMPS = [];
 for (let a = 15; a < 360; a += 30) GARDEN_LAMPS.push(polar(32.5, a));
 for (const t of TREES) if (Math.hypot(t.x, t.z) < R_GARDEN + 1) block(t.x, t.z, 0.6);
-for (const b of FLOWER_BEDS) block(b.x, b.z, b.r);
-for (const b of GARDEN_BENCHES) block(b.x, b.z, 0.55);
-for (const l of GARDEN_LAMPS) block(l.x, l.z, 0.15);
+for (const b of FLOWER_BEDS) block(b.x, b.z, b.r, 0.35);
+for (const b of GARDEN_BENCHES) block(b.x, b.z, 0.55, 0.95);
+for (const l of GARDEN_LAMPS) block(l.x, l.z, 0.15, 1.7);
+// 테마파크 시설물 (사람이 지나갈 수 없는 것만)
+{
+  const P = PARK;
+  const b = (zn, u, v, r, h = Infinity) => { const p = zn.at(u, v); block(p.x, p.z, r, h); };
+  // 좁은 문 양옆 생울타리
+  for (const dx of [-1, 1]) for (let k = 0; k < 6; k++) block(dx * (GATE.w / 2 + 0.45 + k * 0.6), GATE.r, 0.4, 1.2);
+  for (let u = -5; u <= 5; u += 2.5) b(P.market, u, 1.8, 1.3, 2.6);
+  b(P.mustard, 0, 0, 0.7);
+  for (const u of [-3, 3]) for (const v of [-1.8, 1.8]) b(P.vine, u, v, 0.2);
+  // 양 우리 울타리(둥근 울, 산책길 쪽으로 문)
+  for (let k = 0; k < 28; k++) {
+    const ang = (k / 28) * Math.PI * 2;
+    if (Math.abs(Math.atan2(Math.sin(ang - Math.PI), Math.cos(ang - Math.PI))) < 0.35) continue; // 안쪽(건물 쪽) 문
+    b(P.fold, Math.sin(ang) * 4.2, Math.cos(ang) * 4.2, 0.3, 0.95);
+  }
+  b(P.well, 0, 0, 1.1, 0.9);
+  // 수영장 둘레는 걸을 수 있음, 선베드 두 개
+  for (const u of [-3, 0, 3]) b(P.camp, u, 2.8, 1.2, 1.5); // 텐트
+  b(P.camp, 0, -1.2, 0.7, 0.6); // 모닥불
+  b(P.bbq, -2, 0.5, 0.6, 1.05); for (const u of [1.5, 3.4]) b(P.bbq, u, 1.2, 0.8, 0.8); // 화로, 피크닉 탁자
+  for (let u = -7; u <= 7; u += 1.4) b(P.ark, u, 1, 2.1 - Math.abs(u) * 0.12); // 방주
+  for (const v of [-2.4, -3.6, -4.8]) b(P.ark, 0, v, 0.75, 1.3); // 경사로
+  for (const u of [-11, 11]) for (const v of [-1.3, 1.3]) b(P.soccer, u, v, 0.15, 1.25); // 골대 기둥
+  b(P.basket, 5.8, 0, 0.3);
+  for (const v of [-4.8, 4.8]) b(P.tennis, 0, v, 0.12, 1.05);
+  for (const v of [-3.2, 3.2]) b(P.badminton, 0, v, 0.1, 1.6);
+  for (const u of [-0.9, 0, 0.9]) b(P.pingpong, 0, u * 0.6, 0.55, 0.8);
+}
 
 // 앉을 수 있는 자리
 export const seats = [];
@@ -172,6 +275,24 @@ block(Q.prayer.x, Q.prayer.z, 1.5); // 기도하는 손이 선 작은 섬
     seat(p.x, p.z, { x: p.x - dir.z, z: p.z + dir.x }, 'boat', edge);
   }
 }
+// 테마파크: 모닥불 둘레 통나무, 포도나무 그늘 벤치, 피크닉 탁자 의자
+export const CAMP_FIRE = PARK.camp.at(0, -1.2);
+for (const a of [-50, 0, 50]) {
+  const ang = deg(a) + Math.atan2(-PARK.camp.n.z, -PARK.camp.n.x);
+  const p = { x: CAMP_FIRE.x + Math.cos(ang) * 1.7, z: CAMP_FIRE.z + Math.sin(ang) * 1.7 };
+  seat(p.x, p.z, CAMP_FIRE, 'log', { x: CAMP_FIRE.x + Math.cos(ang) * 2.4, z: CAMP_FIRE.z + Math.sin(ang) * 2.4 });
+  seats[seats.length - 1].top = -0.5 + 0.34;
+}
+for (const u of [-1.2, 1.2]) {
+  const p = PARK.vine.at(u, 0.9);
+  seat(p.x, p.z, PARK.vine.at(u, -3), 'vine', PARK.vine.at(u, 0.2));
+  seats[seats.length - 1].top = -0.5 + 0.49;
+}
+for (const u of [1.5, 3.4]) for (const sd of [-1, 1]) {
+  const p = PARK.bbq.at(u, 1.2 + sd * 0.65);
+  seat(p.x, p.z, PARK.bbq.at(u, 1.2), 'picnic', PARK.bbq.at(u, 1.2 + sd * 1.25));
+  seats[seats.length - 1].top = -0.5 + 0.475;
+}
 // 말씀: 성경을 둘러싼 곡선 벤치 3곳
 for (const a of [-160, -135, -110]) {
   const p = { x: BIBLE.x + Math.cos(deg(a)) * 4.4, z: BIBLE.z + Math.sin(deg(a)) * 4.4 };
@@ -192,15 +313,43 @@ export const SPOTS = {
 
 // 사람이 설 수 있는 곳인지
 export const BODY = 0.35;
-export function isFree(x, z) {
+export function isFree(x, z, hop = 0) {
   const r = Math.hypot(x, z);
   if (r > R_GARDEN) return false;
   if (r > R_HALL - 0.7 && r < R_HALL + 1.1) {
     // 유리벽은 입구로만 드나듦
     if (!(z > 0 && Math.abs(x) < 1.15)) return false;
   }
-  for (const o of obstacles) {
+  // 장애물은 4m 칸으로 나눠 가까운 것만 검사 (넓은 정원에서도 빠르게)
+  if (!buckets) buildBuckets();
+  const list = buckets.get(bkey(Math.floor(x / BK), Math.floor(z / BK)));
+  if (list) for (const o of list) {
+    if (hop > o.h) continue; // 그 위로 뛰어 넘는 중
     if (Math.hypot(x - o.x, z - o.z) < o.r + BODY) return false;
   }
   return true;
+}
+// 이 자리에서 가장 가까운 나무 (매달리기·오르기)
+export function nearTree(x, z, maxD = 1.5) {
+  let best = null, bd = maxD;
+  for (const t of TREES) {
+    const d = Math.hypot(t.x - x, t.z - z);
+    if (d < bd && Math.hypot(t.x, t.z) < R_GARDEN + 1) { bd = d; best = t; }
+  }
+  return best;
+}
+const BK = 4;
+let buckets = null;
+const bkey = (i, j) => i * 1000 + j;
+function buildBuckets() {
+  buckets = new Map();
+  for (const o of obstacles) {
+    const R = o.r + BODY;
+    for (let i = Math.floor((o.x - R) / BK); i <= Math.floor((o.x + R) / BK); i++)
+      for (let j = Math.floor((o.z - R) / BK); j <= Math.floor((o.z + R) / BK); j++) {
+        const k = bkey(i, j);
+        if (!buckets.has(k)) buckets.set(k, []);
+        buckets.get(k).push(o);
+      }
+  }
 }

@@ -51,6 +51,27 @@ export const ICONS = {
   wave: svg('<path d="M10 18V9a2 2 0 0 1 4 0v7"/><path d="M14 15V7a2 2 0 0 1 4 0v8"/><path d="M18 15V9a2 2 0 0 1 4 0v9a8 8 0 0 1-8 8h-1a7 7 0 0 1-6-3l-3-5a2 2 0 0 1 3-2l3 3"/>'),
   // 낚시 (한 세겔)
   fish: svg('<path d="M7 27L24 5"/><path d="M24 5v15"/><path d="M21 22a3 3 0 1 0 6 0"/><path d="M5 27h6"/>'),
+  // 나무 오르기 / 내려오기
+  climb: svg('<path d="M14 30V18M14 22l-5-5M14 19l5-6"/><path d="M14 18c-6 0-9-4-9-8a9 9 0 0 1 18 0c0 4-3 8-9 8z"/><path d="M24 26v-8M21 21l3-3 3 3"/>'),
+  down: svg('<path d="M16 5v18"/><path d="M9 16l7 7 7-7"/><path d="M6 28h20"/>'),
+  // 정원에서 걷기 / 달리기
+  walk: svg('<circle cx="16" cy="6" r="2.5"/><path d="M16 10v9l-3 8M16 19l3 8M12 14l4-3 4 3"/>'),
+  run: svg('<circle cx="19" cy="5.5" r="2.5"/><path d="M17 10l-3 7 5 3-2 7M14 17l-6 1M17 10l5 4 4-1"/><path d="M4 12h5M3 17h4"/>'),
+  // 화면 눕히기
+  rotate: svg('<rect x="9" y="4" width="14" height="24" rx="2.5"/><path d="M4 20a12 12 0 0 0 9 8.5"/><path d="M10 25.5l3 3-3.5 2"/>'),
+  // 찬양: 높이 든 두 손과 음표
+  praise: svg('<path d="M9 27v-8l-3-9a1.4 1.4 0 0 1 2.6-1L11 15V5.5a1.4 1.4 0 0 1 2.8 0V15"/><path d="M23 27v-8l3-9a1.4 1.4 0 0 0-2.6-1L21 15V5.5a1.4 1.4 0 0 0-2.8 0V15"/>'),
+  // 테마파크 액티비티
+  kick: svg('<circle cx="21" cy="21" r="6"/><path d="M21 15l-2.5 3.5 2.5 3 3-1.5"/><path d="M5 9l5 2 2 6-4 6"/>'),
+  shoot: svg('<circle cx="12" cy="20" r="6"/><path d="M6 20h12M12 14v12"/><path d="M20 6h8M22 6l2 6 2-6"/><path d="M17 15c2-4 4-6 6-7"/>'),
+  tennis: svg('<ellipse cx="13" cy="12" rx="6" ry="8" transform="rotate(-35 13 12)"/><path d="M17.5 18.5L26 27"/><circle cx="24" cy="9" r="2.6"/>'),
+  badminton: svg('<path d="M10 22l9-9"/><path d="M19 13l5-7 3 3-7 5z"/><circle cx="8" cy="24" r="2.5"/>'),
+  pingpong: svg('<circle cx="13" cy="13" r="8"/><path d="M18.5 18.5L25 25"/><circle cx="25" cy="8" r="2.2"/>'),
+  grill: svg('<path d="M6 14h20a10 10 0 0 1-20 0z"/><path d="M11 24l-2 5M21 24l2 5"/><path d="M11 10c0-2 2-2 2-4M16 10c0-2 2-2 2-4M21 10c0-2 2-2 2-4"/>'),
+  sow: svg('<path d="M6 26h20"/><path d="M10 26v-4M16 26v-6M22 26v-4"/><path d="M16 20c-3 0-4-3-4-5 2 0 4 1 4 5zM16 20c3 0 4-3 4-5-2 0-4 1-4 5z"/><circle cx="9" cy="8" r="1"/><circle cx="14" cy="6" r="1"/><circle cx="19" cy="9" r="1"/>'),
+  plant: svg('<path d="M6 26h20"/><path d="M16 26V14"/><path d="M16 18c-5 0-7-4-7-7 4 0 7 2 7 7zM16 15c4 0 6-3 6-6-3 0-6 2-6 6z"/>'),
+  draw: svg('<path d="M7 14h18v12H7z"/><path d="M5 9h22"/><path d="M8 9V5M24 9V5"/><path d="M16 9v6"/><path d="M13 15h6l-1 4h-4z"/>'),
+  rainbow: svg('<path d="M4 24a12 12 0 0 1 24 0"/><path d="M8 24a8 8 0 0 1 16 0"/><path d="M12 24a4 4 0 0 1 8 0"/>'),
   // 내려놓기
   putdown: svg('<path d="M10 9h10l-1 8a2 2 0 0 1-2 1.8h-4a2 2 0 0 1-2-1.8z"/><path d="M20 11h1.5a2 2 0 0 1 0 4H20"/><path d="M4 24h24"/><path d="M15 3v3"/>'),
   // 물주기 (순종)

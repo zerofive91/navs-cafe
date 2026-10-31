@@ -142,6 +142,40 @@ export function makeAvatar(look) {
   rod.position.set(0, -0.42, 0.02);
   rod.visible = false;
   arms[1].add(rod);
+  // 라켓 세 가지 (테니스·배드민턴·탁구)
+  const rackets = {};
+  {
+    const frame = m(0x3d6f9e, 0.4), str = new THREE.MeshStandardMaterial({ color: 0xf4f1e8, transparent: true, opacity: 0.55, roughness: 0.6 });
+    const mk = (len, rw, rh, col, solid) => {
+      const g = new THREE.Group();
+      const h = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.016, len, 6), m(0x4a3b30, 0.6));
+      h.position.y = len / 2;
+      const ring = solid
+        ? new THREE.Mesh(new THREE.CylinderGeometry(rw, rw, 0.015, 18), m(col, 0.5))
+        : new THREE.Mesh(new THREE.TorusGeometry(1, 0.012 / rw, 5, 20), m(col, 0.4));
+      if (solid) { ring.rotation.z = Math.PI / 2; ring.position.y = len + rw * 0.9; }
+      else {
+        ring.scale.set(rw, rh, rw);
+        ring.rotation.y = Math.PI / 2;
+        ring.position.y = len + rh;
+        const net = new THREE.Mesh(new THREE.CircleGeometry(1, 16), str);
+        net.scale.set(rw, rh, 1); net.rotation.y = Math.PI / 2; net.position.y = len + rh;
+        g.add(net);
+      }
+      g.add(h, ring);
+      return g;
+    };
+    rackets.tennis = mk(0.2, 0.11, 0.14, 0x3d6f9e);
+    rackets.badminton = mk(0.26, 0.08, 0.1, 0xd9483b);
+    rackets.pingpong = mk(0.08, 0.075, 0.075, 0xc8443a, true);
+    void frame;
+    for (const r of Object.values(rackets)) {
+      r.rotation.x = 1.4; // 팔을 앞으로 들었을 때 라켓이 위로 섬
+      r.position.set(0, -0.42, 0.03);
+      r.visible = false;
+      arms[1].add(r);
+    }
+  }
   const can = new THREE.Group();
   const canBody = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.09, 0.14, 12), m(0x8fb4cf, 0.4));
   const spout = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.015, 0.2, 6), m(0x8fb4cf, 0.4));
@@ -172,7 +206,7 @@ export function makeAvatar(look) {
   }
 
   root.traverse((c) => { if (c.isMesh) c.castShadow = true; });
-  root.userData = { body, legs, arms, head, eyes, cup, food, rod, rodTip, foods: {}, drinks: {}, book, can, drops, vfing, blinkAt: 2 };
+  root.userData = { body, legs, arms, head, eyes, cup, food, rod, rodTip, rackets, foods: {}, drinks: {}, book, can, drops, vfing, blinkAt: 2 };
   return root;
 }
 
@@ -245,7 +279,51 @@ export function poseAvatar(av, ch, t, dt) {
     case 'wait':
       headX = Math.sin(t * 1.5) * 0.05;
       break;
+    case 'climb':
+      // 줄기를 번갈아 붙잡으며 오름
+      armL = -2.6 + Math.sin(t * 7) * 0.4; armR = -2.6 - Math.sin(t * 7) * 0.4; armLz = 0.25; armRz = -0.25; headX = -0.3;
+      u.legs.forEach((l, i) => { l.rotation.x = -0.6 + Math.sin(t * 7 + i * Math.PI) * 0.5; });
+      break;
+    case 'hang':
+      // 가지에 두 손으로 매달려 다리를 흔듦
+      armL = -3.05; armR = -3.05; armLz = 0.12; armRz = -0.12; headX = -0.2;
+      u.legs.forEach((l, i) => { l.rotation.x = Math.sin(t * 2.4 + i * 0.6) * 0.45; });
+      break;
+    case 'praise':
+      // 두 손을 높이 들고 천천히 흔듦
+      armL = -2.75 + Math.sin(t * 1.6) * 0.12; armR = -2.75 - Math.sin(t * 1.6) * 0.12; armLz = 0.35; armRz = -0.35; headX = -0.3;
+      bodyY += Math.sin(t * 1.6) * 0.01;
+      break;
+    case 'kick':
+      armL = 0.5; armR = -0.5; armLz = 0.3; armRz = -0.3;
+      break;
+    case 'shoot':
+      armL = -2.7; armR = -2.8; armLz = 0.2; armRz = -0.2; headX = -0.25;
+      break;
+    case 'rally':
+      armR = -0.9 + (ch.swingT > 0 ? Math.sin((1 - ch.swingT / 0.35) * Math.PI) * -1.3 : 0); armRz = -0.35; armL = -0.4;
+      break;
+    case 'sow':
+      armR = -0.6 - Math.max(0, Math.sin(t * 4)) * 1.6; armRz = -0.4 + Math.sin(t * 4) * 0.3; armL = -0.7; armLz = 0.2;
+      break;
+    case 'grill':
+    case 'draw':
+      armL = -1.1; armR = -1.1 + (ch.action === 'draw' ? Math.sin(t * 6) * 0.5 : 0); armLz = 0.15; armRz = -0.15; headX = 0.35;
+      break;
+    case 'plant':
+      armL = -1.3; armR = -1.3; armLz = 0.3; armRz = -0.3; headX = 0.5;
+      break;
   }
+  // 수영: 팔을 번갈아 크게 돌리고 발장구
+  if (ch.swim) {
+    const sp = t * (walking ? 5 : 2.2);
+    armL = -sp % (Math.PI * 2); armR = -(sp + Math.PI) % (Math.PI * 2); armLz = 0.25; armRz = -0.25;
+    if (!walking) { armL = -1.6 + Math.sin(sp) * 0.4; armR = -1.6 - Math.sin(sp) * 0.4; armLz = 0.7; armRz = -0.7; }
+    headX = -0.15;
+    bodyY = Math.sin(t * 2.5) * 0.03;
+    u.legs.forEach((l, i) => { l.rotation.x = Math.sin(t * 9 + i * Math.PI) * 0.35; });
+  }
+  if (ch.action === 'kick' && ch.kickT > 0) u.legs[1].rotation.x = -1.2 * Math.sin((1 - ch.kickT / 0.5) * Math.PI);
   if (ch.item === 'cup' && ch.action !== 'sip' && !walking) { armR = -0.6; }
   if (ch.item === 'cup' && walking) { armR = -0.6; }
   if (ch.food && ch.action !== 'eat') { armL = -0.6; }
@@ -268,6 +346,9 @@ export function poseAvatar(av, ch, t, dt) {
   u.can.visible = ch.action === 'water';
   u.vfing.visible = ch.action === 'vhand';
   u.rod.visible = ch.action === 'fish';
+  for (const [k, r] of Object.entries(u.rackets)) r.visible = ch.racket === k;
+  if (ch.swingT > 0) ch.swingT -= dt;
+  if (ch.kickT > 0) ch.kickT -= dt;
 
   // 물방울
   u.drops.forEach((d, k) => {

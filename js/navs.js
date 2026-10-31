@@ -145,6 +145,8 @@ function cycleMarks(scene, anim) {
     return { p, m, ring, pillar, glow: 0, flash: 0 };
   });
   const CYCLE_VERSE = ['c_globe', 'c_seed', 'c_wheel', 'c_worker', 'c_send'];
+  const CYCLE_NAME = ['세계 · 전도', '초신자 · 새 생명', '제자 · 날마다 따름', '일꾼 · 충성된 사람', '파송 · 보내심'];
+  const onMark = marks.map(() => false);
   // 표식 사이를 잇는 점선 빛(순서대로 밟으면 이어짐)
   const dots = [];
   for (let k = 0; k < 5; k++) {
@@ -173,12 +175,15 @@ function cycleMarks(scene, anim) {
         next = (next + 1) % 5;
         mk.glow = 1;
         mk.flash = 1;
-        if (done === 5) { celebrate = 8; marks.forEach((o) => { o.flash = 1.4; }); showVerse('wheel', { delay: 0.8, cooldown: 30 }); }
-        else showVerse(CYCLE_VERSE[k], { delay: 0.4, cooldown: 45 });
-      } else if (near && k === 0 && next !== 0) {
-        // 처음부터 다시
-        next = 1; done = 0; marks.forEach((o) => { o.glow = 0; }); mk.glow = 1;
+        if (done === 5) { celebrate = 8; marks.forEach((o) => { o.flash = 1.4; }); showVerse('wheel', { delay: 0.8, cooldown: 30, title: '일꾼 배가 순환 · 한 바퀴' }); }
+        else showVerse(CYCLE_VERSE[k], { delay: 0.3, cooldown: 0, title: CYCLE_NAME[k] });
+      } else if (near && !onMark[k]) {
+        // 순서와 상관없이 올라서면 빛기둥과 함께 이름·말씀
+        mk.flash = 1;
+        showVerse(CYCLE_VERSE[k], { delay: 0.3, cooldown: 0, title: CYCLE_NAME[k] });
+        if (k === 0 && next !== 0) { next = 1; done = 0; marks.forEach((o) => { o.glow = 0; }); mk.glow = 1; } // 처음부터 다시
       }
+      onMark[k] = near;
       const target = mk.glow;
       mk.flash = Math.max(0, mk.flash - dt * 0.45);
       mk.m.emissiveIntensity = 0.05 + target * (0.9 + 0.2 * Math.sin(t * 2 + k)) + mk.flash * 1.2;
@@ -343,7 +348,7 @@ function historyPanels(scene, anim) {
       f.m.emissiveIntensity = 0.12 + 0.05 * Math.sin(t * 0.5 + k) + f.lit * 0.75;
       f.glow.material.opacity = 0.2 + f.lit * 0.55;
       f.glow.scale.set(1 + f.lit * 0.6, 1 + f.lit * 1.4, 1);
-      if (near && f.lit > 0.6) showVerse('history', { cooldown: 120 });
+      if (near && f.lit > 0.6) showVerse('history', { cooldown: 60, title: `배가의 역사 · ${k + 1}세대` });
     });
   });
 }
