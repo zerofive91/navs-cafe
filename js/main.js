@@ -12,7 +12,8 @@ const enter = document.getElementById('enter');
 
 // ---------- 렌더러·장면 ----------
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+const PHONE = Math.min(window.innerWidth, window.innerHeight) < 600;
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, PHONE ? 1.5 : 1.75));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.92;
@@ -31,7 +32,7 @@ const sun = new THREE.DirectionalLight(0xfff1dc, 1.6);
 sun.position.set(-14, 40, -10);
 sun.target.position.set(0, 0, 0);
 sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.mapSize.set(PHONE ? 1024 : 2048, PHONE ? 1024 : 2048);
 const sc = sun.shadow.camera;
 sc.left = -30; sc.right = 30; sc.top = 30; sc.bottom = -30; sc.near = 10; sc.far = 80;
 sun.shadow.bias = -0.0005;
@@ -221,7 +222,7 @@ function refreshActions() {
 }
 
 // ---------- 카메라 (끌어서 돌리기, 휠/두 손가락으로 확대) ----------
-const view = { az: 0, el: 0.32, dist: 8, tx: me.x, ty: 1, tz: me.z, mode: 'third', pitch: 0, follow: true };
+const view = { az: 0, el: 0.3, dist: 7, tx: me.x, ty: 1, tz: me.z, mode: 'third', pitch: 0, follow: true, lift: 0 };
 function resize() {
   const w = window.innerWidth, h = window.innerHeight;
   renderer.setSize(w, h, false);
@@ -255,9 +256,12 @@ canvas.addEventListener('pointermove', (e) => {
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
     drag.moved = Math.max(drag.moved, Math.hypot(dx, dy));
     if (drag.moved > 6) {
-      view.az = drag.az - dx * 0.006;
-      if (view.mode === 'first') view.pitch = clamp(drag.pitch - dy * 0.004, -0.7, 0.6);
-      else view.el = clamp(drag.el + dy * 0.004, 0.05, 1.35);
+      if (view.mode === 'first') {
+        // 화면을 손으로 잡아 끄는 느낌: 오른쪽으로 밀면 시선은 왼쪽으로
+        view.az = drag.az + dx * 0.005;
+        view.pitch = clamp(drag.pitch + dy * 0.004, -0.7, 0.6);
+      } else view.az = drag.az - dx * 0.006;
+      if (view.mode !== 'first') view.el = clamp(drag.el + dy * 0.004, 0.05, 1.35);
       view.dragAt = performance.now();
     }
   }
@@ -396,7 +400,7 @@ function showViewIcon() {
 viewBtn.addEventListener('pointerdown', (e) => {
   e.stopPropagation();
   if (view.mode === 'third') { view.mode = 'first'; view.az = me.face + Math.PI; view.pitch = 0; }
-  else { view.mode = 'third'; view.az = me.face + Math.PI; view.el = 0.32; view.dist = 8; }
+  else { view.mode = 'third'; view.az = me.face + Math.PI; view.el = 0.3; view.dist = 7; }
   showViewIcon();
 });
 showViewIcon();
@@ -481,6 +485,8 @@ function frame(now) {
     view.az += d * Math.min(1, dt * 1.6);
   }
   me.av.visible = view.mode !== 'first';
+  // 세로 화면에서는 시선 높이를 올려 캐릭터가 아래쪽(조이스틱 위)에 오게 함
+  view.lift = window.innerHeight > window.innerWidth ? 0.16 * view.dist : 0.08 * view.dist;
   if (view.mode === 'first') {
     // 1인칭: 캐릭터 눈 높이에서 바라보는 방향
     const eye = new THREE.Vector3(me.x, me.y + 1.25, me.z);
@@ -502,7 +508,7 @@ function frame(now) {
     }
     const hReal = Math.hypot(cx - view.tx, cz - view.tz);
     camera.position.set(cx, Math.min(cy, view.ty + hReal * Math.tan(view.el) + 0.3), cz);
-    camera.lookAt(view.tx, view.ty + 0.2, view.tz);
+    camera.lookAt(view.tx, view.ty + 0.2 + view.lift, view.tz);
   }
 
   refreshActions();
