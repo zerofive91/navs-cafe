@@ -52,11 +52,41 @@ scene.traverse((o) => {
   if (!o.isMesh || !o.castShadow) return;
   if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
   const r = o.geometry.boundingSphere.radius * Math.max(o.scale.x, o.scale.y, o.scale.z);
-  const wp = o.getWorldPosition(new THREE.Vector3());
-  if (r > 0.6 && Math.hypot(wp.x, wp.z) < 27) occluders.push(o);
+  if (r > 0.3 && r < 20) occluders.push(o);
 });
 const occRay = new THREE.Raycaster();
-let camPull = 99, occFrame = 0;
+let occFrame = 0;
+const fading = new Map(); // mesh -> { want }
+function fadeOccluders(P, cam) {
+  const hitNow = new Set();
+  for (const dy of [-0.55, 0, 0.6]) {
+    const from = new THREE.Vector3(P.x, P.y + dy, P.z);
+    const dir = cam.clone().sub(from);
+    const len = dir.length();
+    occRay.set(from, dir.normalize());
+    occRay.far = len - 0.2;
+    for (const h of occRay.intersectObjects(occluders, false)) hitNow.add(h.object);
+  }
+  for (const o of hitNow) {
+    if (!o.userData.fadeMat) {
+      o.userData.baseMat = o.material;
+      o.userData.fadeMat = o.material.clone();
+      o.userData.fadeMat.transparent = true;
+      o.userData.baseOpacity = o.material.opacity;
+    }
+    fading.set(o, 0.18);
+  }
+  for (const [o] of fading) if (!hitNow.has(o)) fading.set(o, 1);
+}
+function stepFades(dt) {
+  for (const [o, want] of fading) {
+    const m = o.userData.fadeMat;
+    if (o.material !== m) { o.material = m; m.opacity = o.userData.baseOpacity; }
+    m.opacity += (want * o.userData.baseOpacity - m.opacity) * Math.min(1, dt * 8);
+    m.depthWrite = m.opacity > 0.9;
+    if (want === 1 && m.opacity > 0.98 * o.userData.baseOpacity) { o.material = o.userData.baseMat; fading.delete(o); }
+  }
+}
 
 // ---------- 캐릭터 ----------
 const HOODIES = [0x8fb7e0, 0xf2a7a0, 0xa7d3a6, 0xf4d27a, 0xb9a6e0, 0xf5f0e6];
@@ -100,6 +130,7 @@ const SPEED = 2.6;
 function standUp(ch) {
   if (ch.seat) {
     ch.seat.taken = false;
+    if (ch.state === 'sit' && ch.action && ch.action !== 'sip') ch.action = null;
     ch.x = ch.seat.approach.x;
     ch.z = ch.seat.approach.z;
     ch.seat = null;
@@ -153,9 +184,10 @@ function nearestSeat(kind, near) {
 const ACTIONS = {
   light: () => walkTo(me, { x: 0.4, z: 0.9 }, () => { act('gaze'); }),
   pray: () => {
-    const s = nearestSeat('kneel', me);
-    if (s) sitOn(me, s);
-    me.task = wrapTask(me.task, () => act('pray'));
+    // 기도 구역에서는 방석에, 다른 곳에서는 그 자리에 무릎 꿇고 기도
+    const s = Math.hypot(me.x - SPOTS.pray.x, me.z - SPOTS.pray.z) < SPOTS.pray.r ? nearestSeat('kneel', me) : null;
+    if (s) { sitOn(me, s); me.task = wrapTask(me.task, () => act('pray')); }
+    else { sitHere('kneel'); act('pray'); }
   },
   order: () => walkTo(me, SPOTS.order, () => {
     faceTo(me, polar(COUNTER.r, -56));
@@ -173,9 +205,33 @@ const ACTIONS = {
     if (s) sitOn(me, s);
   },
   read: () => {
-    const s = nearestSeat('bench', SPOTS.read);
-    if (s && Math.hypot(s.x - SPOTS.read.x, s.z - SPOTS.read.z) < 6) sitOn(me, s);
-    me.task = wrapTask(me.task, () => act('read'));
+    // 말씀 구역에서는 벤치에 앉아서, 다른 곳에서는 그 자리에서 성경을 펼침
+    if (Math.hypot(me.x - SPOTS.read.x, me.z - SPOTS.read.z) < SPOTS.read.r) {
+      const s = nearestSeat('bench', SPOTS.read);
+      if (s && Math.hypot(s.x - SPOTS.read.x, s.z - SPOTS.read.z) < 6) { sitOn(me, s); me.task = wrapTask(me.task, () => act('read')); return; }
+    }
+    act('read');
+  },
+  jump: () => {
+    if (me.seat) standUp(me);
+    if (me.jump > 0) return;
+    me.jump = 0.0001;
+  },
+  sit: () => {
+    // 가까운 빈 자리가 있으면 거기에, 없으면 바닥에 앉음
+    const s = nearestFreeSeat(me, 3);
+    if (s) sitOn(me, s);
+    else sitHere('floor');
+  },
+  stand: () => { standUp(me); me.action = null; },
+  share: () => {
+    // 전도: 가까운 사람에게 걸어가 빛을 건넴 → 상대가 받고 반갑게 인사
+    const n = nearestPerson(6);
+    if (!n) return;
+    const p = nearestFree({ x: n.x + (me.x - n.x) * 0.3, z: n.z + (me.z - n.z) * 0.3 }) || n;
+    const dd = Math.hypot(me.x - n.x, me.z - n.z);
+    const give = () => { faceTo(me, n); act('share', 2.4); n.face = Math.atan2(me.x - n.x, me.z - n.z); sendLight(me, n); };
+    if (dd > 1.8) walkTo(me, p, give); else { standUp(me); give(); }
   },
   water: (pot) => {
     let p = pot;
@@ -190,6 +246,58 @@ const ACTIONS = {
   wave: () => act('wave', 2.4),
   vhand: () => act('vhand', 2.6),
 };
+function nearestFreeSeat(near, maxD) {
+  let best = null, bd = maxD;
+  for (const s of seats) {
+    if (s.taken) continue;
+    const d = Math.hypot(s.approach.x - near.x, s.approach.z - near.z);
+    if (d < bd) { bd = d; best = s; }
+  }
+  return best;
+}
+function sitHere(kind) {
+  standUp(me);
+  me.path = [];
+  me.task = null;
+  me.seat = { kind, x: me.x, z: me.z, face: me.face, approach: { x: me.x, z: me.z }, taken: true, free: true };
+  me.state = 'sit';
+}
+function nearestPerson(maxD) {
+  let best = null, bd = maxD;
+  for (const n of npcs) {
+    const d = Math.hypot(n.x - me.x, n.z - me.z);
+    if (d < bd) { bd = d; best = n; }
+  }
+  return best;
+}
+// 전도할 때 건네는 작은 빛
+const gifts = [];
+const giftGeo = new THREE.SphereGeometry(0.09, 12, 10);
+function sendLight(from, to) {
+  const m = new THREE.Mesh(giftGeo, new THREE.MeshBasicMaterial({ color: 0xffd98a }));
+  const halo = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 10), new THREE.MeshBasicMaterial({ color: 0xffd98a, transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending }));
+  m.add(halo);
+  scene.add(m);
+  gifts.push({ m, from: { x: from.x, y: from.y + 0.75, z: from.z }, to, t: -0.6 });
+}
+function stepGifts(dt) {
+  for (let i = gifts.length - 1; i >= 0; i--) {
+    const g = gifts[i];
+    g.t += dt / 1.3;
+    const u = Math.max(0, Math.min(1, g.t));
+    const tx = g.to.x, ty = g.to.y + 0.9, tz = g.to.z;
+    g.m.position.set(g.from.x + (tx - g.from.x) * u, g.from.y + (ty - g.from.y) * u + Math.sin(u * Math.PI) * 0.7, g.from.z + (tz - g.from.z) * u);
+    g.m.visible = g.t > 0;
+    if (g.t >= 1) {
+      scene.remove(g.m);
+      gifts.splice(i, 1);
+      g.to.action = 'vhand';
+      g.to.glow = 2.5;
+      setTimeout(() => { if (g.to.action === 'vhand') g.to.action = null; }, 2400);
+    }
+  }
+}
+
 function wrapTask(first, then) {
   return () => { if (first) first(); then(); };
 }
@@ -198,16 +306,19 @@ function availableActions() {
   const list = [];
   if (me.state === 'walk' || me.action === 'wait') return list;
   const near = (s) => Math.hypot(me.x - s.x, me.z - s.z) < s.r;
+  // 그 장소에서만 할 수 있는 일
   if (near(SPOTS.light)) list.push('light');
-  if (near(SPOTS.pray)) list.push('pray');
   if (near(SPOTS.order) && !me.item) list.push('order');
   if (near(SPOTS.boat)) list.push('boat');
-  if (near(SPOTS.read)) list.push('read');
   if (Math.hypot(me.x, me.z) > 22.5) list.push('water');
   if (me.item === 'cup') list.push('sip');
   if (me.item === 'cup' && near(SPOTS.tray)) list.push('tray');
+  // 어디서나 할 수 있는 일
+  list.push(me.state === 'sit' ? 'stand' : 'sit');
+  if (me.state !== 'sit') list.push('jump');
+  list.push('pray', 'read');
+  if (nearestPerson(6)) list.push('share');
   list.push('wave');
-  if (Math.hypot(me.x, me.z) > 22.5 || near(SPOTS.light)) list.push('vhand');
   return list;
 }
 let shown = '';
@@ -220,12 +331,13 @@ function refreshActions() {
   for (const name of list) {
     const b = document.createElement('button');
     const on = me.action === name || (name === 'light' && me.action === 'gaze') || (name === 'boat' && me.seat && me.seat.kind === 'boat');
+    if (name === 'jump' || name === 'sit' || name === 'stand' || name === 'share') { /* 누를 때마다 실행 */ }
     b.className = 'act' + (on ? ' on' : '');
     b.setAttribute('aria-label', name);
     b.innerHTML = ICONS[name];
     b.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
-      if (on && name !== 'wave') { me.action = null; shown = ''; return; }
+      if (on && name !== 'wave' && name !== 'share') { me.action = null; if (me.seat && me.seat.free) standUp(me); shown = ''; return; }
       ACTIONS[name]();
     });
     bar.appendChild(b);
@@ -233,7 +345,7 @@ function refreshActions() {
 }
 
 // ---------- 카메라 (끌어서 돌리기, 휠/두 손가락으로 확대) ----------
-const view = { az: 0, el: 0.3, dist: 7, tx: me.x, ty: 1, tz: me.z, mode: 'third', pitch: 0, follow: true, lift: 0 };
+const view = { az: 0, el: 0.32, dist: 7, tx: me.x, ty: 0.62, tz: me.z, mode: 'third', pitch: 0, follow: true };
 function resize() {
   const w = window.innerWidth, h = window.innerHeight;
   renderer.setSize(w, h, false);
@@ -262,7 +374,7 @@ canvas.addEventListener('pointermove', (e) => {
   if (pinch && pointers.size === 2) {
     const [a, b] = [...pointers.values()];
     const d = Math.hypot(a.x - b.x, a.y - b.y);
-    view.dist = clamp(pinch.dist * (pinch.d / d), 3, 30);
+    view.dist = clamp(pinch.dist * (pinch.d / d), 4.5, 16);
   } else if (drag) {
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
     drag.moved = Math.max(drag.moved, Math.hypot(dx, dy));
@@ -272,7 +384,7 @@ canvas.addEventListener('pointermove', (e) => {
         view.az = drag.az + dx * 0.005;
         view.pitch = clamp(drag.pitch + dy * 0.004, -0.7, 0.6);
       } else view.az = drag.az - dx * 0.006;
-      if (view.mode !== 'first') view.el = clamp(drag.el + dy * 0.004, 0.05, 1.35);
+      if (view.mode !== 'first') view.el = clamp(drag.el + dy * 0.004, 0.08, 1.1);
       view.dragAt = performance.now();
     }
   }
@@ -288,7 +400,7 @@ canvas.addEventListener('pointerup', endPointer);
 canvas.addEventListener('pointercancel', endPointer);
 canvas.addEventListener('wheel', (e) => {
   e.preventDefault();
-  view.dist = clamp(view.dist * Math.exp(e.deltaY * 0.001), 3, 30);
+  view.dist = clamp(view.dist * Math.exp(e.deltaY * 0.001), 4.5, 16);
 }, { passive: false });
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
@@ -308,6 +420,7 @@ function tap(sx, sy) {
   const hits = ray.intersectObjects(interactive, false);
   if (hits.length && hits[0].distance < 60) {
     const o = hits[0].object;
+    if (o.userData.onTap) return o.userData.onTap();
     const name = o.userData.action;
     if (name === 'water') return ACTIONS.water(o.userData.pot);
     if (ACTIONS[name]) return ACTIONS[name]();
@@ -355,7 +468,10 @@ function stickUp(e) {
 stickEl.addEventListener('pointerup', stickUp);
 stickEl.addEventListener('pointercancel', stickUp);
 const KEYMAP = { ArrowUp: 'u', KeyW: 'u', ArrowDown: 'd', KeyS: 'd', ArrowLeft: 'l', KeyA: 'l', ArrowRight: 'r', KeyD: 'r' };
-window.addEventListener('keydown', (e) => { if (KEYMAP[e.code]) { keys.add(KEYMAP[e.code]); e.preventDefault(); } });
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') { ACTIONS.jump(); e.preventDefault(); return; }
+  if (KEYMAP[e.code]) { keys.add(KEYMAP[e.code]); e.preventDefault(); }
+});
 window.addEventListener('keyup', (e) => { keys.delete(KEYMAP[e.code]); });
 let stickDriving = false;
 function driveStick(dt) {
@@ -427,7 +543,7 @@ function showViewIcon() {
 viewBtn.addEventListener('pointerdown', (e) => {
   e.stopPropagation();
   if (view.mode === 'third') { view.mode = 'first'; view.az = me.face + Math.PI; view.pitch = 0; }
-  else { view.mode = 'third'; view.az = me.face + Math.PI; view.el = 0.3; view.dist = 7; }
+  else { view.mode = 'third'; view.az = me.face + Math.PI; view.el = 0.32; view.dist = 7; }
   showViewIcon();
 });
 showViewIcon();
@@ -455,10 +571,19 @@ function stepChar(ch, dt) {
     if (ch.seat.kind === 'bench') fy = Math.max(fy, 0) + (Math.hypot(ch.x, ch.z) < 6 ? 0.5 : 0) + 0.28;
     if (ch.seat.kind === 'stool') fy = 0.28;
     if (ch.seat.kind === 'boat') fy = 0.2;
-    if (ch.seat.kind === 'kneel') fy = 0.12;
+    if (ch.seat.kind === 'kneel') fy = ch.seat.free ? floorY(ch.x, ch.z) - 0.02 : 0.12;
+    if (ch.seat.kind === 'floor') fy = floorY(ch.x, ch.z) - 0.2;
   }
   ch.y += (fy - ch.y) * Math.min(1, dt * 10);
-  ch.av.position.set(ch.x, ch.y, ch.z);
+  // 점프: 0.55초 동안 포물선
+  let hop = 0;
+  if (ch.jump > 0) {
+    ch.jump += dt / 0.55;
+    if (ch.jump >= 1) ch.jump = 0;
+    else hop = Math.sin(ch.jump * Math.PI) * 0.55;
+  }
+  ch.hop = hop;
+  ch.av.position.set(ch.x, ch.y + hop, ch.z);
   // 부드럽게 돌기
   let da = ch.face - ch.av.rotation.y;
   da = Math.atan2(Math.sin(da), Math.cos(da));
@@ -476,16 +601,17 @@ function frame(now) {
   poseAvatar(me.av, me, t, dt);
   // 상주 캐릭터
   baristaBusy -= dt;
-  barista.action = baristaBusy > 0 ? 'read' : null; // 음료 만드는 손동작
+  if (barista.action !== 'vhand') barista.action = baristaBusy > 0 ? 'read' : null; // 음료 만드는 손동작
   barista.face = baristaBusy > 0 ? Math.atan2(-barista.x, -barista.z) + 0.6 : Math.atan2(-barista.x, -barista.z);
   const nearOwner = Math.hypot(me.x - owner.x, me.z - owner.z) < 5;
-  owner.action = nearOwner && Math.sin(t * 0.8) > 0.2 ? 'wave' : null;
+  if (owner.action !== 'vhand') owner.action = nearOwner && Math.sin(t * 0.8) > 0.2 ? 'wave' : null;
   owner.face = nearOwner ? Math.atan2(me.x - owner.x, me.z - owner.z) : Math.PI;
   for (const n of npcs) { stepChar(n, dt); poseAvatar(n.av, n, t, dt); }
+  stepGifts(dt);
   barista.av.userData.book.visible = false;
 
   const camR = Math.hypot(camera.position.x, camera.position.z);
-  for (const f of anim) f(t, { reading: me.action === 'read', praying: me.action === 'pray', me, camR }, dt * (window.__cafe.speed || 1));
+  for (const f of anim) f(t, { reading: me.action === 'read', praying: me.action === 'pray' && Math.hypot(me.x - SPOTS.pray.x, me.z - SPOTS.pray.z) < SPOTS.pray.r + 2, me, camR }, dt * (window.__cafe.speed || 1));
 
   if (ripple) {
     ripple.t += dt;
@@ -499,11 +625,11 @@ function frame(now) {
     }
   }
 
-  // 카메라 따라가기
-  const k = 1 - Math.exp(-dt * 6);
+  // 카메라 따라가기: 기준점은 캐릭터 몸 가운데(점프는 따라가지 않아 화면이 흔들리지 않음)
+  const k = 1 - Math.exp(-dt * 8);
   view.tx += (me.x - view.tx) * k;
   view.tz += (me.z - view.tz) * k;
-  view.ty += (me.y + 1 - view.ty) * k;
+  view.ty += (me.y + 0.62 - view.ty) * k;
   // 걷는 동안에는 시점이 천천히 캐릭터 뒤로 돌아감 (방금 화면을 끌었다면 잠시 기다림)
   const moving = me.state === 'walk';
   if (moving && view.mode === 'third' && performance.now() - (view.dragAt || 0) > 1500 && !stick.on) {
@@ -512,8 +638,6 @@ function frame(now) {
     view.az += d * Math.min(1, dt * 1.6);
   }
   me.av.visible = view.mode !== 'first';
-  // 세로 화면에서는 시선 높이를 올려 캐릭터가 아래쪽(조이스틱 위)에 오게 함
-  view.lift = window.innerHeight > window.innerWidth ? 0.16 * view.dist : 0.08 * view.dist;
   if (view.mode === 'first') {
     // 1인칭: 캐릭터 눈 높이에서 바라보는 방향
     const eye = new THREE.Vector3(me.x, me.y + 1.25, me.z);
@@ -521,42 +645,24 @@ function frame(now) {
     const fx = -Math.sin(view.az) * Math.cos(view.pitch), fz = -Math.cos(view.az) * Math.cos(view.pitch);
     camera.lookAt(eye.x + fx, eye.y + Math.sin(view.pitch), eye.z + fz);
   } else {
-    const cy = Math.min(CEIL - 1.2, view.ty + Math.sin(view.el) * view.dist);
-    const horiz = Math.cos(view.el) * view.dist;
-    let cx = view.tx + Math.sin(view.az) * horiz, cz = view.tz + Math.cos(view.az) * horiz;
-    // 카메라가 유리벽 밖으로 나가지 않게
-    const cr = Math.hypot(cx, cz), maxR = 34;
-    if (cr > maxR) {
-      const dx = Math.sin(view.az), dz = Math.cos(view.az);
-      const b = view.tx * dx + view.tz * dz, c = view.tx * view.tx + view.tz * view.tz - maxR * maxR;
-      const s = -b + Math.sqrt(Math.max(0, b * b - c));
-      cx = view.tx + dx * Math.max(1.2, s);
-      cz = view.tz + dz * Math.max(1.2, s);
-    }
-    const hReal = Math.hypot(cx - view.tx, cz - view.tz);
-        const camPos = new THREE.Vector3(cx, Math.min(cy, view.ty + hReal * Math.tan(view.el) + 0.3), cz);
-    // 캐릭터와 카메라 사이에 기둥·조형물이 끼면 카메라를 앞으로 당김
-    if (++occFrame % 3 === 0) {
-      const from = new THREE.Vector3(view.tx, view.ty + 0.4, view.tz);
-      const dir = camPos.clone().sub(from);
-      const len = dir.length();
-      occRay.set(from, dir.normalize());
-      occRay.far = len;
-      const hit = occRay.intersectObjects(occluders, false)[0];
-      camPull = hit ? Math.max(1.2, hit.distance - 0.35) : 99;
-    }
-    const from = new THREE.Vector3(view.tx, view.ty + 0.4, view.tz);
-    const full = camPos.distanceTo(from);
-    view.pullCur = view.pullCur === undefined ? full : view.pullCur;
-    const want = Math.min(full, camPull);
-    view.pullCur += (want - view.pullCur) * Math.min(1, dt * (want < view.pullCur ? 12 : 3));
-    const keep = Math.min(1, view.pullCur / full);
-    if (keep < 0.999) {
-      camPos.lerpVectors(from, camPos, keep);
-    }
+    // 3인칭: 캐릭터(약 1.3m)가 머리부터 발끝까지 화면 가운데 약간 아래에 오도록
+    // 카메라는 캐릭터를 중심으로 공전하고, 절대 일정 거리(4.5m)보다 가까이 오지 않음.
+    // 사이에 기둥·조형물이 끼면 카메라를 당기지 않고 그 물체를 반투명하게 만듦.
+    const P = new THREE.Vector3(view.tx, view.ty, view.tz);
+    const el = clamp(view.el, 0.08, 1.1);
+    let dist = Math.max(4.5, view.dist);
+    const up = Math.sin(el) * dist;
+    if (P.y + up > CEIL - 0.8) dist = (CEIL - 0.8 - P.y) / Math.sin(el); // 천장 아래로
+    dist = Math.max(4.5, dist);
+    const horiz = Math.cos(el) * dist;
+    const camPos = new THREE.Vector3(P.x + Math.sin(view.az) * horiz, Math.min(CEIL - 0.8, P.y + Math.sin(el) * dist), P.z + Math.cos(view.az) * horiz);
     camera.position.copy(camPos);
-    camera.lookAt(view.tx, view.ty + 0.2 + view.lift * keep, view.tz);
+    camera.lookAt(P);
+    // 화면에서 캐릭터 중심이 세로 -0.22(가운데보다 약간 아래)에 오도록 위로 살짝 기울임
+    camera.rotateX(Math.atan(0.22 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))));
+    if (++occFrame % 3 === 0) fadeOccluders(P, camPos);
   }
+  stepFades(dt);
 
   refreshActions();
   renderer.render(scene, camera);

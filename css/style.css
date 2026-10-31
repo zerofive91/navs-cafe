@@ -114,7 +114,7 @@ canvas { display: block; touch-action: none; }
 }
 /* 조이스틱과 겹치지 않게 동작 버튼은 오른쪽으로 */
 @media (max-width: 640px) {
-  #actions { left: auto; right: calc(14px + env(safe-area-inset-right)); transform: none; gap: 8px; }
+  #actions { left: auto; right: calc(14px + env(safe-area-inset-right)); transform: none; gap: 8px; flex-wrap: wrap-reverse; justify-content: flex-end; max-width: calc(100vw - 170px); border-radius: 28px; }
   .act { width: 48px; height: 48px; }
 }
 

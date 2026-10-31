@@ -511,10 +511,15 @@ export function buildWorld(scene) {
     sg.setAttribute('position', new THREE.Float32BufferAttribute(strings, 3));
     fishGroup.add(new THREE.LineSegments(sg, new THREE.LineBasicMaterial({ color: 0xd8d3ca, transparent: true, opacity: 0.35 })));
     scene.add(shadowy(fishGroup, true, false));
-    anim.push((t) => {
+    // 물고기를 누르면 떼 전체가 물결치듯 한 바퀴 돎
+    let swirl = 0;
+    for (const q of fishes) { q.f.userData.onTap = () => { swirl = 1; }; interactive.push(q.f); }
+    anim.push((t, ctx, dt) => {
+      swirl = Math.max(0, swirl - (dt || 0.016) * 0.4);
       for (const q of fishes) {
-        q.f.rotation.y = q.base + Math.sin(t * 0.4 + q.ph) * 0.12;
-        q.f.position.y = q.y + Math.sin(t * 0.6 + q.ph) * 0.05;
+        const w = swirl > 0 ? Math.sin(Math.min(1, Math.max(0, (1 - swirl) * 2.2 - q.ph / 12)) * Math.PI) : 0;
+        q.f.rotation.y = q.base + Math.sin(t * 0.4 + q.ph) * 0.12 + w * Math.PI;
+        q.f.position.y = q.y + Math.sin(t * 0.6 + q.ph) * 0.05 + w * 0.4;
       }
     });
 

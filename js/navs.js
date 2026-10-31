@@ -14,9 +14,9 @@ function glowMat() {
 
 export function buildNavigators(scene, anim, interactive) {
   wordHand(scene, anim, interactive);
-  prayerLights(scene, anim);
+  prayerLights(scene, anim, interactive);
   cycleMarks(scene, anim);
-  coreValues(scene, anim);
+  coreValues(scene, anim, interactive);
   historyPanels(scene, anim);
 }
 
@@ -66,7 +66,7 @@ function wordHand(scene, anim, interactive) {
 
   let lit = 0;
   anim.push((t, ctx, dt) => {
-    if (ctx && ctx.reading) lit = Math.min(5.5, lit + dt / 2.2);
+    if (ctx && ctx.reading && ctx.me && Math.hypot(ctx.me.x - WORD_HAND.x, ctx.me.z - WORD_HAND.z) < 10) lit = Math.min(5.5, lit + dt / 2.2);
     else lit = Math.max(0, lit - dt / 4);
     lines.forEach((m, k) => {
       const on = Math.max(0, Math.min(1, lit - k));
@@ -77,7 +77,7 @@ function wordHand(scene, anim, interactive) {
 }
 
 // ---------- 기도의 다섯 빛 ----------
-function prayerLights(scene, anim) {
+function prayerLights(scene, anim, interactive) {
   const { x, z } = Q.prayer;
   const colors = [0xfff1c2, 0xffe0a8, 0xf7f3ff, 0xd8ecff, 0xffd6c9]; // 찬양·감사·자백·중보·간구
   const orbs = [];
@@ -90,16 +90,22 @@ function prayerLights(scene, anim) {
     const string = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, CEIL - o.position.y, 4), new THREE.MeshBasicMaterial({ color: 0xcfc8bc }));
     string.position.set(o.position.x, (CEIL + o.position.y) / 2, o.position.z);
     scene.add(o, string);
-    orbs.push({ o, halo, y: o.position.y });
+    const orb = { o, halo, y: o.position.y, manual: 0, pulse: 0 };
+    // 빛을 직접 눌러 켜고 끔
+    o.userData.onTap = () => { orb.manual = orb.manual ? 0 : 1; orb.pulse = 1; };
+    interactive.push(o);
+    orbs.push(orb);
   });
   let lit = 0;
   anim.push((t, ctx, dt) => {
     if (ctx && ctx.praying) lit = Math.min(5.5, lit + dt / 2.5);
     else lit = Math.max(0, lit - dt / 5);
     orbs.forEach((b, k) => {
-      const on = Math.max(0, Math.min(1, lit - k));
+      const on = Math.max(b.manual, Math.max(0, Math.min(1, lit - k)));
+      b.pulse = Math.max(0, b.pulse - dt * 1.5);
       b.o.material.opacity = 0.15 + on * 0.8;
-      b.halo.material.opacity = on * (0.18 + 0.06 * Math.sin(t * 1.5 + k));
+      b.halo.material.opacity = on * (0.18 + 0.06 * Math.sin(t * 1.5 + k)) + b.pulse * 0.35;
+      b.halo.scale.setScalar(1 + b.pulse * 0.8);
       b.o.position.y = b.y + Math.sin(t * 0.6 + k) * 0.08;
     });
   });
@@ -222,7 +228,7 @@ function roundedRect(w, h, r) {
   sh.lineTo(-w / 2, -h / 2 + r); sh.quadraticCurveTo(-w / 2, -h / 2, -w / 2 + r, -h / 2);
   return sh;
 }
-function coreValues(scene, anim) {
+function coreValues(scene, anim, interactive) {
   const cards = [];
   const shape = roundedRect(0.8, 1.25, 0.12);
   const geo = new THREE.ExtrudeGeometry(shape, { depth: 0.03, bevelEnabled: true, bevelSize: 0.015, bevelThickness: 0.015, bevelSegments: 2 });
@@ -245,12 +251,18 @@ function coreValues(scene, anim) {
     const line = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, CEIL - y - 0.62, 4), strMat);
     line.position.set(g.position.x, (CEIL + y + 0.62) / 2, g.position.z);
     scene.add(g, line);
-    cards.push({ g, glass: glass.material, a, k });
+    const card = { g, glass: glass.material, a, k, spin: 0 };
+    // 누르면 한 바퀴 돌며 밝게 빛남
+    glass.userData.onTap = () => { card.spin = 1; };
+    interactive.push(glass);
+    cards.push(card);
   }
-  anim.push((t) => {
+  anim.push((t, ctx, dt) => {
     for (const c of cards) {
-      c.g.rotation.y = -c.a + Math.PI / 2 + Math.sin(t * 0.2 + c.k) * 0.35;
-      c.glass.emissiveIntensity = 0.3 + 0.2 * Math.sin(t * 0.6 + c.k * 0.63);
+      c.spin = Math.max(0, c.spin - dt * 0.6);
+      const e = 1 - c.spin;
+      c.g.rotation.y = -c.a + Math.PI / 2 + Math.sin(t * 0.2 + c.k) * 0.35 + (c.spin > 0 ? (1 - Math.pow(1 - e, 3)) * Math.PI * 2 : 0);
+      c.glass.emissiveIntensity = 0.3 + 0.2 * Math.sin(t * 0.6 + c.k * 0.63) + c.spin * 1.2;
     }
   });
 }
