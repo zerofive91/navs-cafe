@@ -316,7 +316,7 @@ export const TREES = [];
 {
   let s = 5;
   const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
-  for (let k = 0; k < 520; k++) {
+  for (let k = 0; k < 400; k++) {
     const a = rnd() * Math.PI * 2;
     const r = gr(77) + Math.pow(rnd(), 1.4) * 82 * GF;
     const h = 5 + rnd() * 7;
@@ -326,7 +326,7 @@ export const TREES = [];
     TREES.push({ x: Math.cos(a) * r, z: Math.sin(a) * r, h, dark: rnd() < 0.5 });
   }
   const nForest = TREES.length;
-  for (let k = 0; k < 600 && TREES.length < nForest + 80; k++) {
+  for (let k = 0; k < 600 && TREES.length < nForest + 45; k++) {
     const a = rnd() * Math.PI * 2;
     const r = gr(39) + rnd() * 34 * G;
     const h = 4 + rnd() * 5;
