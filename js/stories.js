@@ -30,6 +30,7 @@ export function fanfare(audio, notes = [392, 494, 587], len = 0.9, gap = 0.22, v
 
 export function addStories(ctx) {
   const { scene, me, act, sfx, fxSprite, burst, faceTo, actions, avail, steps, go, tapTo, audio, H } = ctx;
+  const shot = ctx.shot || (() => {});
   const { M, MAT, shadow, zoneGroup, at, box, flat, ease, G0 } = H;
   const dist = (p) => Math.hypot(me.x - p.x, me.z - p.z);
   const hit = (name, vol = 0.3, rate = 1) => sfx('impact/' + name, vol, rate);
@@ -90,7 +91,7 @@ export function addStories(ctx) {
     const C = JERICHO;
     const lit = (n) => lamps.forEach((L, i) => { L.l.material.emissiveIntensity = i < n ? 1.2 : 0; L.glow.material.opacity = i < n ? 0.8 : 0; });
     actions.trumpet = () => {
-      faceTo(me, C); act('praise', 3);
+      faceTo(me, C); act('praise', 3); shot(C, { dist: 16, el: 0.5, side: 0.25, dur: 10, mid: 0.8, y: 1 });
       fanfare(audio, [392, 523, 659, 784], 1.1, 0.25, 0.09);
       setTimeout(() => { fallT = 0; }, 1300);
     };
@@ -182,7 +183,7 @@ export function addStories(ctx) {
     let shotT = -1;
     const from = new THREE.Vector3(), to = new THREE.Vector3();
     actions.sling = () => go(spot, () => {
-      faceTo(me, gp); act('plant', 1.0); // 시냇가에서 돌을 고름
+      faceTo(me, gp); shot(gp, { dist: 13, el: 0.22, side: 0.32, dur: 9, mid: 0.55, y: 1.8 }); act('plant', 1.0); // 시냇가에서 돌을 고름
       hit('impactGeneric_light_001', 0.2);
       setTimeout(() => {
         faceTo(me, gp); act('shoot', 1.6); sfx('spin', 0.25, 1.4);
@@ -264,7 +265,7 @@ export function addStories(ctx) {
     const shore = () => zn.at(-4.4, -3.6);
     let T = -1, hum = null;
     const mouthAt = () => { const f = new THREE.Vector3(0, 0, 2.3).applyMatrix4(fish.matrixWorld); return { x: f.x, z: f.z }; };
-    actions.jonah = () => go(spot, () => { faceTo(me, P); act(null); T = 0; audio.splash(0.3); });
+    actions.jonah = () => go(spot, () => { faceTo(me, P); act(null); T = 0; audio.splash(0.3); shot(P, { dist: 13, el: 0.4, side: 0.3, dur: 17, mid: 0.6 }); });
     avail.push(() => (dist(spot()) < 3.4 && T < 0 ? 'jonah' : null));
     tapTo([boat, water], spot, () => { if (T < 0) actions.jonah(); }, 3);
     steps.push((dt, t) => {

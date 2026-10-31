@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from '../vendor/loaders/GLTFLoader.js';
 import { mergeGeometries } from '../vendor/utils/BufferGeometryUtils.js';
-import { PARK, POOL, GATE, R_PARK, R_WALK, R_GARDEN, LANES, polar, deg, inPool, poolDepth, parkClear, isFree } from './layout.js';
+import { gr, PARK, POOL, GATE, R_PARK, R_WALK, R_GARDEN, LANES, polar, deg, inPool, poolDepth, parkClear, isFree } from './layout.js';
 import { place } from './props.js';
 import { showVerse, showNext } from './verses.js';
 import { addStories } from './stories.js';
@@ -150,8 +150,9 @@ function makeAudio() {
   return { get, loop, chirp, crack, splash };
 }
 
-export function initPark({ scene, me, interactive, act, sfx, fxSprite, burst, walkTo, faceTo, standUp }) {
+export function initPark({ scene, me, interactive, act, sfx, fxSprite, burst, walkTo, faceTo, standUp, shot = () => {} }) {
   const P = PARK;
+  const camShot = shot; // 체험 시점 (농구의 shot 변수와 헷갈리지 않게)
   const audio = makeAudio();
   const mixers = [];
   const steps = []; // (dt, t) 매 프레임
@@ -185,8 +186,8 @@ export function initPark({ scene, me, interactive, act, sfx, fxSprite, burst, wa
       lane.receiveShadow = true;
       scene.add(lane);
     }
-    const road = new THREE.Mesh(new THREE.PlaneGeometry(4, R_GARDEN - 43), MAT.stone);
-    road.rotation.x = -Math.PI / 2; road.position.set(0, G0 + 0.012, (R_GARDEN + 43) / 2); road.receiveShadow = true;
+    const road = new THREE.Mesh(new THREE.PlaneGeometry(4, R_GARDEN - (GATE.r - 1)), MAT.stone);
+    road.rotation.x = -Math.PI / 2; road.position.set(0, G0 + 0.012, (R_GARDEN + GATE.r - 1) / 2); road.receiveShadow = true;
     scene.add(road);
   }
 
@@ -221,10 +222,10 @@ export function initPark({ scene, me, interactive, act, sfx, fxSprite, burst, wa
   }
 
   // ---------- 테마파크 입구 (CC0 놀이공원 문) ----------
-  place(scene, 'assets/park/park-entrance.glb', { x: 0, z: 51, y: G0, rot: 0, width: 10 });
+  place(scene, 'assets/park/park-entrance.glb', { x: 0, z: gr(51), y: G0, rot: 0, width: 10 });
   {
     let lastZ = me.z;
-    steps.push(() => { if (Math.abs(me.x) < 2 && lastZ < 51 && me.z >= 51) showVerse('joy', { delay: 0.4, cooldown: 120 }); lastZ = me.z; });
+    steps.push(() => { if (Math.abs(me.x) < 2 && lastZ < gr(51) && me.z >= gr(51)) showVerse('joy', { delay: 0.4, cooldown: 120 }); lastZ = me.z; });
   }
 
   // ---------- 간식 가게 (안쪽 동쪽) ----------
@@ -283,7 +284,7 @@ export function initPark({ scene, me, interactive, act, sfx, fxSprite, burst, wa
     shadow(g);
     const spot = () => zn.at(0, -1.6);
     actions.draw = () => go(spot, () => {
-      faceTo(me, zn); act('draw', 3.4); drawT = 0;
+      faceTo(me, zn); act('draw', 3.4); drawT = 0; camShot(zn, { dist: 7, el: 0.3, side: 0.7, dur: 5, mid: 0.4 });
     });
     avail.push(() => (dist(zn) < 3.2 && drawT < 0 && !me.item ? 'draw' : null));
     tapTo([wall, roof], spot, () => actions.draw());
@@ -393,7 +394,7 @@ export function initPark({ scene, me, interactive, act, sfx, fxSprite, burst, wa
     for (let k = 0; k < 4; k++) { const b = makeBird(k); b.visible = false; g.add(b); birds.push(b); }
     let growT = -1;
     const spot = () => zn.at(0, -1.7);
-    actions.plant = () => go(spot, () => { faceTo(me, zn); act('plant', 1.6); growT = 0; sfx('orb', 0.2); });
+    actions.plant = () => go(spot, () => { faceTo(me, zn); act('plant', 1.6); growT = 0; sfx('orb', 0.2); camShot(zn, { dist: 12, el: 0.25, side: 0.6, dur: 16, mid: 0.7, y: 2.6 }); });
     avail.push(() => (dist(zn) < 3.5 && growT < 0 ? 'plant' : null));
     tapTo([mound, seed], spot, () => { if (growT < 0) actions.plant(); });
     steps.push((dt, t) => {
@@ -493,7 +494,7 @@ export function initPark({ scene, me, interactive, act, sfx, fxSprite, burst, wa
     let T = -1;
     const spot = () => zn.at(-6.6, -3.6);
     mergeStatic(g);
-    actions.sow = () => go(spot, () => { faceTo(me, zn.at(0, 0)); act('sow', 3); T = 0; });
+    actions.sow = () => go(spot, () => { faceTo(me, zn.at(0, 0)); act('sow', 3); T = 0; camShot(zn.at(0, 0), { dist: 13, el: 0.55, side: 0.5, dur: 14, mid: 0.6 }); });
     avail.push(() => (near(zn, 2) && T < 0 ? 'sow' : null));
     steps.push((dt, t) => {
       if (T < 0) return;
@@ -821,7 +822,7 @@ export function initPark({ scene, me, interactive, act, sfx, fxSprite, burst, wa
     const gp = () => { const w = new THREE.Vector3(); grill.getWorldPosition(w); return w; };
     let T = -1, sizzle = null;
     const spot = () => P.bbq.at(-2, -0.7);
-    actions.grill = () => go(spot, () => { faceTo(me, gp()); act('grill', 4); T = 0; fishOn.visible = true; sizzle = sizzle || audio.loop('highpass', 3000); });
+    actions.grill = () => go(spot, () => { faceTo(me, gp()); act('grill', 4); T = 0; fishOn.visible = true; camShot(gp(), { dist: 6, el: 0.45, side: 0.8, dur: 6 }); sizzle = sizzle || audio.loop('highpass', 3000); });
     avail.push(() => (dist(gp()) < 2.6 && T < 0 && !me.food ? 'grill' : null));
     tapTo([grill], spot, () => { if (T < 0 && !me.food) actions.grill(); });
     steps.push((dt, t) => {
@@ -896,7 +897,7 @@ export function initPark({ scene, me, interactive, act, sfx, fxSprite, burst, wa
     scene.add(bow);
     let T = -1, rainLoop = null;
     const spot = () => zn.at(0, -6.5);
-    actions.rainbow = () => go(spot, () => { faceTo(me, zn); act('gaze', 4); T = 0; rainLoop = rainLoop || audio.loop('bandpass', 2500, 0.4); });
+    actions.rainbow = () => go(spot, () => { faceTo(me, zn); act('gaze', 4); T = 0; camShot(zn, { dist: 26, el: 0.28, side: 0.45, dur: 16, mid: 0.4, y: 4 }); rainLoop = rainLoop || audio.loop('bandpass', 2500, 0.4); });
     avail.push(() => (near(zn, 4) && T < 0 ? 'rainbow' : null));
     tapTo([hull, house], spot, () => { if (T < 0) actions.rainbow(); }, 6);
     steps.push((dt) => {
@@ -1083,7 +1084,7 @@ export function initPark({ scene, me, interactive, act, sfx, fxSprite, burst, wa
       const dx = tgt.x - ball.p.x, dz = tgt.z - ball.p.z, d = Math.hypot(dx, dz);
       const behind = { x: ball.p.x - (dx / d) * 0.55, z: ball.p.z - (dz / d) * 0.55 };
       go(behind, () => {
-        faceTo(me, ball.p); act('kick', 0.7); me.kickT = 0.5;
+        faceTo(me, ball.p); act('kick', 0.7); me.kickT = 0.5; camShot(tgt, { dist: 12, el: 0.4, side: 0.35, dur: 4.5, mid: 0.5 });
         setTimeout(() => {
           if (Math.hypot(me.x - ball.p.x, me.z - ball.p.z) > 1.4) return;
           const pw = Math.min(13, 6 + d * 0.35);
@@ -1155,7 +1156,7 @@ export function initPark({ scene, me, interactive, act, sfx, fxSprite, burst, wa
       const r = 3 + Math.random() * 2;
       const sp = zn.at(RIM_U + Math.cos(ang) * r, Math.sin(ang) * r);
       go(sp, () => {
-        faceTo(me, rimP); act('shoot', 1.1);
+        faceTo(me, rimP); act('shoot', 1.1); camShot(rimP, { dist: 8, el: 0.2, side: 1.0, dur: 4, mid: 0.5, y: 1.8 });
         ball.v.set(0, 0, 0);
         shot = { t: 0, launched: false, scored: false };
       }, 0.6);
@@ -1263,7 +1264,7 @@ export function initPark({ scene, me, interactive, act, sfx, fxSprite, burst, wa
     let R = null;
     const meSpot = () => zn.at(-opt.far, (Math.random() - 0.5) * 0.4);
     actions[opt.action] = () => go(meSpot, () => {
-      faceTo(me, zn.at(opt.far, 0)); act('rally'); me.racket = kind;
+      faceTo(me, zn.at(opt.far, 0)); act('rally'); me.racket = kind; camShot(zn.at(opt.far, 0), { dist: Math.abs(opt.far) * 1.3 + 4, el: 0.35, side: 1.45, dur: 12, mid: 0.5 });
       R = { k: 0, n: 3 + Math.floor(Math.random() * 6), t: 0, from: 0, dur: opt.dur };
       hit(opt.snd[0], opt.snd[1], opt.snd[2]); me.swingT = 0.35;
     }, 0.8);
@@ -1410,7 +1411,7 @@ export function initPark({ scene, me, interactive, act, sfx, fxSprite, burst, wa
   });
 
   // 성경 이야기 체험과 숲속 코스
-  const ctx = { scene, me, act, sfx, fxSprite, burst, faceTo, standUp, walkTo, actions, avail, steps, mixers, go, tapTo, audio, loadFresh,
+  const ctx = { shot: camShot, scene, me, act, sfx, fxSprite, burst, faceTo, standUp, walkTo, actions, avail, steps, mixers, go, tapTo, audio, loadFresh,
     H: { M, MAT, shadow, zoneGroup, at, box, flat, ease, G0, mergeStatic } };
   addStories(ctx);
   addCourses(ctx);

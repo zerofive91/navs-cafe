@@ -68,6 +68,7 @@ const COURSES = {
 
 export function addCourses(ctx) {
   const { scene, me, sfx, fxSprite, burst, steps, audio, H } = ctx;
+  const shot = ctx.shot || (() => {});
   const { M, MAT, shadow, ease, G0, mergeStatic } = H;
   const hit = (name, vol = 0.3, rate = 1) => sfx('impact/' + name, vol, rate);
   const C = {
@@ -402,6 +403,7 @@ export function addCourses(ctx) {
       box.position.copy(w); box.castShadow = true; scene.add(box);
       bag.visible = false; setBurden(false);
       const to = st.tomb.clone(); st.g.localToWorld(to);
+      shot(to, { dist: 8, el: 0.35, side: 0.7, dur: 5, mid: 0.6 });
       roll = { box, from: w.clone(), to, T: 0 };
       hit('impactSoft_heavy_000', 0.4, 0.8);
       setTimeout(() => { if (bag) bag.visible = true; }, 3500);
@@ -412,6 +414,7 @@ export function addCourses(ctx) {
     risen(st) { if (st.light) st.light.material.opacity = 1; hit('impactBell_heavy_000', 0.2, 1.2); },
     arrive(st, course) {
       fanfare(audio, [523, 659, 784, 1047], 1.2, 0.2, 0.06);
+      shot(st.g.position, { dist: 14, el: 0.3, side: 0.5, dur: 8, mid: 0.7, y: 2.5 });
       for (let i = 0; i < 14; i++) setTimeout(() => burst(st.x + (Math.random() - 0.5) * 6, 0.5 + Math.random() * 3, st.z + (Math.random() - 0.5) * 6), i * 120);
       if (course.after) setTimeout(() => showVerse('course-' + course.id + '-after', { cooldown: 0, title: course.name }), 12000);
     },
