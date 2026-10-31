@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from '../vendor/loaders/GLTFLoader.js';
 import { PARK, POOL, GATE, R_PARK, R_WALK, R_GARDEN, LANES, polar, deg, inPool, poolDepth, parkClear, isFree } from './layout.js';
 import { place } from './props.js';
-import { showVerse } from './verses.js';
+import { showVerse, showNext } from './verses.js';
 
 const G0 = -0.5; // 잔디 높이
 const loader = new GLTFLoader();
@@ -577,8 +577,15 @@ export function initPark({ scene, me, interactive, act, sfx, fxSprite, burst, wa
       }
     }
     hideSheep();
-    let bellT = 0;
+    // 양을 누르면 양·목자 말씀 한 구절, 우리 곁에 가면 한 구절
+    const tapSheep = (o) => o.traverse((c) => { if (c.isMesh) { c.userData.onTap = () => { sfx('impact/impactBell_heavy_000', 0.12, 2.6); showNext('shepherd', 0.2); }; interactive.push(c); } });
+    flock.forEach((f) => tapSheep(f.o));
+    tapSheep(lost.o);
+    let bellT = 0, nearFold = false, foldT = -99;
     steps.push((dt, t) => {
+      const inFold = dist(zn) < 7.5;
+      if (inFold && !nearFold && t - foldT > 45) { foldT = t; showNext('shepherd', 1); }
+      nearFold = inFold;
       for (const f of flock) wander(f, zn, 3.3, dt, t);
       const L = lost.o.position;
       if (lost.state === 'lost') {
