@@ -57,7 +57,7 @@ canvas { display: block; touch-action: none; }
   cursor: pointer;
   overflow: hidden;
   transition: opacity 0.9s;
-  font-family: "Noto Serif KR", "Apple SD Gothic Neo", serif;
+  font-family: "Cormorant Garamond", "Noto Serif KR", Georgia, serif;
 }
 #enter .art {
   position: absolute;
@@ -66,7 +66,7 @@ canvas { display: block; touch-action: none; }
   animation: drift 26s ease-in-out infinite alternate;
 }
 @media (min-aspect-ratio: 1/1) {
-  #enter .art { background-image: url("../assets/entry/wide.jpg"); background-position: center 55%; }
+  #enter .art { background-image: url("../assets/entry/wide.jpg"); background-position: center 62%; }
 }
 #enter .veil {
   position: absolute;
@@ -78,8 +78,8 @@ canvas { display: block; touch-action: none; }
   left: 0;
   right: 0;
   top: calc(9vh + env(safe-area-inset-top));
-  font-size: clamp(30px, 8.6vw, 56px);
-  font-weight: 700;
+  font-size: clamp(40px, 12vw, 72px);
+  font-weight: 600;
   line-height: 1.25;
   letter-spacing: 0.04em;
   text-align: center;
@@ -151,6 +151,9 @@ canvas { display: block; touch-action: none; }
 .place svg { width: 22px; height: 22px; }
 .place:active { transform: scale(0.9); }
 .place.view { background: #fffaf0; color: #6b4f3a; margin-left: 4px; }
+.place.music { margin-left: 0; background: transparent; color: #8a6a50; }
+.place.music.on { background: #fffaf0; color: #6b4f3a; }
+.place[hidden] { display: none; }
 
 /* 왼쪽 아래: 걷기 조이스틱 */
 #stick {
@@ -179,6 +182,9 @@ canvas { display: block; touch-action: none; }
 /* 조이스틱과 겹치지 않게 동작 버튼은 오른쪽으로 */
 @media (max-width: 640px) {
   #actions { gap: 8px; }
+  #places { gap: 2px; padding: 5px; }
+  .place { width: 38px; height: 38px; }
+  .place svg { width: 20px; height: 20px; }
   .act { width: 48px; height: 48px; }
 }
 

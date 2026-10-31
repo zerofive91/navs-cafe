@@ -47,15 +47,15 @@ export function makeAvatar(look) {
   body.add(bag);
 
   // 팔
-  const armGeo = new THREE.CapsuleGeometry(0.06, 0.18, 4, 8);
+  const armGeo = new THREE.CapsuleGeometry(0.06, 0.26, 4, 8); // 두 손을 모을 수 있을 만큼 길게
   const arms = [];
   for (const s of [-1, 1]) {
     const pivot = new THREE.Group();
     pivot.position.set(s * 0.23, 0.7, 0);
     const arm = new THREE.Mesh(armGeo, hoodie);
-    arm.position.y = -0.13;
+    arm.position.y = -0.17;
     const hand = new THREE.Mesh(new THREE.SphereGeometry(0.06, 10, 8), skin);
-    hand.position.y = -0.27;
+    hand.position.y = -0.35;
     pivot.add(arm, hand);
     body.add(pivot);
     arms.push(pivot);
@@ -82,11 +82,12 @@ export function makeAvatar(look) {
     tail.position.set(0, 0.02, -0.3);
     head.add(tail);
   }
-  // 후드
-  const hood = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.07, 8, 20), hoodie);
-  hood.position.set(0, -0.2, -0.08);
-  hood.rotation.x = Math.PI / 2 + 0.3;
-  head.add(hood);
+  // 후드: 등 위에 얇게 접혀 내려온 천
+  const hood = new THREE.Mesh(new THREE.SphereGeometry(0.19, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), m(shade(look.hoodie, 0.94)));
+  hood.scale.set(1.05, 0.5, 0.55);
+  hood.rotation.x = -Math.PI / 2 - 0.35;
+  hood.position.set(0, 0.76, -0.14);
+  body.add(hood);
   // 눈·볼
   const eyes = [];
   for (const s of [-1, 1]) {
@@ -108,7 +109,12 @@ export function makeAvatar(look) {
   cup.add(cupBody, sleeve);
   cup.visible = false;
   arms[1].add(cup);
-  cup.position.set(0, -0.33, 0.04);
+  cup.position.set(0, -0.41, 0.04);
+  // 왼손에 드는 빵 (모델은 props.js에서 채움)
+  const food = new THREE.Group();
+  food.visible = false;
+  arms[0].add(food);
+  food.position.set(0, -0.44, 0.05);
 
   const book = new THREE.Group();
   for (const s of [-1, 1]) {
@@ -120,7 +126,7 @@ export function makeAvatar(look) {
   const bcover = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.015, 0.22), m(0x7a5b8f));
   bcover.position.y = -0.015;
   book.add(bcover);
-  book.position.set(0, 0.62, 0.3);
+  book.position.set(0, 0.6, 0.36);
   book.rotation.x = 0.9;
   book.visible = false;
   body.add(book);
@@ -133,13 +139,13 @@ export function makeAvatar(look) {
   can.add(canBody, spout);
   can.visible = false;
   arms[1].add(can);
-  can.position.set(0, -0.36, 0.06);
+  can.position.set(0, -0.44, 0.06);
 
   // V-Hand 손가락 두 개
   const vfing = new THREE.Group();
   for (const s of [-1, 1]) {
     const f = new THREE.Mesh(new THREE.CapsuleGeometry(0.022, 0.09, 4, 6), skin);
-    f.position.set(s * 0.03, -0.36, 0);
+    f.position.set(s * 0.03, -0.44, 0);
     f.rotation.z = s * 0.3;
     vfing.add(f);
   }
@@ -155,7 +161,7 @@ export function makeAvatar(look) {
   }
 
   root.traverse((c) => { if (c.isMesh) c.castShadow = true; });
-  root.userData = { body, legs, arms, head, eyes, cup, book, can, drops, vfing, blinkAt: 2 };
+  root.userData = { body, legs, arms, head, eyes, cup, food, foods: {}, drinks: {}, book, can, drops, vfing, blinkAt: 2 };
   return root;
 }
 
@@ -171,13 +177,14 @@ export function poseAvatar(av, ch, t, dt) {
   const walking = ch.state === 'walk';
   const sitting = ch.state === 'sit';
   const kneel = sitting && ch.seat && ch.seat.kind === 'kneel';
-  const ph = t * 9 + ch.phase;
+  const run = walking && ch.running;
+  const ph = t * (run ? 14 : 9) + ch.phase;
 
   // 기본값
-  let bodyY = walking ? Math.abs(Math.sin(ph)) * 0.04 : Math.sin(t * 2 + ch.phase) * 0.008;
-  let legA = walking ? Math.sin(ph) * 0.6 : 0;
-  let armL = walking ? -Math.sin(ph) * 0.5 : 0.05;
-  let armR = walking ? Math.sin(ph) * 0.5 : 0.05;
+  let bodyY = walking ? Math.abs(Math.sin(ph)) * (run ? 0.1 : 0.04) : Math.sin(t * 2 + ch.phase) * 0.008;
+  let legA = walking ? Math.sin(ph) * (run ? 0.95 : 0.6) : 0;
+  let armL = walking ? -Math.sin(ph) * (run ? 0.9 : 0.5) : 0.05;
+  let armR = walking ? Math.sin(ph) * (run ? 0.9 : 0.5) : 0.05;
   let armLz = 0.08, armRz = -0.08;
   let headX = 0, headY = 0;
 
@@ -194,7 +201,7 @@ export function poseAvatar(av, ch, t, dt) {
 
   switch (ch.action) {
     case 'pray':
-      armL = -1.2; armR = -1.2; armLz = -0.55; armRz = 0.55; headX = 0.35;
+      armL = -1.25; armR = -1.25; armLz = 0.56; armRz = -0.56; headX = 0.35; // 가슴 앞에서 두 손을 모음
       break;
     case 'read':
       armL = -1.0; armR = -1.0; armLz = -0.35; armRz = 0.35; headX = 0.4;
@@ -212,6 +219,9 @@ export function poseAvatar(av, ch, t, dt) {
     case 'vhand':
       armR = Math.PI * 0.92; armRz = -0.15; headX = -0.08;
       break;
+    case 'eat':
+      armL = -2.2; armLz = 0.4; headX = -0.1;
+      break;
     case 'sip':
       armR = -2.2; armRz = 0.4; headX = -0.1;
       break;
@@ -224,6 +234,7 @@ export function poseAvatar(av, ch, t, dt) {
   }
   if (ch.item === 'cup' && ch.action !== 'sip' && !walking) { armR = -0.6; }
   if (ch.item === 'cup' && walking) { armR = -0.6; }
+  if (ch.food && ch.action !== 'eat') { armL = -0.6; }
 
   u.body.position.y = bodyY;
   u.arms[0].rotation.x = armL;
@@ -234,6 +245,11 @@ export function poseAvatar(av, ch, t, dt) {
   u.head.rotation.y = headY;
 
   u.cup.visible = ch.item === 'cup';
+  // 음료 종류(커피 컵·머그)와 손에 든 빵, 한 입 먹을 때마다 작아짐
+  for (const [k, o] of Object.entries(u.drinks)) o.visible = (ch.drink || 'coffee') === k;
+  u.food.visible = !!ch.food;
+  for (const [k, o] of Object.entries(u.foods)) o.visible = ch.food === k;
+  u.food.scale.setScalar(1 - (ch.bites || 0) * 0.27);
   u.book.visible = ch.action === 'read';
   u.can.visible = ch.action === 'water';
   u.vfing.visible = ch.action === 'vhand';

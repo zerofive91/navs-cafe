@@ -169,21 +169,35 @@ export function loadProps({ scene, deco, interactive, anim, renderer }) {
   void anim; void renderer;
 }
 
-// 손에 드는 컵을 커피 컵 모델로 바꿈
+// 손에 드는 컵(커피 컵·머그)과 빵 모델을 채움
+function fit(src, size, drop = 0) {
+  const o = src.clone(true);
+  const box = new THREE.Box3().setFromObject(o);
+  const sz = box.getSize(new THREE.Vector3());
+  const s = size / Math.max(sz.x, sz.z);
+  o.scale.setScalar(s);
+  const c = box.getCenter(new THREE.Vector3());
+  o.position.set(-c.x * s, -box.min.y * s - drop, -c.z * s);
+  return o;
+}
 export function upgradeCup(av) {
-  load(D + 'cup-coffee.glb').then((src) => {
-    if (!src) return;
-    const cup = av.userData.cup;
-    const o = src.clone(true);
-    const box = new THREE.Box3().setFromObject(o);
-    const size = box.getSize(new THREE.Vector3());
-    const s = 0.16 / Math.max(size.x, size.z);
-    o.scale.setScalar(s);
-    const c = box.getCenter(new THREE.Vector3());
-    o.position.set(-c.x * s, -box.min.y * s - 0.07, -c.z * s);
-    cup.children.forEach((ch) => { ch.visible = false; });
-    cup.add(o);
+  const u = av.userData;
+  Promise.all([load(D + 'cup-coffee.glb'), load(D + 'mug.glb')]).then(([coffee, mug]) => {
+    if (!coffee) return;
+    u.cup.children.forEach((ch) => { ch.visible = false; });
+    u.drinks.coffee = fit(coffee, 0.16, 0.07);
+    u.cup.add(u.drinks.coffee);
+    if (mug) { u.drinks.tea = fit(mug, 0.17, 0.07); u.cup.add(u.drinks.tea); }
   });
+  for (const k of ['croissant', 'donut', 'muffin']) {
+    load(D + k + '.glb').then((src) => {
+      if (!src) return;
+      const o = fit(src, k === 'croissant' ? 0.2 : 0.14, 0.05);
+      if (k === 'donut') o.rotation.x = Math.PI / 2.4;
+      u.foods[k] = o;
+      u.food.add(o);
+    });
+  }
 }
 
 // 빛 효과 스프라이트 (전도할 때 건네는 빛, 반짝임)

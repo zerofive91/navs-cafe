@@ -3,6 +3,13 @@ const svg = (body) =>
   `<svg viewBox="0 0 32 32" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
 
 export const ICONS = {
+  // 메뉴: 커피, 차, 크루아상, 도넛, 머핀 / 먹기
+  coffee: svg('<path d="M9 11h14l-1.5 15a2 2 0 0 1-2 1.8h-7a2 2 0 0 1-2-1.8z"/><path d="M8 11h16M10.5 7h11l1 4h-13z"/><path d="M9.8 17h12.4"/>'),
+  tea: svg('<path d="M6 12h16v8a6 6 0 0 1-6 6h-4a6 6 0 0 1-6-6z"/><path d="M22 14h2a3 3 0 0 1 0 6h-2"/><path d="M14 12V6M14 6l3 3h-3"/>'),
+  croissant: svg('<path d="M4 20c2-8 8-12 12-12s10 4 12 12c-3-2-6-2-8 0-2-3-6-3-8 0-2-2-5-2-8 0z"/><path d="M12 9l1 9M20 9l-1 9"/>'),
+  donut: svg('<circle cx="16" cy="16" r="11"/><circle cx="16" cy="16" r="3.5"/><path d="M9 11l1 1M21 9l-1 1.5M23 19l-1.5-.5M11 22l1-1"/>'),
+  muffin: svg('<path d="M8 17h16l-2 10H10z"/><path d="M7 17a9 7 0 0 1 18 0z"/><path d="M13 20v5M19 20v5M16 20v5"/>'),
+  eat: svg('<path d="M5 19c2-7 7-10 11-10s9 3 11 10c-3-2-6-2-8 0-2-3-5-3-6 0-2-2-5-2-8 0z"/><circle cx="25.5" cy="8.5" r="3.2" fill="currentColor" stroke="none" opacity=".25"/>'),
   // 풍랑을 잔잔케: 들어 올린 손과 고요해지는 물결
   calm: svg('<path d="M16 15V5M12.5 15V7.5M19.5 15V7.5M23 15v-4.5M9 17v-5"/><path d="M9 17c0 3 3 5 7 5s7-2 7-5v-2"/><path d="M4 27c3-1.5 5-1.5 8 0s5 1.5 8 0 5-1.5 8 0"/>'),
   // 오병이어: 바구니와 떡
