@@ -1,13 +1,13 @@
-// 잔잔한 찬송가·성가곡 악기 연주 재생 목록 (저작권이 끝났거나 자유 이용 허락된 녹음만, 출처는 assets/music/CREDITS.md)
+// 카페에 어울리는 잔잔한 찬양 연주곡 (Pixabay 무료 라이선스, 출처는 assets/music/CREDITS.md)
 // 처음에는 꺼져 있고, 위쪽 음표 버튼으로 켜고 끔. 곡 파일이 없으면 버튼을 숨김
 export const PLAYLIST = [
-  ['amazing-grace', '나 같은 죄인 살리신', 'Amazing Grace · 현악'],             // 미 공군 군악대 (퍼블릭 도메인)
-  ['fairest-lord-jesus', 'Fairest Lord Jesus', '군악대 연주'],                  // 미 육군 군악대 (퍼블릭 도메인)
-  ['jesu-joy', '예수, 인간 소망의 기쁨', '바흐 · 피아노'],                         // CC BY-SA 4.0
-  ['be-thou-my-vision', '내 맘의 주여 소망 되소서', 'Be Thou My Vision · 기타'],     // 퍼블릭 도메인
-  ['eternal-father', 'Eternal Father, Strong to Save', '군악대 연주'],           // 미 해병대 군악대 (퍼블릭 도메인)
-  ['thine-be-the-glory', '주님께 영광', 'Thine Be the Glory · 오르간'],            // CC BY 3.0
-  ['nearer-my-god', '내 주를 가까이 하게 함은', 'Nearer, My God, to Thee · 현악'],   // 미 공군 군악대 (퍼블릭 도메인)
+  ['amazing-grace', '나 같은 죄인 살리신', 'Amazing Grace'],
+  ['it-is-well', '내 평생에 가는 길', 'It Is Well with My Soul'],
+  ['crown-him', '면류관 벗어서', 'Crown Him with Many Crowns · 피아노'],
+  ['worship', 'Worship', '잔잔한 경배 연주'],
+  ['bible-soundtrack', 'Bible Soundtrack', '말씀 묵상 연주'],
+  ['jerusalem', 'Jerusalem', '예루살렘'],
+  ['o-holy-night', '오 거룩한 밤', 'O Holy Night · 피아노'],
 ].map(([n, title, sub]) => ({ src: `assets/music/${n}.mp3`, title, sub }));
 
 const VOLUME = 0.32;
