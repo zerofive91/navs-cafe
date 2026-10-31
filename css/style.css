@@ -117,3 +117,30 @@ canvas { display: block; touch-action: none; }
   #actions { left: auto; right: calc(14px + env(safe-area-inset-right)); transform: none; gap: 8px; }
   .act { width: 48px; height: 48px; }
 }
+
+/* 첫 방문 안내: 조이스틱 위 손가락이 위로 밀어 보는 동작 */
+#hint {
+  position: fixed;
+  left: calc(22px + 58px - 20px + env(safe-area-inset-left));
+  bottom: calc(22px + 58px - 28px + env(safe-area-inset-bottom));
+  pointer-events: none;
+  animation: nudge 1.6s ease-in-out infinite;
+  filter: drop-shadow(0 2px 4px rgba(60, 40, 20, 0.25));
+}
+#hint[hidden] { display: none; }
+@keyframes nudge {
+  0%, 100% { transform: translate(0, 0); opacity: 0.4; }
+  50% { transform: translate(0, -30px); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) { #hint { animation: none; } }
+
+/* 가로로 눕힌 휴대폰: 위아래 공간이 좁으니 버튼을 작게, 조이스틱은 왼쪽 아래 그대로 */
+@media (max-height: 500px) and (orientation: landscape) {
+  #places { top: calc(8px + env(safe-area-inset-top)); padding: 4px; gap: 4px; }
+  .place { width: 36px; height: 36px; }
+  #stick { width: 96px; height: 96px; left: calc(16px + env(safe-area-inset-left)); bottom: calc(14px + env(safe-area-inset-bottom)); }
+  #knob { width: 42px; height: 42px; margin: -21px 0 0 -21px; }
+  #hint { left: calc(16px + 48px - 20px + env(safe-area-inset-left)); bottom: calc(14px + 48px - 28px + env(safe-area-inset-bottom)); }
+  #actions { left: auto; right: calc(14px + env(safe-area-inset-right)); bottom: calc(12px + env(safe-area-inset-bottom)); transform: none; gap: 8px; }
+  .act { width: 44px; height: 44px; }
+}

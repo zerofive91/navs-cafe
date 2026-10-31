@@ -46,6 +46,17 @@ scene.add(warm);
 const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 400);
 
 const { anim, interactive } = buildWorld(scene);
+// 3인칭 카메라를 가릴 수 있는 물체(그림자를 드리우는 큰 물체들)
+const occluders = [];
+scene.traverse((o) => {
+  if (!o.isMesh || !o.castShadow) return;
+  if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
+  const r = o.geometry.boundingSphere.radius * Math.max(o.scale.x, o.scale.y, o.scale.z);
+  const wp = o.getWorldPosition(new THREE.Vector3());
+  if (r > 0.6 && Math.hypot(wp.x, wp.z) < 27) occluders.push(o);
+});
+const occRay = new THREE.Raycaster();
+let camPull = 99, occFrame = 0;
 
 // ---------- 캐릭터 ----------
 const HOODIES = [0x8fb7e0, 0xf2a7a0, 0xa7d3a6, 0xf4d27a, 0xb9a6e0, 0xf5f0e6];
@@ -330,6 +341,7 @@ function setStick(e) {
 }
 stickEl.addEventListener('pointerdown', (e) => {
   e.stopPropagation();
+  hideHint();
   stickEl.setPointerCapture(e.pointerId);
   stick.on = true; stick.id = e.pointerId;
   setStick(e);
@@ -369,6 +381,21 @@ function driveStick(dt) {
   else if (isFree(me.x, nz)) me.z = nz;
   me.face = Math.atan2(mx, mz);
   me.state = 'walk';
+}
+
+// 처음 온 사람에게만: 조이스틱 위에서 손가락이 살짝 움직이는 안내 (글자 없음)
+const hint = document.getElementById('hint');
+function hideHint() {
+  if (!hint || hint.hidden) return;
+  hint.hidden = true;
+  try { localStorage.setItem('navs-cafe-hinted', '1'); } catch (e) { /* 무시 */ }
+}
+function maybeHint() {
+  let seen = false;
+  try { seen = localStorage.getItem('navs-cafe-hinted') === '1'; } catch (e) { /* 무시 */ }
+  if (seen || !hint) return;
+  hint.hidden = false;
+  setTimeout(hideHint, 7000);
 }
 
 // ---------- 위쪽 버튼: 장소 바로가기 + 시점 전환 ----------
@@ -498,7 +525,7 @@ function frame(now) {
     const horiz = Math.cos(view.el) * view.dist;
     let cx = view.tx + Math.sin(view.az) * horiz, cz = view.tz + Math.cos(view.az) * horiz;
     // 카메라가 유리벽 밖으로 나가지 않게
-    const cr = Math.hypot(cx, cz), maxR = 27.3;
+    const cr = Math.hypot(cx, cz), maxR = 34;
     if (cr > maxR) {
       const dx = Math.sin(view.az), dz = Math.cos(view.az);
       const b = view.tx * dx + view.tz * dz, c = view.tx * view.tx + view.tz * view.tz - maxR * maxR;
@@ -507,8 +534,28 @@ function frame(now) {
       cz = view.tz + dz * Math.max(1.2, s);
     }
     const hReal = Math.hypot(cx - view.tx, cz - view.tz);
-    camera.position.set(cx, Math.min(cy, view.ty + hReal * Math.tan(view.el) + 0.3), cz);
-    camera.lookAt(view.tx, view.ty + 0.2 + view.lift, view.tz);
+        const camPos = new THREE.Vector3(cx, Math.min(cy, view.ty + hReal * Math.tan(view.el) + 0.3), cz);
+    // 캐릭터와 카메라 사이에 기둥·조형물이 끼면 카메라를 앞으로 당김
+    if (++occFrame % 3 === 0) {
+      const from = new THREE.Vector3(view.tx, view.ty + 0.4, view.tz);
+      const dir = camPos.clone().sub(from);
+      const len = dir.length();
+      occRay.set(from, dir.normalize());
+      occRay.far = len;
+      const hit = occRay.intersectObjects(occluders, false)[0];
+      camPull = hit ? Math.max(1.2, hit.distance - 0.35) : 99;
+    }
+    const from = new THREE.Vector3(view.tx, view.ty + 0.4, view.tz);
+    const full = camPos.distanceTo(from);
+    view.pullCur = view.pullCur === undefined ? full : view.pullCur;
+    const want = Math.min(full, camPull);
+    view.pullCur += (want - view.pullCur) * Math.min(1, dt * (want < view.pullCur ? 12 : 3));
+    const keep = Math.min(1, view.pullCur / full);
+    if (keep < 0.999) {
+      camPos.lerpVectors(from, camPos, keep);
+    }
+    camera.position.copy(camPos);
+    camera.lookAt(view.tx, view.ty + 0.2 + view.lift * keep, view.tz);
   }
 
   refreshActions();
@@ -520,6 +567,7 @@ enter.addEventListener('click', () => {
   enter.classList.add('gone');
   setTimeout(() => enter.remove(), 700);
   walkTo(me, { x: 0, z: 19 });
+  setTimeout(maybeHint, 1200);
 });
 requestAnimationFrame(frame);
 
