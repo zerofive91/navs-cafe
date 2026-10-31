@@ -243,9 +243,20 @@ export function initPark({ scene, me, interactive, act, sfx, fxSprite, burst, wa
           if (n === 'stall-food') { me.food = ['croissant', 'donut', 'muffin'][Math.floor(Math.random() * 3)]; me.bites = 0; }
           else { me.item = 'cup'; me.drink = Math.random() < 0.5 ? 'coffee' : 'tea'; }
           sfx('cup', 0.15);
+          showVerse(n, { delay: 0.8, cooldown: 30 });
         });
       });
     }
+    // 가게 앞에 서면 가게마다 말씀 한 구절
+    const fronts = stalls.map(([n, u]) => ({ n, p: zn.at(u, -0.6), near: false }));
+    steps.push(() => {
+      if (Math.abs(me.x - zn.x) > 12 || Math.abs(me.z - zn.z) > 12) return;
+      for (const f of fronts) {
+        const inside = Math.hypot(me.x - f.p.x, me.z - f.p.z) < 2.6;
+        if (inside && !f.near) showVerse(f.n, { delay: 0.6, cooldown: 90 });
+        f.near = inside;
+      }
+    });
     for (const u of [-4.5, 0, 4.5]) { const p = zn.at(u, -2.3); place(scene, 'assets/park/bench.glb', { x: p.x, z: p.z, y: G0, rot: face + Math.PI, width: 1.6 }); }
     const tp = zn.at(6, 0.5); place(scene, 'assets/park/trash.glb', { x: tp.x, z: tp.z, y: G0, rot: face, height: 0.7 });
   }

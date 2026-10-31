@@ -1,0 +1,164 @@
+// 전체 지도: 카페·정원·숲속 코스와 내 위치(화살표), 함께 있는 사람들
+// 찾은 코스는 길과 정거장(지나온 곳은 채운 점)까지 보이고, 아직 못 찾은 코스는 입구만 반짝임
+// 지도를 누르면 그곳으로 걸어감
+import { TRAILS, PARK, R_HALL, R_WALK, R_PARK, R_GARDEN, BRIDGE, FLOWER_BEDS } from './layout.js';
+import { COURSE_META, foundCourses } from './courses.js';
+import { nearestFree } from './nav.js';
+
+export function initMap({ me, people, walkTo, icon, placesEl, before }) {
+  const btn = document.createElement('button');
+  btn.className = 'place';
+  btn.setAttribute('aria-label', 'map');
+  btn.innerHTML = icon;
+  placesEl.insertBefore(btn, before || null);
+
+  const wrap = document.createElement('div');
+  wrap.id = 'map';
+  wrap.hidden = true;
+  const cv = document.createElement('canvas');
+  const close = document.createElement('button');
+  close.className = 'close'; close.setAttribute('aria-label', 'close'); close.textContent = '×';
+  wrap.append(cv, close);
+  document.body.appendChild(wrap);
+  const g = cv.getContext('2d');
+
+  // 보기: 가운데(cx, cz)와 1m당 화면 점 수(k)
+  const V = { cx: 0, cz: 0, k: 1 };
+  let raf = 0, dpr = 1, W = 0, Hh = 0;
+  const fit = () => {
+    const found = foundCourses();
+    let R = R_GARDEN + 6;
+    for (const id of Object.keys(found)) { const t = TRAILS[id]; if (t) for (const q of t.samples) R = Math.max(R, Math.hypot(q.x, q.z) + 10); }
+    V.cx = 0; V.cz = 0; V.k = Math.min(W, Hh) / (2 * R) * 0.96;
+  };
+  const resize = () => {
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    const r = wrap.getBoundingClientRect();
+    W = r.width; Hh = r.height;
+    cv.width = W * dpr; cv.height = Hh * dpr;
+    cv.style.width = W + 'px'; cv.style.height = Hh + 'px';
+  };
+  const sx = (x) => W / 2 + (x - V.cx) * V.k, sy = (z) => Hh / 2 + (z - V.cz) * V.k;
+  const wx = (px) => V.cx + (px - W / 2) / V.k, wz = (py) => V.cz + (py - Hh / 2) / V.k;
+  const hex = (c) => '#' + c.toString(16).padStart(6, '0');
+  const circle = (x, z, r, fill, stroke, lw = 1, minPx = 0.5) => {
+    g.beginPath(); g.arc(sx(x), sy(z), Math.max(minPx, r * V.k), 0, Math.PI * 2);
+    if (fill) { g.fillStyle = fill; g.fill(); }
+    if (stroke) { g.strokeStyle = stroke; g.lineWidth = lw; g.stroke(); }
+  };
+  const line = (pts, color, w, dash) => {
+    g.beginPath();
+    pts.forEach((q, i) => (i ? g.lineTo(sx(q.x), sy(q.z)) : g.moveTo(sx(q.x), sy(q.z))));
+    g.strokeStyle = color; g.lineWidth = w; g.setLineDash(dash || []); g.lineCap = 'round'; g.lineJoin = 'round'; g.stroke(); g.setLineDash([]);
+  };
+
+  function draw(t) {
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.fillStyle = '#1d2a22'; g.fillRect(0, 0, W, Hh);
+    const found = foundCourses();
+    // 숲 (어둑한 초록) 과 정원
+    circle(0, 0, 298, '#243b2b');
+    circle(0, 0, R_GARDEN, '#3f6b45');
+    circle(0, 0, R_PARK, null, 'rgba(230,220,190,0.55)', Math.max(1.5, 2.2 * V.k));
+    circle(0, 0, R_WALK, null, 'rgba(230,220,190,0.45)', Math.max(1, 1.8 * V.k));
+    // 입구 길
+    line([{ x: 0, z: R_HALL }, { x: 0, z: R_GARDEN }], 'rgba(220,215,200,0.6)', Math.max(1.5, 3 * V.k));
+    // 꽃밭
+    for (const f of FLOWER_BEDS) circle(f.x, f.z, f.r, '#c98aa8');
+    // 구역 (놀이·이야기 체험)
+    for (const zn of Object.values(PARK)) {
+      g.save(); g.translate(sx(zn.x), sy(zn.z)); g.rotate(Math.atan2(zn.n.z, zn.n.x));
+      g.fillStyle = 'rgba(240,230,200,0.28)'; g.strokeStyle = 'rgba(255,245,215,0.45)'; g.lineWidth = 1;
+      g.beginPath(); g.roundRect(-zn.d / 2 * V.k, -zn.w / 2 * V.k, zn.d * V.k, zn.w * V.k, 3); g.fill(); g.stroke();
+      g.restore();
+    }
+    // 카페
+    circle(0, 0, R_HALL, '#d9c7a2', 'rgba(255,255,255,0.8)', 1.5);
+    circle(0, 0, R_HALL * 0.8, '#8fc4d8');
+    circle(0, 0, 5, '#fff6dc');
+    // 숲속 코스
+    for (const [id, tr] of Object.entries(TRAILS)) {
+      const meta = COURSE_META[id]; if (!meta) continue;
+      const seen = found[id];
+      const col = hex(meta.color);
+      if (!seen) {
+        if (tr.from) continue; // 갈림길은 큰 길을 찾아야 보임
+        // 입구만 반짝임
+        const p = tr.samples.find((q) => Math.hypot(q.x, q.z) > R_PARK + 2) || tr.samples[0];
+        const a = 0.45 + 0.35 * Math.sin(t * 3 + id.length);
+        circle(p.x, p.z, 2.2, `rgba(255,240,200,${a})`, null, 1, 7);
+        circle(p.x, p.z, 1.2, col, null, 1, 3.5);
+        continue;
+      }
+      line(tr.samples, 'rgba(0,0,0,0.35)', Math.max(3, 3.4 * V.k));
+      line(tr.samples, col, Math.max(2, 2.2 * V.k));
+      if (id === 'bridge') { // 낭떠러지와 다리
+        const B = BRIDGE, c = [B.at(-B.U, -B.gap), B.at(B.U, -B.gap), B.at(B.U, B.gap), B.at(-B.U, B.gap)];
+        g.beginPath(); c.forEach((q, i) => (i ? g.lineTo(sx(q.x), sy(q.z)) : g.moveTo(sx(q.x), sy(q.z)))); g.closePath();
+        g.fillStyle = '#0a0808'; g.fill();
+        if (B.open) line([B.at(0, -B.gap - 1), B.at(0, B.gap + 1)], '#f4e3b0', Math.max(2, 2.4 * V.k));
+      }
+      tr.stations.forEach((st, i) => {
+        const done = seen.includes(i), end = i === tr.stations.length - 1;
+        const r = end ? 2.6 : 1.5;
+        circle(st.x, st.z, r + 0.6, 'rgba(0,0,0,0.4)', null, 1, end ? 6 : 4.5);
+        circle(st.x, st.z, r, done ? col : '#1d2a22', col, 1.5, end ? 4.5 : 3);
+      });
+      // 이름 (지나온 길의 끝에)
+      const e = tr.end, ly = Math.max(16, sy(e.z) - 4 * V.k - 6), fs = Math.max(11, Math.min(15, 4 * V.k));
+      g.font = `600 ${fs}px system-ui, sans-serif`; g.textAlign = 'center';
+      g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,0.6)'; g.strokeText(meta.name, sx(e.x), ly);
+      g.fillStyle = col; g.fillText(meta.name, sx(e.x), ly);
+    }
+    // 함께 있는 사람들
+    for (const p of people()) circle(p.x, p.z, 1.1, '#ffd36b', '#4a3a10', 1, 4);
+    // 나: 바라보는 쪽으로 화살표 + 숨 쉬는 빛
+    const px = sx(me.x), py = sy(me.z);
+    g.beginPath(); g.arc(px, py, 10 + 4 * Math.sin(t * 4), 0, Math.PI * 2); g.fillStyle = 'rgba(255,255,255,0.22)'; g.fill();
+    g.save(); g.translate(px, py); g.rotate(-me.face + Math.PI);
+    g.beginPath(); g.moveTo(0, -9); g.lineTo(6.5, 7); g.lineTo(0, 3.5); g.lineTo(-6.5, 7); g.closePath();
+    g.fillStyle = '#ff6a5a'; g.strokeStyle = '#fff'; g.lineWidth = 2; g.fill(); g.stroke();
+    g.restore();
+  }
+  const loop = (now) => { draw(now / 1000); raf = requestAnimationFrame(loop); };
+
+  function open() {
+    wrap.hidden = false; resize(); fit();
+    // 내가 보이도록 (멀리 있으면 나를 가운데로)
+    if (Math.abs(sx(me.x) - W / 2) > W / 2 - 30 || Math.abs(sy(me.z) - Hh / 2) > Hh / 2 - 30) { V.cx = me.x; V.cz = me.z; }
+    cancelAnimationFrame(raf); raf = requestAnimationFrame(loop);
+  }
+  function shut() { wrap.hidden = true; cancelAnimationFrame(raf); }
+  btn.addEventListener('pointerdown', (e) => { e.stopPropagation(); wrap.hidden ? open() : shut(); });
+  close.addEventListener('pointerdown', (e) => { e.stopPropagation(); shut(); });
+  window.addEventListener('resize', () => { if (!wrap.hidden) resize(); });
+
+  // 끌어서 옮기기, 두 손가락·휠로 확대, 짧게 누르면 그곳으로 걸어가기
+  const pts = new Map();
+  let moved = 0, pinch = null;
+  cv.addEventListener('pointerdown', (e) => { e.stopPropagation(); cv.setPointerCapture(e.pointerId); pts.set(e.pointerId, { x: e.offsetX, y: e.offsetY }); moved = 0; if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), k: V.k }; } });
+  cv.addEventListener('pointermove', (e) => {
+    const p = pts.get(e.pointerId); if (!p) return;
+    const dx = e.offsetX - p.x, dy = e.offsetY - p.y;
+    p.x = e.offsetX; p.y = e.offsetY;
+    if (pts.size === 2 && pinch) { const [a, b] = [...pts.values()]; V.k = Math.max(0.5, Math.min(14, pinch.k * Math.hypot(a.x - b.x, a.y - b.y) / pinch.d)); moved += 99; return; }
+    moved += Math.abs(dx) + Math.abs(dy);
+    V.cx -= dx / V.k; V.cz -= dy / V.k;
+  });
+  const up = (e) => {
+    if (!pts.has(e.pointerId)) return;
+    pts.delete(e.pointerId); if (pts.size < 2) pinch = null;
+    if (moved < 8 && pts.size === 0) {
+      const q = nearestFree({ x: wx(e.offsetX), z: wz(e.offsetY) });
+      if (q) { walkTo(me, q); shut(); }
+    }
+  };
+  cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', (e) => pts.delete(e.pointerId));
+  cv.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const x = wx(e.offsetX), z = wz(e.offsetY);
+    V.k = Math.max(0.5, Math.min(14, V.k * Math.exp(-e.deltaY * 0.0015)));
+    V.cx = x - (e.offsetX - W / 2) / V.k; V.cz = z - (e.offsetY - Hh / 2) / V.k;
+  }, { passive: false });
+  return { open, shut, el: wrap };
+}

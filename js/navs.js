@@ -150,6 +150,7 @@ function cycleMarks(scene, anim) {
   // 표식 사이를 잇는 점선 빛(순서대로 밟으면 이어짐)
   const dots = [];
   for (let k = 0; k < 5; k++) {
+    if (k === 4) { dots.push([]); continue; } // 파송→세계는 배가의 역사 전시 쪽을 지나므로 잇지 않음 (서로 다른 길로 느껴지도록)
     const a0 = CYCLE[k].a, a1 = CYCLE[(k + 1) % 5].a + (k === 4 ? 360 : 0);
     const span = ((a1 - a0) + 360) % 360;
     const seg = [];
@@ -189,7 +190,7 @@ function cycleMarks(scene, anim) {
       mk.m.emissiveIntensity = 0.05 + target * (0.9 + 0.2 * Math.sin(t * 2 + k)) + mk.flash * 1.2;
       mk.ring.material.opacity = 0.25 + target * 0.7;
       mk.ring.scale.setScalar(1 + mk.flash * 0.6);
-      mk.pillar.material.opacity = Math.min(0.55, mk.flash * 0.6) + (celebrate > 0 ? 0.18 + 0.12 * Math.sin(t * 4 + k) : 0);
+      mk.pillar.material.opacity = Math.min(0.35, mk.flash * 0.4) + (celebrate > 0 ? 0.18 + 0.12 * Math.sin(t * 4 + k) : 0);
       mk.pillar.scale.y = 0.3 + Math.min(1, mk.flash) * 0.7;
     });
     celebrate = Math.max(0, celebrate - dt);
@@ -316,6 +317,14 @@ function drawGeneration(g, gen) {
 }
 function historyPanels(scene, anim) {
   const frames = [];
+  // 전시 회랑: 패널 앞을 따라 깔린 나무 바닥 (일꾼 배가 순환 표식과 다른 길로 느껴지도록)
+  {
+    const a0 = Math.min(...HISTORY.map((h) => h.a)) - 5, a1 = Math.max(...HISTORY.map((h) => h.a)) + 5;
+    const runner = new THREE.Mesh(new THREE.RingGeometry(25.2 * C, 27.35 * C, 64, 1, deg(a0), deg(a1 - a0)),
+      new THREE.MeshStandardMaterial({ color: 0xc9a77c, roughness: 0.8, side: THREE.DoubleSide }));
+    runner.rotation.x = Math.PI / 2; runner.position.y = 0.256; runner.receiveShadow = true;
+    scene.add(runner);
+  }
   HISTORY.forEach((h, k) => {
     const cv = document.createElement('canvas');
     cv.width = 256; cv.height = 448;
@@ -345,10 +354,11 @@ function historyPanels(scene, anim) {
     frames.forEach((f, k) => {
       const near = me && Math.hypot(me.x - f.h.x, me.z - f.h.z) < 3.2;
       f.lit += ((near ? 1 : 0) - f.lit) * Math.min(1, (dt || 0.016) * 3);
-      f.m.emissiveIntensity = 0.12 + 0.05 * Math.sin(t * 0.5 + k) + f.lit * 0.75;
+      f.m.emissiveIntensity = 0.12 + 0.04 * Math.sin(t * 0.5 + k) + f.lit * 0.55;
       f.glow.material.opacity = 0.2 + f.lit * 0.55;
       f.glow.scale.set(1 + f.lit * 0.6, 1 + f.lit * 1.4, 1);
-      if (near && f.lit > 0.6) showVerse('history', { cooldown: 60, title: `배가의 역사 · ${k + 1}세대` });
+      if (near && f.lit > 0.6 && !f.shown) { f.shown = true; showVerse('history' + (k + 1), { delay: 0.2, cooldown: 0, title: `배가의 역사 · ${k + 1}세대` }); }
+      if (!near && f.lit < 0.2) f.shown = false;
     });
   });
 }

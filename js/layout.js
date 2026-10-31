@@ -4,7 +4,7 @@
 // 네 칸(사분면)도 그림을 따름: 북서 기도하는 손, 북동 교제, 남서 배(증거), 남동 성경(말씀)
 
 // 넓히기 배율: 카페는 길이 1.1배(면적 약 1.2배), 정원 띠는 1.7배(면적 약 2.3배). 가구·시설 크기는 그대로
-export const C = 1.1;
+export const C = 1.25;
 const c = (r) => r * C;
 export const R_HALL = c(28);     // 통유리 바깥벽
 export const R_RIM_IN = c(23.5); // 둘레 회랑 안쪽 경계
@@ -12,8 +12,9 @@ export const R_HUB = 5;       // 가운데 단
 export const SPOKE = 2;       // 바퀴살 길 절반 폭
 export const CEIL = 11;       // 층고
 // 정원 반지름 바꾸기: 예전 반지름(유리벽 28m 기준) → 넓힌 반지름
-export const G = 1.7;
-export const gr = (r) => R_HALL + (r - 28) * G;
+export const G = 2.4;   // 정원(카페 둘레 ~ 숲 입구) 넓히는 배율
+const GF = 1.7;         // 숲 속은 덜 넓힘
+export const gr = (r) => (r <= 77 ? R_HALL + (r - 28) * G : R_HALL + 49 * G + (r - 77) * GF);
 export const R_GARDEN = gr(74);  // 걸어 다닐 수 있는 바깥 정원(말씀 테마파크) 끝
 export const R_WALK = gr(34);    // 건물을 한 바퀴 도는 정원 산책길(가운데)
 export const R_PARK = gr(56);    // 테마파크를 한 바퀴 도는 바깥 둘레길
@@ -91,7 +92,7 @@ block(WORD_HAND.x, WORD_HAND.z, 1.7);
 // 순종 회랑 바깥쪽 역사 빛 패널 (1960년대 → 지금, 배가의 성장)
 export const HISTORY = [186, 197, 220, 231, 251, 262].map((a) => ({ ...polar(c(26.9), a), a }));
 for (const h of HISTORY) block(h.x, h.z, 0.75);
-export const CYCLE = [135, 207, 279, 351, 63].map((a) => ({ ...polar(c(24.2), a), a }));
+export const CYCLE = [285, 335, 25, 75, 135].map((a) => ({ ...polar(c(24.2), a), a }));
 
 // 순종: 둘레 화분, 쟁반 반납대
 export const planters = [];
@@ -109,8 +110,14 @@ export const DOOR = polar(R_HALL, 90);
 export const SPAWN = polar(c(26.2), 90);
 
 // 순종 회랑 창가의 라운지 의자 (CC0 가구)
-export const LOUNGES = [-15, 45, -105, 165].map((a) => ({ a, chair: polar(c(26.3), a), table: polar(c(26.4), a + 3.4), approach: polar(c(25.0), a) }));
+export const LOUNGES = [-15, 45, 165].map((a) => ({ a, chair: polar(c(26.3), a), table: polar(c(26.4), a + 3.4), approach: polar(c(25.0), a) }));
 for (const l of LOUNGES) { block(l.chair.x, l.chair.z, 0.5); block(l.table.x, l.table.z, 0.35); }
+// 쉼의 자리: 창밖 정원을 바라보는 리클라이너, 푹 꺼지는 빈백
+export const RESTS = [
+  ...[306, 314, 322].map((a) => ({ a, kind: 'recline', ...polar(c(26.5), a), approach: polar(c(25.0), a) })),
+  ...[8, 18, 140, 158].map((a) => ({ a, kind: 'beanbag', ...polar(c(26.3), a), approach: polar(c(24.9), a) })),
+];
+for (const r of RESTS) block(r.x, r.z, r.kind === 'recline' ? 0.55 : 0.5);
 
 // ---------- 바깥 정원 ----------
 // ---------- 말씀 테마파크 ----------
@@ -191,17 +198,47 @@ export function parkClear(x, z, pad = 1.5) { return !inAnyZone(x, z, pad) && !on
 // ---------- 숲속 코스: 둘레길에서 숲으로 들어가는 오솔길 ----------
 // 점은 (반지름, 각도). 정거장은 길을 따라 간 비율(f)과 놓일 쪽(side: 1 오른쪽, -1 왼쪽)
 const TRAIL_DEF = {
-  pilgrim: { pts: [[56, 265], [66, 265], [75, 261], [82, 254], [89, 258], [94, 266], [99, 272], [104, 266], [108, 259], [113, 262], [119, 265]],
-    st: [[0.05, 1], [0.14, -1], [0.24, 0], [0.34, 1], [0.45, -1], [0.56, 1], [0.66, -1], [0.76, 1], [0.87, 0], [1, 0]] },
+  // 천로역정: 멀고 구불구불한 길 (짐을 지고 출발). 3번째 정거장(세속현자)에서 시내산 샛길이 갈라짐
+  pilgrim: { pts: [[56, 265], [64, 265], [72, 262], [80, 256], [88, 251], [96, 253], [102, 260], [106, 269], [111, 277], [117, 281], [123, 276], [127, 267], [131, 257], [136, 249], [142, 246], [148, 252], [151, 261], [153, 270]],
+    st: [[0.025, 1], [0.065, -1], [0.11, 0], [0.155, 1], [0.215, 0], [0.27, 1], [0.33, 1], [0.39, -1], [0.45, 1], [0.51, -1], [0.58, 0], [0.65, 1], [0.72, -1], [0.8, 1], [0.89, 0], [1, 0]] },
+  sinai: { from: ['pilgrim', 0.155], pts: [[86, 247], [87, 241], [90, 236]], st: [[0.45, 1], [1, 0]] },
   gospel: { pts: [[56, 16], [66, 16], [76, 20], [85, 14], [93, 18], [101, 22], [109, 18]],
     st: [[0.07, 1], [0.18, -1], [0.3, 1], [0.42, -1], [0.52, 1], [0.63, 0], [0.8, -1], [1, 0]] },
   heaven: { pts: [[56, 227], [66, 227], [76, 224], [86, 230], [95, 226], [104, 222], [113, 227]],
     st: [[0.08, 1], [0.2, -1], [0.33, 1], [0.46, -1], [0.58, 1], [0.7, 0], [0.84, -1], [1, 0]] },
   jesus: { pts: [[56, 68], [66, 68], [76, 72], [85, 66], [93, 70], [101, 75], [110, 70]],
     st: [[0.07, 1], [0.18, 0], [0.3, -1], [0.41, 1], [0.52, -1], [0.62, 1], [0.73, -1], [0.85, 1], [1, 0]] },
+  // 동방박사: 별을 따라 아기 예수께
+  magi: { pts: [[56, 100], [66, 100], [76, 103], [86, 98], [95, 102], [104, 106], [112, 102]],
+    st: [[0.08, 1], [0.24, -1], [0.45, 0], [0.66, 1], [1, 0]] },
+  // 생명의 다리: 곧은 길 끝의 넓은 빈터를 가로지르는 낭떠러지 (정거장 위치는 아래 BRIDGE 기준으로 다시 잡음)
+  bridge: { pts: [[56, 295], [66, 295], [76, 296], [88, 296], [100, 296], [108, 296], [113, 296]],
+    st: [[-27, 1], [-20, -1], [-15, 1], [-12, -1, 7.5], [-9.5, 0], [-6.4, 0], [13, 0]], byV: true },
 };
-function catmull(pts, step = 0.5) {
+// 생명의 다리 빈터 (가로 u, 길 방향 v). 가운데 |v| < CH.v 는 낭떠러지
+const BR_C = polar(gr(104), 296), BR_A = { x: Math.cos(deg(296)), z: Math.sin(deg(296)) };
+export const BRIDGE = {
+  x: BR_C.x, z: BR_C.z, a: BR_A, b: { x: -BR_A.z, z: BR_A.x }, // b: 길 오른쪽
+  U: 15, V: 17, gap: 4,              // 빈터 반폭·반길이, 낭떠러지 반폭
+  tries: [{ u: -12, len: 3.4 }, { u: -7.5, len: 2.6 }, { u: 8, len: 3.8 }], // 사람의 노력으로 놓은 다리 (모자람)
+  cross: { u: 0, w: 1.25 }, open: false,
+  local(x, z) { const dx = x - this.x, dz = z - this.z; return { u: dx * this.b.x + dz * this.b.z, v: dx * this.a.x + dz * this.a.z }; },
+  at(u, v) { return { x: this.x + this.b.x * u + this.a.x * v, z: this.z + this.b.z * u + this.a.z * v }; },
+};
+// 낭떠러지에서: 1 = 디딜 수 있음, 0 = 막힘, -1 = 낭떠러지 밖
+function bridgeFree(x, z) {
+  const B = BRIDGE;
+  if (Math.abs(x - B.x) > 30 || Math.abs(z - B.z) > 30) return -1;
+  const { u, v } = B.local(x, z);
+  if (Math.abs(u) > B.U || Math.abs(v) > B.V) return -1;
+  if (Math.abs(v) >= B.gap) return 1;
+  if (B.open && Math.abs(u - B.cross.u) < B.cross.w) return 1;
+  for (const t of B.tries) if (Math.abs(u - t.u) < 0.75 && v < -B.gap + t.len) return 1;
+  return 0;
+}
+function catmull(pts, step = 0.5, head) {
   const P = pts.map(([r, a]) => polar(gr(r), a));
+  if (head) P.unshift(head);
   const out = [];
   for (let i = 0; i < P.length - 1; i++) {
     const p0 = P[Math.max(0, i - 1)], p1 = P[i], p2 = P[i + 1], p3 = P[Math.min(P.length - 1, i + 2)];
@@ -220,7 +257,7 @@ function catmull(pts, step = 0.5) {
 export const TRAIL_W = 1.3; // 걸을 수 있는 반폭
 export const TRAILS = {};
 for (const [id, d] of Object.entries(TRAIL_DEF)) {
-  const S = catmull(d.pts);
+  const S = catmull(d.pts, 0.5, d.from && TRAILS[d.from[0]].sample(d.from[1]));
   const L = S[S.length - 1].s;
   const sample = (f) => {
     const s = f * L;
@@ -229,13 +266,15 @@ for (const [id, d] of Object.entries(TRAIL_DEF)) {
     const dx = b.x - a.x, dz = b.z - a.z, dl = Math.hypot(dx, dz) || 1;
     return { x: a.x + dx * k, z: a.z + dz * k, dir: { x: dx / dl, z: dz / dl } };
   };
-  const stations = d.st.map(([f, side]) => {
+  const stations = d.st.map(([f0, side, off0]) => {
+    // byV: 생명의 다리 빈터 가운데에서 잰 거리(m)로 자리를 잡음
+    const f = d.byV ? (Math.hypot(BRIDGE.x - S[0].x, BRIDGE.z - S[0].z) + f0) / L : f0;
     const p = sample(f);
     const right = { x: -p.dir.z, z: p.dir.x };
-    const off = side ? 3.2 : 0;
+    const off = side ? off0 || 3.2 : 0;
     return { f, side, x: p.x, z: p.z, dir: p.dir, right, show: { x: p.x + right.x * off * side, z: p.z + right.z * off * side } };
   });
-  TRAILS[id] = { id, samples: S, len: L, sample, stations, end: stations[stations.length - 1] };
+  TRAILS[id] = { id, samples: S, len: L, sample, stations, end: stations[stations.length - 1], from: d.from };
 }
 const trailSamples = Object.values(TRAILS).flatMap((t) => t.samples);
 export function nearTrail(x, z, d) {
@@ -277,16 +316,17 @@ export const TREES = [];
 {
   let s = 5;
   const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
-  for (let k = 0; k < 290; k++) {
+  for (let k = 0; k < 520; k++) {
     const a = rnd() * Math.PI * 2;
-    const r = gr(77) + rnd() * 40 * G;
+    const r = gr(77) + Math.pow(rnd(), 1.4) * 82 * GF;
     const h = 5 + rnd() * 7;
     if (Math.abs(a - Math.PI / 2) < 0.06) continue; // 입구 앞 길
     if (nearTrail(Math.cos(a) * r, Math.sin(a) * r, 4)) continue; // 숲속 코스
+    { const l = BRIDGE.local(Math.cos(a) * r, Math.sin(a) * r); if (Math.abs(l.u) < BRIDGE.U + 4 && Math.abs(l.v) < BRIDGE.V + 3) continue; }
     TREES.push({ x: Math.cos(a) * r, z: Math.sin(a) * r, h, dark: rnd() < 0.5 });
   }
   const nForest = TREES.length;
-  for (let k = 0; k < 600 && TREES.length < nForest + 70; k++) {
+  for (let k = 0; k < 600 && TREES.length < nForest + 80; k++) {
     const a = rnd() * Math.PI * 2;
     const r = gr(39) + rnd() * 34 * G;
     const h = 4 + rnd() * 5;
@@ -341,6 +381,7 @@ function seat(x, z, faceTo, kind, approach) {
 }
 
 for (const l of LOUNGES) { seat(l.chair.x, l.chair.z, { x: 0, z: 0 }, 'lounge', l.approach); l.seat = seats[seats.length - 1]; }
+for (const r of RESTS) { seat(r.x, r.z, polar(R_HALL + 20, r.a), r.kind, r.approach); r.seat = seats[seats.length - 1]; }
 // 정원 벤치: 숲(바깥)을 바라봄
 for (const b of GARDEN_BENCHES) { seat(b.x, b.z, polar(R_GARDEN, b.a), 'gbench', b.approach); b.seat = seats[seats.length - 1]; }
 
@@ -421,7 +462,10 @@ export const SPOTS = {
 export const BODY = 0.35;
 export function isFree(x, z, hop = 0) {
   const r = Math.hypot(x, z);
-  if (r > R_GARDEN && !onTrail(x, z)) return false;
+  if (r > R_GARDEN) {
+    const bf = bridgeFree(x, z);
+    if (bf === 0 || (bf < 0 && !onTrail(x, z))) return false;
+  }
   if (r > R_HALL - 0.7 && r < R_HALL + 1.1) {
     // 유리벽은 입구로만 드나듦
     if (!(z > 0 && Math.abs(x) < 1.15)) return false;

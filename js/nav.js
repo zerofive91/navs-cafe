@@ -125,3 +125,8 @@ export function findPath(from, to) {
   }
   return out;
 }
+
+// 길이 새로 열리거나 막힌 곳 둘레만 다시 계산 (예: 생명의 다리)
+export function refreshNav(x, z, R) {
+  for (let j = toIdx(z - R); j <= toIdx(z + R); j++) for (let i = toIdx(x - R); i <= toIdx(x + R); i++) free[j * N + i] = isFree(cx(i), cx(j)) ? 1 : 0;
+}
