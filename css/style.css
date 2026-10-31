@@ -11,19 +11,23 @@ html, body {
 }
 canvas { display: block; touch-action: none; }
 
+/* 오른쪽 가장자리 세로 줄: 가운데 캐릭터를 가리지 않게 */
 #actions {
   position: fixed;
-  left: 50%;
+  right: calc(14px + env(safe-area-inset-right));
   bottom: calc(18px + env(safe-area-inset-bottom));
-  transform: translateX(-50%);
   display: flex;
-  gap: 12px;
-  padding: 8px;
-  border-radius: 40px;
-  background: rgba(255, 250, 240, 0.72);
+  flex-direction: column-reverse;
+  flex-wrap: wrap-reverse;
+  align-content: flex-end;
+  gap: 10px;
+  max-height: calc(100vh - 150px - env(safe-area-inset-top));
+  padding: 6px;
+  border-radius: 34px;
+  background: rgba(255, 250, 240, 0.55);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-  box-shadow: 0 4px 18px rgba(60, 40, 20, 0.15);
+  box-shadow: 0 4px 18px rgba(60, 40, 20, 0.12);
 }
 #actions:empty { display: none; }
 .act {
@@ -114,7 +118,7 @@ canvas { display: block; touch-action: none; }
 }
 /* 조이스틱과 겹치지 않게 동작 버튼은 오른쪽으로 */
 @media (max-width: 640px) {
-  #actions { left: auto; right: calc(14px + env(safe-area-inset-right)); transform: none; gap: 8px; flex-wrap: wrap-reverse; justify-content: flex-end; max-width: calc(100vw - 170px); border-radius: 28px; }
+  #actions { gap: 8px; }
   .act { width: 48px; height: 48px; }
 }
 
@@ -141,6 +145,6 @@ canvas { display: block; touch-action: none; }
   #stick { width: 96px; height: 96px; left: calc(16px + env(safe-area-inset-left)); bottom: calc(14px + env(safe-area-inset-bottom)); }
   #knob { width: 42px; height: 42px; margin: -21px 0 0 -21px; }
   #hint { left: calc(16px + 48px - 20px + env(safe-area-inset-left)); bottom: calc(14px + 48px - 28px + env(safe-area-inset-bottom)); }
-  #actions { left: auto; right: calc(14px + env(safe-area-inset-right)); bottom: calc(12px + env(safe-area-inset-bottom)); transform: none; gap: 8px; }
+  #actions { bottom: calc(12px + env(safe-area-inset-bottom)); gap: 6px; max-height: calc(100vh - 70px); }
   .act { width: 44px; height: 44px; }
 }

@@ -5,6 +5,7 @@ import { makeAvatar, poseAvatar } from './avatar.js';
 import { findPath, nearestFree } from './nav.js';
 import { floorY, seats, SPOTS, SPAWN, planters, polar, COUNTER, CEIL, Q, isFree } from './layout.js';
 import { ICONS } from './icons.js';
+import { loadProps, upgradeCup, fxSprite } from './props.js';
 
 const canvas = document.getElementById('cafe');
 const bar = document.getElementById('actions');
@@ -45,7 +46,21 @@ scene.add(warm);
 
 const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 400);
 
-const { anim, interactive } = buildWorld(scene);
+// 작은 효과음 (Kenney Interface Sounds, CC0) — 아주 작게
+let actx = null;
+const sfxBuf = {};
+function sfx(name, vol = 0.25) {
+  try {
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === 'suspended') actx.resume();
+    const play = (b) => { const s = actx.createBufferSource(); const g = actx.createGain(); g.gain.value = vol; s.buffer = b; s.connect(g).connect(actx.destination); s.start(); };
+    if (sfxBuf[name] instanceof AudioBuffer) return play(sfxBuf[name]);
+    if (!sfxBuf[name]) sfxBuf[name] = fetch('assets/sfx/' + name + '.mp3').then((r) => r.arrayBuffer()).then((a) => actx.decodeAudioData(a)).then((b) => { sfxBuf[name] = b; return b; }).catch(() => {});
+    sfxBuf[name].then?.((b) => b && play(b));
+  } catch (e) { /* 소리 없이 계속 */ }
+}
+
+const { anim, interactive, deco } = buildWorld(scene);
 // 3인칭 카메라를 가릴 수 있는 물체(그림자를 드리우는 큰 물체들)
 const occluders = [];
 scene.traverse((o) => {
@@ -275,10 +290,27 @@ const gifts = [];
 const giftGeo = new THREE.SphereGeometry(0.09, 12, 10);
 function sendLight(from, to) {
   const m = new THREE.Mesh(giftGeo, new THREE.MeshBasicMaterial({ color: 0xffd98a }));
-  const halo = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 10), new THREE.MeshBasicMaterial({ color: 0xffd98a, transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending }));
-  m.add(halo);
+  m.add(fxSprite('light_01', 0xffd98a, 0.9));
   scene.add(m);
   gifts.push({ m, from: { x: from.x, y: from.y + 0.75, z: from.z }, to, t: -0.6 });
+}
+// 빛이 닿을 때 반짝이는 별
+const bursts = [];
+function burst(x, y, z) {
+  const sp = fxSprite('star_06', 0xfff0c0, 0.2);
+  sp.position.set(x, y, z);
+  scene.add(sp);
+  bursts.push({ sp, t: 0 });
+}
+function stepBursts(dt) {
+  for (let i = bursts.length - 1; i >= 0; i--) {
+    const b = bursts[i];
+    b.t += dt / 0.9;
+    b.sp.scale.setScalar(0.2 + b.t * 1.4);
+    b.sp.material.opacity = 1 - b.t;
+    b.sp.material.rotation = b.t * 1.5;
+    if (b.t >= 1) { scene.remove(b.sp); b.sp.material.dispose(); bursts.splice(i, 1); }
+  }
 }
 function stepGifts(dt) {
   for (let i = gifts.length - 1; i >= 0; i--) {
@@ -293,6 +325,8 @@ function stepGifts(dt) {
       gifts.splice(i, 1);
       g.to.action = 'vhand';
       g.to.glow = 2.5;
+      burst(tx, ty, tz);
+      sfx('share', 0.2);
       setTimeout(() => { if (g.to.action === 'vhand') g.to.action = null; }, 2400);
     }
   }
@@ -337,6 +371,7 @@ function refreshActions() {
     b.innerHTML = ICONS[name];
     b.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
+      sfx(name === 'sip' || name === 'order' ? 'cup' : 'tap', 0.15);
       if (on && name !== 'wave' && name !== 'share') { me.action = null; if (me.seat && me.seat.free) standUp(me); shown = ''; return; }
       ACTIONS[name]();
     });
@@ -345,7 +380,7 @@ function refreshActions() {
 }
 
 // ---------- 카메라 (끌어서 돌리기, 휠/두 손가락으로 확대) ----------
-const view = { az: 0, el: 0.32, dist: 7, tx: me.x, ty: 0.62, tz: me.z, mode: 'third', pitch: 0, follow: true };
+const view = { az: 0, el: 0.55, dist: 7.5, tx: me.x, ty: 0.62, tz: me.z, mode: 'third', pitch: 0, follow: true };
 function resize() {
   const w = window.innerWidth, h = window.innerHeight;
   renderer.setSize(w, h, false);
@@ -420,7 +455,13 @@ function tap(sx, sy) {
   const hits = ray.intersectObjects(interactive, false);
   if (hits.length && hits[0].distance < 60) {
     const o = hits[0].object;
-    if (o.userData.onTap) return o.userData.onTap();
+    if (o.userData.onTap) { sfx('orb', 0.2); return o.userData.onTap(); }
+    if (o.userData.seat) {
+      const l = o.userData.seat;
+      const st = seats.find((q) => q.kind === 'lounge' && Math.abs(q.x - l.chair.x) < 0.01 && Math.abs(q.z - l.chair.z) < 0.01);
+      if (st && !st.taken && st !== me.seat) { sfx('tap', 0.15); sitOn(me, st); }
+      return;
+    }
     const name = o.userData.action;
     if (name === 'water') return ACTIONS.water(o.userData.pot);
     if (ACTIONS[name]) return ACTIONS[name]();
@@ -543,7 +584,7 @@ function showViewIcon() {
 viewBtn.addEventListener('pointerdown', (e) => {
   e.stopPropagation();
   if (view.mode === 'third') { view.mode = 'first'; view.az = me.face + Math.PI; view.pitch = 0; }
-  else { view.mode = 'third'; view.az = me.face + Math.PI; view.el = 0.32; view.dist = 7; }
+  else { view.mode = 'third'; view.az = me.face + Math.PI; view.el = 0.55; view.dist = 7.5; }
   showViewIcon();
 });
 showViewIcon();
@@ -573,13 +614,14 @@ function stepChar(ch, dt) {
     if (ch.seat.kind === 'boat') fy = 0.2;
     if (ch.seat.kind === 'kneel') fy = ch.seat.free ? floorY(ch.x, ch.z) - 0.02 : 0.12;
     if (ch.seat.kind === 'floor') fy = floorY(ch.x, ch.z) - 0.2;
+    if (ch.seat.kind === 'lounge') fy = floorY(ch.x, ch.z) + 0.22;
   }
   ch.y += (fy - ch.y) * Math.min(1, dt * 10);
   // 점프: 0.55초 동안 포물선
   let hop = 0;
   if (ch.jump > 0) {
     ch.jump += dt / 0.55;
-    if (ch.jump >= 1) ch.jump = 0;
+    if (ch.jump >= 1) { ch.jump = 0; if (ch === me) sfx('land', 0.15); }
     else hop = Math.sin(ch.jump * Math.PI) * 0.55;
   }
   ch.hop = hop;
@@ -632,10 +674,11 @@ function frame(now) {
   view.ty += (me.y + 0.62 - view.ty) * k;
   // 걷는 동안에는 시점이 천천히 캐릭터 뒤로 돌아감 (방금 화면을 끌었다면 잠시 기다림)
   const moving = me.state === 'walk';
-  if (moving && view.mode === 'third' && performance.now() - (view.dragAt || 0) > 1500 && !stick.on) {
+  // 조이스틱으로 방향을 틀어도 화면이 진행 방향 쪽으로 따라 돎 (카메라 쪽으로 걸어올 때는 돌리지 않음)
+  if (moving && performance.now() - (view.dragAt || 0) > 1200) {
     let d = (me.face + Math.PI) - view.az;
     d = Math.atan2(Math.sin(d), Math.cos(d));
-    view.az += d * Math.min(1, dt * 1.6);
+    if (Math.abs(d) < 2.4) view.az += d * Math.min(1, dt * (stickDriving ? 1.4 : 1.8));
   }
   me.av.visible = view.mode !== 'first';
   if (view.mode === 'first') {
@@ -663,6 +706,7 @@ function frame(now) {
     if (++occFrame % 3 === 0) fadeOccluders(P, camPos);
   }
   stepFades(dt);
+  stepBursts(dt);
 
   refreshActions();
   renderer.render(scene, camera);
@@ -676,5 +720,11 @@ enter.addEventListener('click', () => {
   setTimeout(maybeHint, 1200);
 });
 requestAnimationFrame(frame);
+// 첫 화면이 뜬 뒤 소품 모델을 천천히 불러와 바꿔 끼움
+setTimeout(() => {
+  loadProps({ scene, deco, interactive, anim, renderer });
+  upgradeCup(me.av);
+  for (const n of npcs) if (n.av) upgradeCup(n.av);
+}, 300);
 
 window.__cafe = { me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick };
