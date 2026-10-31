@@ -1,0 +1,24 @@
+// 글자 없는 버튼 아이콘 (SVG)
+const svg = (body) =>
+  `<svg viewBox="0 0 32 32" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+
+export const ICONS = {
+  // 빛 바라보기 (그리스도)
+  gaze: svg('<circle cx="16" cy="16" r="5"/><path d="M16 4v4M16 24v4M4 16h4M24 16h4M7.5 7.5l2.8 2.8M21.7 21.7l2.8 2.8M7.5 24.5l2.8-2.8M21.7 10.3l2.8-2.8"/>'),
+  // 책 읽기 (말씀)
+  read: svg('<path d="M16 9c-3-2-7-2-10-1v16c3-1 7-1 10 1 3-2 7-2 10-1V8c-3-1-7-1-10 1z"/><path d="M16 9v16"/>'),
+  // 손 모으기 (기도)
+  pray: svg('<path d="M15 27V13l-3-6c-1-2-3-1-3 1v10l-3 4"/><path d="M17 27V13l3-6c1-2 3-1 3 1v10l3 4"/>'),
+  // 주문 (교제)
+  order: svg('<path d="M7 12h15v7a6 6 0 0 1-6 6h-3a6 6 0 0 1-6-6z"/><path d="M22 14h2a3 3 0 0 1 0 6h-2"/><path d="M12 5c0 2 2 2 2 4M17 5c0 2 2 2 2 4"/>'),
+  // 마시기
+  sip: svg('<path d="M10 9h12l-1.5 16a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2z"/><path d="M10 14h12"/>'),
+  // 맞이하기 (증거)
+  welcome: svg('<path d="M6 27V6h12v21"/><path d="M18 27h8"/><circle cx="14" cy="17" r="1"/><path d="M22 10l4 2-4 2"/>'),
+  // 손 흔들기
+  wave: svg('<path d="M10 18V9a2 2 0 0 1 4 0v7"/><path d="M14 15V7a2 2 0 0 1 4 0v8"/><path d="M18 15V9a2 2 0 0 1 4 0v9a8 8 0 0 1-8 8h-1a7 7 0 0 1-6-3l-3-5a2 2 0 0 1 3-2l3 3"/>'),
+  // 물주기 (순종)
+  water: svg('<path d="M6 14h14v8a3 3 0 0 1-3 3h-8a3 3 0 0 1-3-3z"/><path d="M20 16l7-5"/><path d="M9 14c0-4 2-6 5-6"/><path d="M27 15v2M25 19v2"/>'),
+  // 쟁반 반납 (순종)
+  tray: svg('<path d="M5 20h22"/><path d="M8 20a8 8 0 0 1 16 0"/><path d="M16 10V8"/><path d="M16 26v-3M11 26h10"/>'),
+};
