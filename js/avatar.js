@@ -241,9 +241,10 @@ export function poseAvatar(av, ch, t, dt) {
     u.legs.forEach((l) => { l.rotation.x = 1.5; l.position.z = -0.05; });
   } else {
     u.legs.forEach((l, i) => { l.rotation.x = i ? -legA : legA; l.position.z = 0; });
-    if (sitting) u.legs.forEach((l) => { l.rotation.x = -1.4; });
+    if (sitting) u.legs.forEach((l) => { l.rotation.x = ch.seat && ch.seat.kind === 'lie' ? -0.05 : ch.seat && ch.seat.kind === 'recline' ? -1.15 : -1.4; });
   }
 
+  if (sitting && ch.seat && ch.seat.kind === 'lie' && !ch.action) { armL = -2.7; armR = -2.7; armLz = 0.7; armRz = -0.7; bodyY = Math.sin(t * 0.9) * 0.006; } // 두 팔을 머리 뒤로, 느린 숨
   switch (ch.action) {
     case 'pray':
       armL = -1.25; armR = -1.25; armLz = 0.56; armRz = -0.56; headX = 0.35; // 가슴 앞에서 두 손을 모음
@@ -288,6 +289,16 @@ export function poseAvatar(av, ch, t, dt) {
       // 가지에 두 손으로 매달려 다리를 흔듦
       armL = -3.05; armR = -3.05; armLz = 0.12; armRz = -0.12; headX = -0.2;
       u.legs.forEach((l, i) => { l.rotation.x = Math.sin(t * 2.4 + i * 0.6) * 0.45; });
+      break;
+    case 'strain':
+      // 등의 짐을 벗으려고 애씀 (두 손을 뒤로 돌려 끙끙)
+      armL = 2.3 + Math.sin(t * 16) * 0.15; armR = 2.3 - Math.sin(t * 16) * 0.15; armLz = 0.5; armRz = -0.5; headX = 0.35 + Math.sin(t * 9) * 0.06;
+      bodyY -= 0.04;
+      break;
+    case 'worship':
+      // 엎드려 경배
+      armL = -2.4; armR = -2.4; armLz = 0.2; armRz = -0.2; headX = 0.7; bodyY = -0.22;
+      u.legs.forEach((l) => { l.rotation.x = 1.5; l.position.z = -0.05; });
       break;
     case 'praise':
       // 두 손을 높이 들고 천천히 흔듦

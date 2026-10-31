@@ -2,7 +2,7 @@
 // 모델은 화면이 뜬 뒤 천천히 불러오고, 다 불러오면 임시 모양을 바꿔 끼움
 import * as THREE from 'three';
 import { GLTFLoader } from '../vendor/loaders/GLTFLoader.js';
-import { C, G, gr, R_GARDEN, Q, PRAYER_POOL_R, COUNTER, LONG_TABLE, LOUNGES, FLOWER_BEDS, GARDEN_BENCHES, GARDEN_LAMPS, R_WALK, LANES, parkClear, polar, deg, floorY } from './layout.js';
+import { C, G, gr, R_GARDEN, Q, PRAYER_POOL_R, COUNTER, LONG_TABLE, LOUNGES, RESTS, FLOWER_BEDS, GARDEN_BENCHES, GARDEN_LAMPS, R_WALK, LANES, parkClear, polar, deg, floorY } from './layout.js';
 
 const loader = new GLTFLoader();
 const cache = new Map();
@@ -213,6 +213,48 @@ export function loadProps({ scene, deco, interactive, anim, renderer, occluders 
     });
     const pp = polar(26.6 * C, l.a - 3.2);
     place(scene, F + 'pottedPlant.glb', { x: pp.x, z: pp.z, rot: l.a, height: 1.1, tone: [0.8, 0.1] });
+  }
+
+  // ---------- 쉼의 자리: 리클라이너와 빈백, 둥근 러그와 담요 ----------
+  {
+    const mat = (c, r = 0.95) => new THREE.MeshStandardMaterial({ color: c, roughness: r });
+    const linen = mat(0xd8c7aa), sage = mat(0xa9b89a), wood = mat(0x8a6a48, 0.7), rugM = mat(0xe9dcc6, 1), throwM = mat(0xc98e6a);
+    const bagCols = [0xd9a47a, 0xcfc2a8, 0x9fae94, 0xc7b39a];
+    const box = (w, h, d, m, x, y, z) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); return o; };
+    const rugs = new Set();
+    RESTS.forEach((r, i) => {
+      const g = new THREE.Group();
+      g.position.set(r.x, floorY(r.x, r.z), r.z);
+      g.rotation.y = Math.atan2(Math.cos(deg(r.a)), Math.sin(deg(r.a))); // 바깥(정원)을 바라봄
+      if (r.kind === 'recline') {
+        const m = i % 2 ? sage : linen;
+        g.add(box(0.8, 0.22, 0.85, wood, 0, 0.11, 0));
+        const seatC = box(0.74, 0.18, 0.8, m, 0, 0.33, 0.02); g.add(seatC);
+        const back = box(0.74, 0.85, 0.2, m, 0, 0.72, -0.48); back.rotation.x = -0.62; g.add(back);
+        const head = box(0.5, 0.18, 0.16, m, 0, 1.08, -0.72); head.rotation.x = -0.62; g.add(head);
+        const foot = box(0.7, 0.14, 0.5, m, 0, 0.3, 0.62); foot.rotation.x = 0.18; g.add(foot);
+        for (const sd of [-1, 1]) g.add(box(0.12, 0.2, 0.75, m, sd * 0.43, 0.48, -0.05));
+        const blanket = box(0.6, 0.04, 0.45, throwM, 0.05, 0.44, 0.3); blanket.rotation.z = 0.05; g.add(blanket);
+      } else {
+        const m = mat(bagCols[i % bagCols.length], 1);
+        const body = new THREE.Mesh(new THREE.SphereGeometry(0.55, 20, 14), m); body.scale.set(1.05, 0.5, 1.05); body.position.y = 0.26; g.add(body);
+        const back = new THREE.Mesh(new THREE.SphereGeometry(0.42, 18, 12), m); back.scale.set(1.15, 0.9, 0.6); back.position.set(0, 0.46, -0.36); g.add(back);
+      }
+      g.traverse((c) => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; c.userData.rest = r; interactive.push(c); } });
+      scene.add(g);
+      // 자리 둘레마다 둥근 러그 하나
+      const key = Math.round(r.a / 25);
+      if (!rugs.has(key)) {
+        rugs.add(key);
+        const group = RESTS.filter((q) => Math.round(q.a / 25) === key);
+        const ca = group.reduce((a, q) => a + q.a, 0) / group.length;
+        const p = polar(26.1 * C, ca);
+        const rug = new THREE.Mesh(new THREE.CircleGeometry(group.length > 2 ? 3.4 : 2.1, 40), rugM);
+        rug.rotation.x = -Math.PI / 2; rug.position.set(p.x, floorY(p.x, p.z) + 0.006, p.z); rug.receiveShadow = true; scene.add(rug);
+        const lp = polar(26.95 * C, ca + (group.length > 2 ? 6 : 0));
+        place(scene, F + 'lampRoundFloor.glb', { x: lp.x, z: lp.z, y: floorY(lp.x, lp.z), rot: 0, height: 1.5, tone: [0.4, 0.5] });
+      }
+    });
   }
 
   void anim; void renderer;

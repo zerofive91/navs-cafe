@@ -3,6 +3,11 @@ const svg = (body) =>
   `<svg viewBox="0 0 32 32" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
 
 export const ICONS = {
+  map: svg('<path d="M4 8l7-3 10 3 7-3v19l-7 3-10-3-7 3z"/><path d="M11 5v19M21 8v19"/><circle cx="16" cy="14" r="1.6"/>'),
+  shrug: svg('<rect x="9" y="9" width="14" height="14" rx="3"/><path d="M12 9V6h8v3"/><path d="M16 26v3M11 27l-2 2M21 27l2 2"/>'),
+  gift: svg('<rect x="5" y="13" width="22" height="14" rx="2"/><path d="M4 9h24v4H4zM16 9v18"/><path d="M16 9c-2-5-8-5-7-1s7 1 7 1 6 3 7-1-5-4-7 1"/>'),
+  receive: svg('<path d="M8 28V6h16v22"/><path d="M4 28h24"/><circle cx="20" cy="17" r="1.2"/><path d="M14 13a3 3 0 0 1 6 0c0 3-3 4-3 6" opacity=".0"/><path d="M13 16c0-2 3-3 3 0 0-3 3-2 3 0s-3 4-3 4-3-2-3-4z"/>'),
+  recline: svg('<path d="M4 22l6-2 8 1 10-6"/><path d="M6 26h20"/><circle cx="9" cy="14" r="2.5"/><path d="M24 9c1 1 2 1 3 0M21 6c1 1 2 1 3 0"/>'),
   trumpet: svg('<path d="M4 13v6l5-1V14z"/><path d="M9 14l13-6v16L9 18"/><path d="M25 12a5 5 0 0 1 0 8"/><path d="M12 19l1 5h3l-1-4.5"/>'),
   sling: svg('<circle cx="22" cy="9" r="3"/><path d="M6 27c2-6 6-10 13-15"/><path d="M6 27c4-3 9-6 13-15"/><path d="M5 21l2 6 6-1"/>'),
   jonah: svg('<path d="M4 16c4-6 12-8 18-4l6-4v16l-6-4c-6 4-14 2-18-4z"/><circle cx="9" cy="14.5" r="1"/><path d="M4 16h5"/>'),

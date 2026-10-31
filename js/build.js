@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import {
   GATE, R_HALL, R_RIM_IN, TREES, PARK, POOL, FLOWER_BEDS, R_WALK, R_HUB, SPOKE, CEIL, deg, polar, Q, PRAYER_POOL_R, WITNESS_POOL_R,
   columns, COUNTER, LONG_TABLE, BIBLE, planters, TRAY, stools, BOAT,
+  BRIDGE,
 } from './layout.js';
 import { showVerse } from './verses.js';
 import { buildNavigators } from './navs.js';
@@ -113,11 +114,20 @@ export function buildWorld(scene) {
   // ---------- 바깥 ----------
   // 잔디 (수영장 자리는 뚫어 둠)
   const gShape = new THREE.Shape();
-  gShape.absarc(0, 0, 260, 0, Math.PI * 2, false);
+  gShape.absarc(0, 0, 300, 0, Math.PI * 2, false);
   {
     const zn = PARK.pool, h = new THREE.Path();
     const c = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([a, b]) => zn.at(a * POOL.w / 2, b * POOL.d / 2));
     h.moveTo(c[0].x, -c[0].z); for (const q of [c[3], c[2], c[1], c[0]]) h.lineTo(q.x, -q.z);
+    gShape.holes.push(h);
+  }
+  {
+    // 생명의 다리: 하나님과 사람 사이의 깊은 낭떠러지
+    const B = BRIDGE, h = new THREE.Path();
+    const c = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([a, b]) => B.at(a * B.U, b * B.gap));
+    const area = c.reduce((A, q, i) => { const n = c[(i + 1) % 4]; return A + (q.x * -n.z - n.x * -q.z); }, 0);
+    const o = area > 0 ? [c[0], c[3], c[2], c[1]] : c;
+    h.moveTo(o[0].x, -o[0].z); for (const q of o.slice(1)) h.lineTo(q.x, -q.z);
     gShape.holes.push(h);
   }
   const ground = new THREE.Mesh(new THREE.ShapeGeometry(gShape, 64), mat.grass);
