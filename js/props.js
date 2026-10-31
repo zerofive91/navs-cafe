@@ -2,7 +2,7 @@
 // 모델은 화면이 뜬 뒤 천천히 불러오고, 다 불러오면 임시 모양을 바꿔 끼움
 import * as THREE from 'three';
 import { GLTFLoader } from '../vendor/loaders/GLTFLoader.js';
-import { Q, PRAYER_POOL_R, COUNTER, LONG_TABLE, LOUNGES, FLOWER_BEDS, GARDEN_BENCHES, GARDEN_LAMPS, R_WALK, LANES, parkClear, polar, deg, floorY } from './layout.js';
+import { C, G, gr, R_GARDEN, Q, PRAYER_POOL_R, COUNTER, LONG_TABLE, LOUNGES, FLOWER_BEDS, GARDEN_BENCHES, GARDEN_LAMPS, R_WALK, LANES, parkClear, polar, deg, floorY } from './layout.js';
 
 const loader = new GLTFLoader();
 const cache = new Map();
@@ -110,7 +110,7 @@ export function loadProps({ scene, deco, interactive, anim, renderer, occluders 
   const many = instancer(scene);
   deco.trees.forEach((t, k) => {
     // 숲의 나무는 묶어서 한 번에 그림, 정원 안 나무는 카메라를 가리면 반투명해지도록 하나씩
-    if (Math.hypot(t.x, t.z) > 76) { many.add(N + TREES[k % TREES.length] + '.glb', { x: t.x, z: t.z, y: -0.5, rot: k * 1.7, height: t.h * 1.15 }); return; }
+    if (Math.hypot(t.x, t.z) > R_GARDEN + 2) { many.add(N + TREES[k % TREES.length] + '.glb', { x: t.x, z: t.z, y: -0.5, rot: k * 1.7, height: t.h * 1.15 }); return; }
     place(scene, N + TREES[k % TREES.length] + '.glb', { x: t.x, z: t.z, y: -0.5, rot: k * 1.7, height: t.h * 1.15, shadow: false })
       .then((m) => { if (!m) return; t.parts.forEach((p) => { p.visible = false; }); m.traverse((c) => { if (c.isMesh) occluders.push(c); }); }); // 카메라를 가리면 반투명
   });
@@ -150,18 +150,18 @@ export function loadProps({ scene, deco, interactive, anim, renderer, occluders 
   for (const l of GARDEN_LAMPS) place(scene, F + 'lampRoundFloor.glb', { x: l.x, z: l.z, y: -0.5, height: 1.6, tone: [0.4, 0.4] });
   // 정원 너머 풀밭: 꽃·풀·그루터기
   const MEADOW = [...FL, 'grass_large', 'grass_leafs', 'grass_large', 'plant_flatTall', 'rock_smallFlatB', 'stump_round', 'log'];
-  for (let k = 0; k < 160; k++) {
+  for (let k = 0; k < 320; k++) {
     const a = rnd() * Math.PI * 2;
-    const r = 37.5 + rnd() * 12;
+    const r = gr(37.5) + rnd() * 12 * G;
     if (nearEntry(a)) continue;
     const x = Math.cos(a) * r, z = Math.sin(a) * r;
     if (FLOWER_BEDS.some((b) => Math.hypot(b.x - x, b.z - z) < b.r + 0.4)) continue;
-    if (r > 40 && !parkClear(x, z, 0.5)) continue;
+    if (r > gr(40) && !parkClear(x, z, 0.5)) continue;
     const kind = pick(MEADOW);
     const h = kind.startsWith('stump') || kind === 'log' ? 0.4 : kind.startsWith('rock') ? 0.25 : kind.startsWith('plant') ? 0.8 : 0.35 + rnd() * 0.25;
     many.add(N + kind + '.glb', { x, z, y: -0.5, rot: rnd() * 6, height: h });
   }
-  many.flush().then(() => deco.trees.forEach((t) => { if (Math.hypot(t.x, t.z) > 76) t.parts.forEach((p) => { p.visible = false; }); }));
+  many.flush().then(() => deco.trees.forEach((t) => { if (Math.hypot(t.x, t.z) > R_GARDEN + 2) t.parts.forEach((p) => { p.visible = false; }); }));
 
   // ---------- 둘레 화분: 잎을 덤불 모델로 ----------
   deco.plantGroups.forEach(({ g, p }, k) => {
@@ -211,7 +211,7 @@ export function loadProps({ scene, deco, interactive, anim, renderer, occluders 
       const top = new THREE.Box3().setFromObject(t).max.y;
       place(scene, F + 'lampRoundTable.glb', { x: l.table.x, z: l.table.z, y: top, rot: face, height: 0.5, tone: [0.4, 0.5] });
     });
-    const pp = polar(26.6, l.a - 3.2);
+    const pp = polar(26.6 * C, l.a - 3.2);
     place(scene, F + 'pottedPlant.glb', { x: pp.x, z: pp.z, rot: l.a, height: 1.1, tone: [0.8, 0.1] });
   }
 

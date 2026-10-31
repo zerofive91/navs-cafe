@@ -1,7 +1,7 @@
 // 3D 공간 만들기: 높은 층고의 흰색 모던 카페, 수레바퀴 바닥, 전시물
 import * as THREE from 'three';
 import {
-  R_HALL, R_RIM_IN, TREES, PARK, POOL, FLOWER_BEDS, R_WALK, R_HUB, SPOKE, CEIL, deg, polar, Q, PRAYER_POOL_R, WITNESS_POOL_R,
+  GATE, R_HALL, R_RIM_IN, TREES, PARK, POOL, FLOWER_BEDS, R_WALK, R_HUB, SPOKE, CEIL, deg, polar, Q, PRAYER_POOL_R, WITNESS_POOL_R,
   columns, COUNTER, LONG_TABLE, BIBLE, planters, TRAY, stools, BOAT,
 } from './layout.js';
 import { showVerse } from './verses.js';
@@ -113,7 +113,7 @@ export function buildWorld(scene) {
   // ---------- 바깥 ----------
   // 잔디 (수영장 자리는 뚫어 둠)
   const gShape = new THREE.Shape();
-  gShape.absarc(0, 0, 160, 0, Math.PI * 2, false);
+  gShape.absarc(0, 0, 260, 0, Math.PI * 2, false);
   {
     const zn = PARK.pool, h = new THREE.Path();
     const c = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([a, b]) => zn.at(a * POOL.w / 2, b * POOL.d / 2));
@@ -138,9 +138,9 @@ export function buildWorld(scene) {
     deco.trees.push({ x, z, h, parts: [trunk, crown] });
   }
   // 입구 앞 길
-  const path = new THREE.Mesh(new THREE.PlaneGeometry(4, 30), mat.stone);
+  const path = new THREE.Mesh(new THREE.PlaneGeometry(4, GATE.r - 1 - R_HALL), mat.stone);
   path.rotation.x = -Math.PI / 2;
-  path.position.set(0, -0.49, R_HALL + 15);
+  path.position.set(0, -0.49, (R_HALL + GATE.r - 1) / 2);
   path.receiveShadow = true;
   scene.add(path);
 

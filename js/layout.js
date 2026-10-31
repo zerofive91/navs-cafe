@@ -3,24 +3,30 @@
 //   위(북) 기도 · 아래(남) 말씀 · 왼쪽(서) 증거 · 오른쪽(동) 교제 · 가운데 그리스도 · 둘레 순종
 // 네 칸(사분면)도 그림을 따름: 북서 기도하는 손, 북동 교제, 남서 배(증거), 남동 성경(말씀)
 
-export const R_HALL = 28;     // 통유리 바깥벽
-export const R_RIM_IN = 23.5; // 둘레 회랑 안쪽 경계
+// 넓히기 배율: 카페는 길이 1.1배(면적 약 1.2배), 정원 띠는 1.7배(면적 약 2.3배). 가구·시설 크기는 그대로
+export const C = 1.1;
+const c = (r) => r * C;
+export const R_HALL = c(28);     // 통유리 바깥벽
+export const R_RIM_IN = c(23.5); // 둘레 회랑 안쪽 경계
 export const R_HUB = 5;       // 가운데 단
 export const SPOKE = 2;       // 바퀴살 길 절반 폭
 export const CEIL = 11;       // 층고
-export const R_GARDEN = 74;   // 걸어 다닐 수 있는 바깥 정원(말씀 테마파크) 끝
-export const R_WALK = 34;     // 건물을 한 바퀴 도는 정원 산책길(가운데)
-export const R_PARK = 56;     // 테마파크를 한 바퀴 도는 바깥 둘레길
+// 정원 반지름 바꾸기: 예전 반지름(유리벽 28m 기준) → 넓힌 반지름
+export const G = 1.7;
+export const gr = (r) => R_HALL + (r - 28) * G;
+export const R_GARDEN = gr(74);  // 걸어 다닐 수 있는 바깥 정원(말씀 테마파크) 끝
+export const R_WALK = gr(34);    // 건물을 한 바퀴 도는 정원 산책길(가운데)
+export const R_PARK = gr(56);    // 테마파크를 한 바퀴 도는 바깥 둘레길
 
 export const deg = (d) => (d * Math.PI) / 180;
 // 각도 기준: 0 = 동, 90 = 남, -90 = 북, 180 = 서
 export const polar = (r, a) => ({ x: r * Math.cos(deg(a)), z: r * Math.sin(deg(a)) });
 
 export const Q = {
-  prayer: { x: -10, z: -10 },  // 북서: 기도하는 손 + 고요한 물
-  fellow: { x: 9.5, z: -9.5 }, // 북동: 카페 카운터 + 긴 테이블
-  witness: { x: -10, z: 10 },  // 남서: 배 + 물고기 모빌 + 둥근 세상 화면
-  word: { x: 10, z: 10 },      // 남동: 펼쳐진 큰 성경
+  prayer: { x: c(-10), z: c(-10) },  // 북서: 기도하는 손 + 고요한 물
+  fellow: { x: c(9.5), z: c(-9.5) }, // 북동: 카페 카운터 + 긴 테이블
+  witness: { x: c(-10), z: c(10) },  // 남서: 배 + 물고기 모빌 + 둥근 세상 화면
+  word: { x: c(10), z: c(10) },      // 남동: 펼쳐진 큰 성경
 };
 export const PRAYER_POOL_R = 4.2;
 export const WITNESS_POOL_R = 5.2;
@@ -56,18 +62,18 @@ const block = (x, z, r, h = Infinity) => obstacles.push({ x, z, r, h });
 // 기둥: 바퀴살 사이 대각선 방향
 export const columns = [];
 for (let a = 15; a < 360; a += 30) {
-  const p = polar(21.3, a);
+  const p = polar(c(21.3), a);
   columns.push(p);
   block(p.x, p.z, 0.45);
 }
 
 // 교제: 곡선 카운터(가운데를 중심으로 반지름 19)
-export const COUNTER = { r: 19.2, from: -70, to: -38 };
+export const COUNTER = { r: c(19.2), from: -70, to: -38 };
 for (let a = COUNTER.from; a <= COUNTER.to; a += 2) {
   const p = polar(COUNTER.r, a);
   block(p.x, p.z, 0.6);
 }
-export const LONG_TABLE = { x: 7.4, z: -7.4, len: 6, w: 1.3, rot: -45 };
+export const LONG_TABLE = { x: c(7.4), z: c(-7.4), len: 6, w: 1.3, rot: -45 };
 {
   const dir = polar(1, LONG_TABLE.rot);
   for (let t = -LONG_TABLE.len / 2 + 0.5; t <= LONG_TABLE.len / 2 - 0.5; t += 0.8) {
@@ -83,27 +89,27 @@ export const WORD_HAND = { x: Q.word.x + 3.1, z: Q.word.z + 2.7 };
 block(WORD_HAND.x, WORD_HAND.z, 1.7);
 // 순종 회랑의 일꾼 배가 순환 바닥 표식(세계 → 초신자 → 제자 → 일꾼 → 파송)
 // 순종 회랑 바깥쪽 역사 빛 패널 (1960년대 → 지금, 배가의 성장)
-export const HISTORY = [186, 197, 220, 231, 251, 262].map((a) => ({ ...polar(26.9, a), a }));
+export const HISTORY = [186, 197, 220, 231, 251, 262].map((a) => ({ ...polar(c(26.9), a), a }));
 for (const h of HISTORY) block(h.x, h.z, 0.75);
-export const CYCLE = [135, 207, 279, 351, 63].map((a) => ({ ...polar(24.2, a), a }));
+export const CYCLE = [135, 207, 279, 351, 63].map((a) => ({ ...polar(c(24.2), a), a }));
 
 // 순종: 둘레 화분, 쟁반 반납대
 export const planters = [];
 for (let a = 0; a < 360; a += 30) {
   if (a === 90) continue; // 입구
-  const p = polar(25.5, a);
+  const p = polar(c(25.5), a);
   planters.push({ ...p, a });
   block(p.x, p.z, 0.7);
 }
-export const TRAY = polar(25.5, 105);
+export const TRAY = polar(c(25.5), 105);
 block(TRAY.x, TRAY.z, 0.5);
 
 // 입구(남쪽)
 export const DOOR = polar(R_HALL, 90);
-export const SPAWN = polar(26.2, 90);
+export const SPAWN = polar(c(26.2), 90);
 
 // 순종 회랑 창가의 라운지 의자 (CC0 가구)
-export const LOUNGES = [-15, 45, -105, 165].map((a) => ({ a, chair: polar(26.3, a), table: polar(26.4, a + 3.4), approach: polar(25.0, a) }));
+export const LOUNGES = [-15, 45, -105, 165].map((a) => ({ a, chair: polar(c(26.3), a), table: polar(c(26.4), a + 3.4), approach: polar(c(25.0), a) }));
 for (const l of LOUNGES) { block(l.chair.x, l.chair.z, 0.5); block(l.table.x, l.table.z, 0.35); }
 
 // ---------- 바깥 정원 ----------
@@ -123,27 +129,27 @@ function zone(name, r, a, w, d) {
 }
 export const PARK = {
   // 안쪽 띠 (산책길과 둘레길 사이)
-  market: zone('market', 46, 0, 12, 6),     // 간식·음료 가게
-  sower: zone('sower', 46, 60, 12, 7),      // 씨 뿌리는 비유의 밭
-  mustard: zone('mustard', 46, 120, 8, 8),  // 겨자씨
-  vine: zone('vine', 46, 180, 8, 5),        // 포도나무 그늘
-  fold: zone('fold', 46, 240, 9, 9),        // 양 우리 (잃은 양)
-  well: zone('well', 46, 300, 6, 6),        // 우물 (요 4:14)
+  market: zone('market', gr(46), 0, 12, 6),     // 간식·음료 가게
+  sower: zone('sower', gr(46), 60, 12, 7),      // 씨 뿌리는 비유의 밭
+  mustard: zone('mustard', gr(46), 120, 8, 8),  // 겨자씨
+  vine: zone('vine', gr(46), 180, 8, 5),        // 포도나무 그늘
+  fold: zone('fold', gr(46), 240, 9, 9),        // 양 우리 (잃은 양)
+  well: zone('well', gr(46), 300, 6, 6),        // 우물 (요 4:14)
   // 바깥 띠 (둘레길 바깥)
-  pool: zone('pool', 65, 120, 14, 7),
-  camp: zone('camp', 65, 150, 13, 10),
-  bbq: zone('bbq', 65, 173, 9, 7),
-  ark: zone('ark', 65, 205, 30, 15),   // 방주 + 짝지어 줄 선 동물들
-  soccer: zone('soccer', 65, 245, 22, 13),
-  basket: zone('basket', 65, 280, 12, 10),
-  tennis: zone('tennis', 65, 310, 17, 9),
-  badminton: zone('badminton', 65, 337, 11, 6),
-  pingpong: zone('pingpong', 65, 0, 7, 6),
-  meadow: zone('meadow', 63, 40, 22, 14),   // 푸른 초장: 동물들이 노님
+  pool: zone('pool', gr(65), 120, 14, 7),
+  camp: zone('camp', gr(65), 150, 13, 10),
+  bbq: zone('bbq', gr(65), 173, 9, 7),
+  ark: zone('ark', gr(65), 205, 30, 15),   // 방주 + 짝지어 줄 선 동물들
+  soccer: zone('soccer', gr(65), 245, 22, 13),
+  basket: zone('basket', gr(65), 280, 12, 10),
+  tennis: zone('tennis', gr(65), 310, 17, 9),
+  badminton: zone('badminton', gr(65), 337, 11, 6),
+  pingpong: zone('pingpong', gr(65), 0, 7, 6),
+  meadow: zone('meadow', gr(63), 40, 22, 14),   // 푸른 초장: 동물들이 노님
   // 안쪽 띠 빈자리: 성경 이야기 체험
-  jericho: zone('jericho', 46, 76, 12, 12), // 여리고 성 (수 6, 히 11:30)
-  david: zone('david', 46, 104, 12, 11),    // 다윗과 골리앗 (삼상 17)
-  jonah: zone('jonah', 46, 164, 12, 11),    // 요나와 큰 물고기 (욘 1-2)
+  jericho: zone('jericho', gr(46), 76, 12, 12), // 여리고 성 (수 6, 히 11:30)
+  david: zone('david', gr(46), 104, 12, 11),    // 다윗과 골리앗 (삼상 17)
+  jonah: zone('jonah', gr(46), 164, 12, 11),    // 요나와 큰 물고기 (욘 1-2)
 };
 // 성경 이야기 구역의 막힌 곳: 여리고 성벽(무너지면 풀림), 골리앗, 요나의 못
 export const JERICHO = { ...PARK.jericho.at(0, 0), R: 3.4 };
@@ -165,7 +171,7 @@ export function poolDepth(x, z) {
 }
 export const inPool = (x, z) => poolDepth(x, z) > 0.25;
 // 좁은 문 (마 7:13): 입구 길 위, 산책길과 둘레길 사이
-export const GATE = { r: 44, w: 1.0 };
+export const GATE = { r: gr(44), w: 1.0 };
 // 둘레길과 이어지는 오솔길 각도
 export const LANES = [30, 90, 150, 210, 270, 330];
 const inAnyZone = (x, z, pad) => Object.values(PARK).some((zn) => zn.inside(x, z, pad));
@@ -195,7 +201,7 @@ const TRAIL_DEF = {
     st: [[0.07, 1], [0.18, 0], [0.3, -1], [0.41, 1], [0.52, -1], [0.62, 1], [0.73, -1], [0.85, 1], [1, 0]] },
 };
 function catmull(pts, step = 0.5) {
-  const P = pts.map(([r, a]) => polar(r, a));
+  const P = pts.map(([r, a]) => polar(gr(r), a));
   const out = [];
   for (let i = 0; i < P.length - 1; i++) {
     const p0 = P[Math.max(0, i - 1)], p1 = P[i], p2 = P[i + 1], p3 = P[Math.min(P.length - 1, i + 2)];
@@ -238,7 +244,7 @@ export function nearTrail(x, z, d) {
   return false;
 }
 // 정원 밖에서 걸을 수 있는 곳: 오솔길, 정거장 둘레, 길 끝 빈터
-const TM = { half: 128, cell: 0.5 };
+const TM = { half: Math.ceil(Math.max(...Object.values(TRAILS).map((t) => Math.hypot(t.end.x, t.end.z))) + 12), cell: 0.5 };
 TM.n = Math.ceil((TM.half * 2) / TM.cell);
 const trailMask = new Uint8Array(TM.n * TM.n);
 {
@@ -271,17 +277,18 @@ export const TREES = [];
 {
   let s = 5;
   const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
-  for (let k = 0; k < 170; k++) {
+  for (let k = 0; k < 290; k++) {
     const a = rnd() * Math.PI * 2;
-    const r = 77 + rnd() * 40;
+    const r = gr(77) + rnd() * 40 * G;
     const h = 5 + rnd() * 7;
     if (Math.abs(a - Math.PI / 2) < 0.06) continue; // 입구 앞 길
     if (nearTrail(Math.cos(a) * r, Math.sin(a) * r, 4)) continue; // 숲속 코스
     TREES.push({ x: Math.cos(a) * r, z: Math.sin(a) * r, h, dark: rnd() < 0.5 });
   }
-  for (let k = 0; k < 260 && TREES.length < 205; k++) {
+  const nForest = TREES.length;
+  for (let k = 0; k < 600 && TREES.length < nForest + 70; k++) {
     const a = rnd() * Math.PI * 2;
-    const r = 39 + rnd() * 34;
+    const r = gr(39) + rnd() * 34 * G;
     const h = 4 + rnd() * 5;
     const x = Math.cos(a) * r, z = Math.sin(a) * r;
     if (!parkClear(x, z, 4.5) || Math.hypot(x, z) > R_GARDEN - 1) continue;
@@ -289,10 +296,10 @@ export const TREES = [];
   }
 }
 // 둥근 꽃밭 6곳, 산책길 바깥쪽 벤치 6개, 길가 등
-export const FLOWER_BEDS = [-150, -90, -30, 30, 150, 210].map((a) => ({ a, ...polar(39.5, a), r: 2.3 }));
-export const GARDEN_BENCHES = [0, 60, 120, 180, 240, 300].map((a) => ({ a, ...polar(36.2, a), approach: polar(35.1, a) }));
+export const FLOWER_BEDS = [-150, -90, -30, 30, 150, 210].map((a) => ({ a, ...polar(gr(39.5), a), r: 2.3 }));
+export const GARDEN_BENCHES = [0, 60, 120, 180, 240, 300].map((a) => ({ a, ...polar(gr(36.2), a), approach: polar(gr(35.1), a) }));
 export const GARDEN_LAMPS = [];
-for (let a = 15; a < 360; a += 30) GARDEN_LAMPS.push(polar(32.5, a));
+for (let a = 15; a < 360; a += 30) GARDEN_LAMPS.push(polar(gr(32.5), a));
 for (const t of TREES) if (Math.hypot(t.x, t.z) < R_GARDEN + 1) block(t.x, t.z, 0.6);
 for (const b of FLOWER_BEDS) block(b.x, b.z, b.r, 0.35);
 for (const b of GARDEN_BENCHES) block(b.x, b.z, 0.55, 0.95);
@@ -335,7 +342,7 @@ function seat(x, z, faceTo, kind, approach) {
 
 for (const l of LOUNGES) { seat(l.chair.x, l.chair.z, { x: 0, z: 0 }, 'lounge', l.approach); l.seat = seats[seats.length - 1]; }
 // 정원 벤치: 숲(바깥)을 바라봄
-for (const b of GARDEN_BENCHES) { seat(b.x, b.z, polar(60, b.a), 'gbench', b.approach); b.seat = seats[seats.length - 1]; }
+for (const b of GARDEN_BENCHES) { seat(b.x, b.z, polar(R_GARDEN, b.a), 'gbench', b.approach); b.seat = seats[seats.length - 1]; }
 
 // 그리스도: 빛 둘레의 둥근 벤치 4곳(대각선)
 for (const a of [-135, -45, 45, 135]) {
@@ -402,12 +409,12 @@ for (const a of [-160, -135, -110]) {
 export const SPOTS = {
   light: { x: 0, z: 0.6, r: 4.5 },
   pray: { x: Q.prayer.x + 3.6, z: Q.prayer.z + 3.6, r: 6.5 },
-  order: { ...polar(17.4, -56), r: 6 },
-  pickup: polar(17.4, -40),
+  order: { ...polar(c(17.4), -56), r: 6 },
+  pickup: polar(c(17.4), -40),
   boat: { x: Q.witness.x + 4.2, z: Q.witness.z - 4.2, r: 7 },
   read: { x: BIBLE.x - 3.3, z: BIBLE.z - 3.3, r: 6.5 },
   water: { r: 2.6 },
-  tray: { ...polar(24.6, 105), r: 2.6 },
+  tray: { ...polar(c(24.6), 105), r: 2.6 },
 };
 
 // 사람이 설 수 있는 곳인지

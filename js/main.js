@@ -3,7 +3,7 @@ import { RoomEnvironment } from '../vendor/RoomEnvironment.js';
 import { buildWorld } from './build.js';
 import { makeAvatar, poseAvatar } from './avatar.js';
 import { findPath, nearestFree } from './nav.js';
-import { floorY, seats, SPOTS, SPAWN, planters, polar, COUNTER, CEIL, Q, isFree, R_HALL, R_WALK, onWater, inPool, R_PARK, nearTree } from './layout.js';
+import { C, TRAY, R_RIM_IN, floorY, seats, SPOTS, SPAWN, planters, polar, COUNTER, CEIL, Q, isFree, R_HALL, R_WALK, onWater, inPool, R_PARK, nearTree } from './layout.js';
 import { ICONS } from './icons.js';
 import { loadProps, upgradeCup, fxSprite } from './props.js';
 import { initSigns } from './signs.js';
@@ -29,7 +29,7 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xcfe3ee);
-scene.fog = new THREE.Fog(0xcfe3ee, 90, 200);
+scene.fog = new THREE.Fog(0xcfe3ee, 120, 290);
 const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 
@@ -141,7 +141,7 @@ barista.av.userData.body.children.find((c) => c.geometry && c.geometry.type === 
 const apron = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.36, 0.02), new THREE.MeshStandardMaterial({ color: 0xe9e1d3 }));
 apron.position.set(0, 0.48, 0.17);
 barista.av.userData.body.add(apron);
-const ownerPos = { x: 3.2, z: 22.2 };
+const ownerPos = { x: 3.2, z: 22.2 * C };
 const owner = makeChar({ hoodie: 0xd9cbb5, hair: 0x6b6b6b, bag: 0xd9cbb5, style: 0, pants: 0x55504a }, ownerPos.x, ownerPos.z);
 owner.av.userData.body.children.find((c) => c.geometry && c.geometry.type === 'BoxGeometry' && c.position.z < -0.1).visible = false;
 const npcs = [barista, owner];
@@ -265,10 +265,10 @@ const ACTIONS = {
       let bd = Infinity;
       for (const q of planters) { const d = Math.hypot(q.x - me.x, q.z - me.z); if (d < bd) { bd = d; p = q; } }
     }
-    const stand = nearestFree(polar(24.4, p.a));
+    const stand = nearestFree(polar(24.4 * C, p.a));
     walkTo(me, stand, () => { faceTo(me, p); act('water', 3); });
   },
-  tray: () => walkTo(me, SPOTS.tray, () => { faceTo(me, polar(25.5, 105)); me.item = null; me.food = null; }),
+  tray: () => walkTo(me, SPOTS.tray, () => { faceTo(me, TRAY); me.item = null; me.food = null; }),
   wave: () => act('wave', 2.4),
   praise: () => { if (me.seat && me.seat.kind !== 'kneel') standUp(me); act('praise'); },
   vhand: () => act('vhand', 2.6),
@@ -501,7 +501,7 @@ function availableActions() {
   if (near(SPOTS.light)) list.push('light');
   if (near(SPOTS.order) && (!me.item || !me.food)) list.push('order');
   if (near(SPOTS.boat)) list.push('boat');
-  if (Math.hypot(me.x, me.z) > 22.5 && Math.hypot(me.x, me.z) < R_HALL) list.push('water');
+  if (Math.hypot(me.x, me.z) > R_RIM_IN - 1 && Math.hypot(me.x, me.z) < R_HALL) list.push('water');
   if (me.item === 'cup') list.push('sip');
   if (me.food) list.push('eat');
   if (signs.nearBread()) list.push('loaves');
@@ -546,7 +546,21 @@ function refreshActions() {
 }
 
 // ---------- 카메라 (끌어서 돌리기, 휠/두 손가락으로 확대) ----------
-const view = { az: 0, el: 0.55, dist: 7.5, tx: me.x, ty: 0.62, tz: me.z, mode: 'third', pitch: 0, follow: true };
+const view = { az: 0, el: 0.55, dist: 7.5, tx: me.x, ty: 0.62, tz: me.z, mode: 'third', pitch: 0, follow: true, shot: null, w: 0 };
+// 체험 시점: 체험을 시작하면 캐릭터와 대상이 함께 잘 보이는 자리로 카메라가 천천히 옮겨 감.
+// 정해진 시간이 지나거나, 조이스틱을 움직이거나, 화면을 끌면 원래 시점으로 부드럽게 돌아옴.
+//   target: 바라볼 대상, side: 캐릭터 뒤에서 옆으로 비켜선 각도, mid: 시선 중심(0 캐릭터 ~ 1 대상), y: 시선 높이
+function shot(target, { dist = 10, el = 0.35, side = 0.55, dur = 7, mid = 0.5, y = 1.2 } = {}) {
+  if (view.mode === 'first') return;
+  const t = typeof target === 'function' ? target() : target;
+  const az = Math.atan2(t.x - me.x, t.z - me.z) + Math.PI + side;
+  view.shot = { az, el, dist, mid, y, target: t, until: performance.now() + dur * 1000 };
+}
+function endShot() {
+  if (!view.shot) return;
+  view.az = view.shot.az; // 돌아올 때 옆으로 휙 돌지 않도록 방향은 그대로 둠
+  view.shot = null;
+}
 // 휴대폰이 세로로 잠겨 있어도(카카오톡 안 브라우저 등) 버튼으로 화면 전체를 눕혀 가로로 볼 수 있음
 const rot = { on: false };
 const vw = () => (rot.on ? window.innerHeight : window.innerWidth);
@@ -603,7 +617,7 @@ canvas.addEventListener('pointermove', (e) => {
         view.pitch = clamp(drag.pitch + dy * 0.004, -0.7, 0.6);
       } else view.az = drag.az + dx * 0.006;
       if (view.mode !== 'first') view.el = clamp(drag.el - dy * 0.004, 0.08, 1.1);
-      view.dragAt = performance.now();
+      view.dragAt = performance.now(); endShot();
     }
   }
 });
@@ -711,7 +725,7 @@ function driveStick(dt) {
     // 조이스틱을 잡는 순간 하던 일을 멈추고 일어섬 (나무에 있으면 뛰어내림)
     if (me.climb) dropFromTree();
     standUp(me); me.path = []; me.task = null; me.action = null;
-    stickDriving = true;
+    stickDriving = true; endShot();
   }
   const fx = -Math.sin(view.az), fz = -Math.cos(view.az); // 화면 안쪽
   const rx = Math.cos(view.az), rz = -Math.sin(view.az);  // 화면 오른쪽
@@ -930,14 +944,26 @@ function frame(now) {
     // 3인칭: 캐릭터(약 1.3m)가 머리부터 발끝까지 화면 가운데 약간 아래에 오도록
     // 카메라는 캐릭터를 중심으로 공전하고, 절대 일정 거리(4.5m)보다 가까이 오지 않음.
     // 사이에 기둥·조형물이 끼면 카메라를 당기지 않고 그 물체를 반투명하게 만듦.
+    if (view.shot && performance.now() > view.shot.until) endShot();
+    const sh = view.shot;
+    const nowMs = performance.now(), rdt = Math.min(0.5, (nowMs - (view.lastT || nowMs)) / 1000); view.lastT = nowMs; // 실제 지난 시간
+    view.w += ((sh ? 1 : 0) - view.w) * Math.min(1, rdt * 1.8);
+    const w = view.w * view.w * (3 - 2 * view.w);
     const P = new THREE.Vector3(view.tx, view.ty, view.tz);
-    const el = clamp(view.el, 0.08, 1.1);
-    let dist = Math.max(4.5, view.dist);
+    let az = view.az, el = clamp(view.el, 0.08, 1.1), dist = Math.max(4.5, view.dist);
+    if (w > 0.001) {
+      const s = sh || view.lastShot;
+      view.lastShot = s;
+      const fx = me.x + (s.target.x - me.x) * s.mid, fz = me.z + (s.target.z - me.z) * s.mid;
+      P.set(P.x + (fx - P.x) * w, P.y + (me.y + s.y - P.y) * w, P.z + (fz - P.z) * w);
+      const da = Math.atan2(Math.sin(s.az - az), Math.cos(s.az - az));
+      az += da * w; el += (s.el - el) * w; dist += (s.dist - dist) * w;
+    }
     const up = Math.sin(el) * dist;
-    if (P.y + up > CEIL - 0.8) dist = (CEIL - 0.8 - P.y) / Math.sin(el); // 천장 아래로
+    if (!outdoors(me) && P.y + up > CEIL - 0.8) dist = (CEIL - 0.8 - P.y) / Math.sin(el); // 천장 아래로
     dist = Math.max(4.5, dist);
     const horiz = Math.cos(el) * dist;
-    const camPos = new THREE.Vector3(P.x + Math.sin(view.az) * horiz, Math.min(CEIL - 0.8, P.y + Math.sin(el) * dist), P.z + Math.cos(view.az) * horiz);
+    const camPos = new THREE.Vector3(P.x + Math.sin(az) * horiz, Math.min(outdoors(me) ? 60 : CEIL - 0.8, P.y + Math.sin(el) * dist), P.z + Math.cos(az) * horiz);
     camera.position.copy(camPos);
     camera.lookAt(P);
     // 화면에서 캐릭터 중심이 세로 -0.22(가운데보다 약간 아래)에 오도록 위로 살짝 기울임
@@ -1026,7 +1052,7 @@ for (const b of enter.querySelectorAll('.mode')) b.addEventListener('click', () 
 if (inviteCodeFromUrl()) inviteCodeFromUrl.arrived = true;
 window.__enterReady = true;
 const signs = initSigns({ scene, me, npcs, interactive, act, sfx, fxSprite, burst, sun, walkTo, faceTo });
-const park = initPark({ scene, me, interactive, act, sfx, fxSprite, burst, walkTo, faceTo, standUp });
+const park = initPark({ scene, me, interactive, act, sfx, fxSprite, burst, walkTo, faceTo, standUp, shot });
 Object.assign(ACTIONS, park.actions);
 const scrolls = initScrolls({ scene, me, sfx, fxSprite, burst, icon: ICONS.scroll });
 requestAnimationFrame(frame);
@@ -1038,4 +1064,4 @@ setTimeout(() => {
   for (const n of npcs) if (n.av) upgradeCup(n.av);
 }, 300);
 
-window.__cafe = { together, me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs, placed, park, scrolls, renderer };
+window.__cafe = { camera, shot, together, me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs, placed, park, scrolls, renderer };

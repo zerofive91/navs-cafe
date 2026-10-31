@@ -4,7 +4,7 @@
 //  - 일꾼 배가 순환: 순종 회랑 바닥의 다섯 표식(세계 → 초신자 → 제자 → 일꾼 → 파송)
 //  - 핵심가치: 가운데 위에 매달린 열 장의 빛 카드
 import * as THREE from 'three';
-import { Q, CEIL, WORD_HAND, CYCLE, HISTORY, deg } from './layout.js';
+import { C, Q, CEIL, WORD_HAND, CYCLE, HISTORY, deg } from './layout.js';
 import { showVerse } from './verses.js';
 
 const sculpt = new THREE.MeshStandardMaterial({ color: 0xfbfaf7, roughness: 0.95 });
@@ -157,7 +157,7 @@ function cycleMarks(scene, anim) {
       const a = deg(a0 + (span * s) / 14);
       const d = new THREE.Mesh(new THREE.CircleGeometry(0.07, 10), new THREE.MeshBasicMaterial({ color: 0xffc77a, transparent: true, opacity: 0.1 }));
       d.rotation.x = -Math.PI / 2;
-      d.position.set(Math.cos(a) * 24.2, 0.262, Math.sin(a) * 24.2);
+      d.position.set(Math.cos(a) * 24.2 * C, 0.262, Math.sin(a) * 24.2 * C);
       scene.add(d);
       seg.push(d);
     }
