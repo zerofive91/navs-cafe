@@ -46,21 +46,81 @@ canvas { display: block; touch-action: none; }
 .act:active { transform: scale(0.92); }
 .act.on { background: #f3d9a4; }
 
+/* 입장 화면: 캔바로 그린 카페 그림 + 제목 + 빛나는 문 */
 #enter {
   position: fixed;
   inset: 0;
   border: 0;
-  background: rgba(246, 234, 210, 0.92);
-  color: #8f6744;
+  padding: 0;
+  background: radial-gradient(ellipse at 50% 38%, #fff6df 0%, #f3e6c8 35%, #c9d8b8 75%, #9fbf8c 100%);
+  color: #fffaf0;
+  cursor: pointer;
+  overflow: hidden;
+  transition: opacity 0.9s;
+  font-family: "Cormorant Garamond", "Noto Serif KR", Georgia, serif;
+}
+#enter .art {
+  position: absolute;
+  inset: 0;
+  background: url("../assets/entry/portrait.jpg") center 40% / cover no-repeat;
+  animation: drift 26s ease-in-out infinite alternate;
+}
+@media (min-aspect-ratio: 1/1) {
+  #enter .art { background-image: url("../assets/entry/wide.jpg"); background-position: center 62%; }
+}
+#enter .veil {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(40, 30, 15, 0.38) 0%, rgba(40, 30, 15, 0) 34%, rgba(40, 30, 15, 0) 62%, rgba(40, 30, 15, 0.45) 100%);
+}
+#enter .title {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(9vh + env(safe-area-inset-top));
+  font-size: clamp(40px, 12vw, 72px);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: 0.04em;
+  text-align: center;
+  text-shadow: 0 2px 18px rgba(60, 40, 15, 0.45);
+}
+#enter .title small {
+  display: block;
+  font-size: 0.32em;
+  font-weight: 500;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  opacity: 0.85;
+  margin-bottom: 0.6em;
+}
+#enter .door {
+  position: absolute;
+  left: 50%;
+  bottom: calc(9vh + env(safe-area-inset-bottom));
+  width: 74px;
+  height: 74px;
+  margin-left: -37px;
+  border-radius: 50%;
   display: grid;
   place-items: center;
-  cursor: pointer;
-  transition: opacity 0.6s;
+  color: #8f6744;
+  background: rgba(255, 250, 238, 0.92);
+  box-shadow: 0 0 0 0 rgba(255, 236, 190, 0.7), 0 6px 22px rgba(60, 40, 15, 0.3);
+  animation: glow 2.6s ease-out infinite;
 }
-#enter svg { animation: turn 24s linear infinite; }
+@media (min-aspect-ratio: 1/1) {
+  #enter .title { top: calc(7vh + env(safe-area-inset-top)); font-size: clamp(28px, 4.6vw, 54px); }
+  #enter .title br { display: none; }
+  #enter .door { bottom: calc(7vh + env(safe-area-inset-bottom)); }
+}
 #enter.gone { opacity: 0; pointer-events: none; }
-@keyframes turn { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { #enter svg { animation: none; } }
+@keyframes drift { from { transform: scale(1.04); } to { transform: scale(1.12) translateY(-1.5%); } }
+@keyframes glow {
+  0% { box-shadow: 0 0 0 0 rgba(255, 236, 190, 0.75), 0 6px 22px rgba(60, 40, 15, 0.3); }
+  100% { box-shadow: 0 0 0 26px rgba(255, 236, 190, 0), 0 6px 22px rgba(60, 40, 15, 0.3); }
+}
+@media (prefers-reduced-motion: reduce) { #enter .art, #enter .door { animation: none; } }
 
 /* 위쪽: 장소 바로가기 + 시점 전환 */
 #places {
@@ -91,6 +151,9 @@ canvas { display: block; touch-action: none; }
 .place svg { width: 22px; height: 22px; }
 .place:active { transform: scale(0.9); }
 .place.view { background: #fffaf0; color: #6b4f3a; margin-left: 4px; }
+.place.music { margin-left: 0; background: transparent; color: #8a6a50; }
+.place.music.on { background: #fffaf0; color: #6b4f3a; }
+.place[hidden] { display: none; }
 
 /* 왼쪽 아래: 걷기 조이스틱 */
 #stick {
@@ -119,6 +182,9 @@ canvas { display: block; touch-action: none; }
 /* 조이스틱과 겹치지 않게 동작 버튼은 오른쪽으로 */
 @media (max-width: 640px) {
   #actions { gap: 8px; }
+  #places { gap: 2px; padding: 5px; }
+  .place { width: 38px; height: 38px; }
+  .place svg { width: 20px; height: 20px; }
   .act { width: 48px; height: 48px; }
 }
 
@@ -148,3 +214,26 @@ canvas { display: block; touch-action: none; }
   #actions { bottom: calc(12px + env(safe-area-inset-bottom)); gap: 6px; max-height: calc(100vh - 70px); }
   .act { width: 44px; height: 44px; }
 }
+
+/* 표적 체험 뒤 떠오르는 말씀 한 구절 */
+#verse {
+  position: fixed;
+  left: 50%;
+  top: 30%;
+  width: min(84vw, 520px);
+  transform: translate(-50%, 8px);
+  text-align: center;
+  color: #fffaf0;
+  font-family: "Noto Serif KR", "Apple SD Gothic Neo", serif;
+  text-shadow: 0 1px 2px rgba(40, 28, 12, 0.6), 0 0 18px rgba(40, 28, 12, 0.5);
+  padding: 22px 18px;
+  border-radius: 40px;
+  background: radial-gradient(ellipse at center, rgba(52, 40, 22, 0.42) 0%, rgba(52, 40, 22, 0.22) 55%, rgba(52, 40, 22, 0) 78%);
+  opacity: 0;
+  transition: opacity 1.6s ease, transform 1.6s ease;
+  pointer-events: none;
+}
+#verse.on { opacity: 1; transform: translate(-50%, 0); }
+#verse[hidden] { display: none; }
+#verse p { margin: 0 0 10px; font-size: clamp(19px, 5.2vw, 28px); font-weight: 500; line-height: 1.55; word-break: keep-all; }
+#verse cite { font-style: normal; font-size: 13px; letter-spacing: 0.12em; opacity: 0.85; }

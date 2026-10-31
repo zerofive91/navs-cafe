@@ -2,7 +2,7 @@
 // 모델은 화면이 뜬 뒤 천천히 불러오고, 다 불러오면 임시 모양을 바꿔 끼움
 import * as THREE from 'three';
 import { GLTFLoader } from '../vendor/loaders/GLTFLoader.js';
-import { Q, PRAYER_POOL_R, COUNTER, LONG_TABLE, LOUNGES, polar, deg, floorY } from './layout.js';
+import { Q, PRAYER_POOL_R, COUNTER, LONG_TABLE, LOUNGES, FLOWER_BEDS, GARDEN_BENCHES, GARDEN_LAMPS, R_WALK, polar, deg, floorY } from './layout.js';
 
 const loader = new GLTFLoader();
 const cache = new Map();
@@ -70,14 +70,48 @@ export function loadProps({ scene, deco, interactive, anim, renderer }) {
   });
   let s = 11;
   const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
-  const FLOWERS = ['flower_redA', 'flower_yellowA', 'flower_purpleA', 'flower_redB', 'flower_yellowB', 'grass_large', 'grass_leafs', 'grass_large', 'plant_bushLarge', 'rock_smallFlatB'];
-  for (let k = 0; k < 90; k++) {
+  const FL = ['flower_redA', 'flower_yellowA', 'flower_purpleA', 'flower_redB', 'flower_yellowB', 'flower_purpleB', 'flower_redC', 'flower_yellowC', 'flower_purpleC'];
+  const pick = (arr) => arr[Math.floor(rnd() * arr.length)];
+  const flower = (x, z, h = 0.4 + rnd() * 0.25, kind = pick(FL)) => place(scene, N + kind + '.glb', { x, z, y: -0.5, rot: rnd() * 6, height: h, shadow: false });
+  const nearEntry = (a) => Math.abs(Math.atan2(Math.sin(a - Math.PI / 2), Math.cos(a - Math.PI / 2))) < 0.07;
+  // 산책길 양옆 꽃 테두리 (색이 구간마다 바뀜)
+  for (const [r, step] of [[R_WALK - 1.6, 0.034], [R_WALK + 1.6, 0.03]]) {
+    for (let a = 0; a < Math.PI * 2; a += step) {
+      if (nearEntry(a)) continue;
+      if (FLOWER_BEDS.some((b) => Math.abs(Math.atan2(Math.sin(a - deg(b.a)), Math.cos(a - deg(b.a)))) < 0.03) && r > R_WALK) continue; // 꽃밭 오솔길
+      const band = Math.floor(a / (Math.PI / 6)) % 3;
+      const kinds = [FL.slice(0, 3), FL.slice(3, 6), FL.slice(6, 9)][band];
+      const rr = r + (rnd() - 0.5) * 0.35;
+      flower(Math.cos(a) * rr, Math.sin(a) * rr, 0.35 + rnd() * 0.2, pick(kinds));
+    }
+  }
+  // 둥근 꽃밭: 가운데 덤불·큰 화분, 둘레에 꽃 두 겹
+  FLOWER_BEDS.forEach((b, k) => {
+    place(scene, N + (k % 2 ? 'pot_large' : 'plant_bushDetailed') + '.glb', { x: b.x, z: b.z, y: -0.36, rot: k, height: k % 2 ? 0.9 : 1.2 });
+    for (const [rr, n] of [[0.9, 9], [1.7, 15]]) {
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2 + rnd() * 0.2;
+        place(scene, N + FL[(k * 3 + (rr > 1 ? 1 : 0)) % FL.length] + '.glb', { x: b.x + Math.cos(a) * rr, z: b.z + Math.sin(a) * rr, y: -0.36, rot: rnd() * 6, height: 0.45 + rnd() * 0.2, shadow: false });
+      }
+    }
+  });
+  // 벤치(숲을 바라봄)와 길가 등
+  for (const b of GARDEN_BENCHES) {
+    place(scene, F + 'bench.glb', { x: b.x, z: b.z, y: -0.5, rot: Math.atan2(b.x, b.z), width: 1.6, tone: [0.7, 0.15] });
+    place(scene, N + 'plant_bushSmall.glb', { x: b.x + Math.cos(deg(b.a + 3)) * 0.3, z: b.z + Math.sin(deg(b.a + 3)) * 0.3, y: -0.5, rot: b.a, height: 0.6, shadow: false });
+  }
+  for (const l of GARDEN_LAMPS) place(scene, F + 'lampRoundFloor.glb', { x: l.x, z: l.z, y: -0.5, height: 1.6, tone: [0.4, 0.4] });
+  // 정원 너머 풀밭: 꽃·풀·그루터기
+  const MEADOW = [...FL, 'grass_large', 'grass_leafs', 'grass_large', 'plant_flatTall', 'rock_smallFlatB', 'stump_round', 'log'];
+  for (let k = 0; k < 160; k++) {
     const a = rnd() * Math.PI * 2;
-    if (Math.abs(a - Math.PI / 2) < 0.12) continue; // 입구 길
-    const r = 29.6 + rnd() * 6;
-    const kind = FLOWERS[Math.floor(rnd() * FLOWERS.length)];
-    const h = kind.startsWith('plant') ? 0.9 : kind.startsWith('rock') ? 0.25 : 0.35 + rnd() * 0.25;
-    place(scene, N + kind + '.glb', { x: Math.cos(a) * r, z: Math.sin(a) * r, y: -0.5, rot: rnd() * 6, height: h, shadow: false });
+    const r = 37.5 + rnd() * 12;
+    if (nearEntry(a)) continue;
+    const x = Math.cos(a) * r, z = Math.sin(a) * r;
+    if (FLOWER_BEDS.some((b) => Math.hypot(b.x - x, b.z - z) < b.r + 0.4)) continue;
+    const kind = pick(MEADOW);
+    const h = kind.startsWith('stump') || kind === 'log' ? 0.4 : kind.startsWith('rock') ? 0.25 : kind.startsWith('plant') ? 0.8 : 0.35 + rnd() * 0.25;
+    place(scene, N + kind + '.glb', { x, z, y: -0.5, rot: rnd() * 6, height: h, shadow: false });
   }
 
   // ---------- 둘레 화분: 잎을 덤불 모델로 ----------
@@ -106,7 +140,7 @@ export function loadProps({ scene, deco, interactive, anim, renderer }) {
 
   // ---------- 긴 테이블 위: 컵과 간식 ----------
   const dir = polar(1, LONG_TABLE.rot);
-  [[-2, 'mug'], [-1.2, 'croissant'], [0.1, 'cup-coffee'], [1.1, 'donut'], [2, 'cup-saucer']].forEach(([t, n], k) => {
+  [[-2, 'mug'], [-1.2, 'croissant'], [1.1, 'donut'], [2, 'cup-saucer']].forEach(([t, n], k) => {
     const side = k % 2 ? 0.25 : -0.25;
     place(scene, D + n + '.glb', { x: LONG_TABLE.x + dir.x * t - dir.z * side, z: LONG_TABLE.z + dir.z * t + dir.x * side, y: 0.83, rot: k * 1.3, width: n.startsWith('cup') || n === 'mug' ? 0.16 : 0.2 });
   });
@@ -135,21 +169,35 @@ export function loadProps({ scene, deco, interactive, anim, renderer }) {
   void anim; void renderer;
 }
 
-// 손에 드는 컵을 커피 컵 모델로 바꿈
+// 손에 드는 컵(커피 컵·머그)과 빵 모델을 채움
+function fit(src, size, drop = 0) {
+  const o = src.clone(true);
+  const box = new THREE.Box3().setFromObject(o);
+  const sz = box.getSize(new THREE.Vector3());
+  const s = size / Math.max(sz.x, sz.z);
+  o.scale.setScalar(s);
+  const c = box.getCenter(new THREE.Vector3());
+  o.position.set(-c.x * s, -box.min.y * s - drop, -c.z * s);
+  return o;
+}
 export function upgradeCup(av) {
-  load(D + 'cup-coffee.glb').then((src) => {
-    if (!src) return;
-    const cup = av.userData.cup;
-    const o = src.clone(true);
-    const box = new THREE.Box3().setFromObject(o);
-    const size = box.getSize(new THREE.Vector3());
-    const s = 0.16 / Math.max(size.x, size.z);
-    o.scale.setScalar(s);
-    const c = box.getCenter(new THREE.Vector3());
-    o.position.set(-c.x * s, -box.min.y * s - 0.07, -c.z * s);
-    cup.children.forEach((ch) => { ch.visible = false; });
-    cup.add(o);
+  const u = av.userData;
+  Promise.all([load(D + 'cup-coffee.glb'), load(D + 'mug.glb')]).then(([coffee, mug]) => {
+    if (!coffee) return;
+    u.cup.children.forEach((ch) => { ch.visible = false; });
+    u.drinks.coffee = fit(coffee, 0.16, 0.07);
+    u.cup.add(u.drinks.coffee);
+    if (mug) { u.drinks.tea = fit(mug, 0.17, 0.07); u.cup.add(u.drinks.tea); }
   });
+  for (const k of ['croissant', 'donut', 'muffin']) {
+    load(D + k + '.glb').then((src) => {
+      if (!src) return;
+      const o = fit(src, k === 'croissant' ? 0.2 : 0.14, 0.05);
+      if (k === 'donut') o.rotation.x = Math.PI / 2.4;
+      u.foods[k] = o;
+      u.food.add(o);
+    });
+  }
 }
 
 // 빛 효과 스프라이트 (전도할 때 건네는 빛, 반짝임)
