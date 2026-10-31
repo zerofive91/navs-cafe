@@ -25,7 +25,24 @@
     <span class="veil" aria-hidden="true"></span>
     <span class="title"><small>Navigators</small>Wheel Life <br>Cafe</span>
     <!-- 들어가는 방법: 혼자 / 함께(랜덤) / 초대 링크. 초대 링크로 오면 문 하나만 보임 -->
-    <div class="modes" role="group" aria-label="들어가기"></div>
+    <div class="modes" role="group" aria-label="들어가기">
+      <button class="mode" data-mode="solo"><span class="ring"><svg viewBox="0 0 32 32" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="16" cy="10" r="4"/><path d="M8 27v-3a8 8 0 0 1 16 0v3"/></svg></span><span>혼자</span></button>
+      <button class="mode main" data-mode="random"><span class="ring"><svg viewBox="0 0 32 32" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="16" cy="9" r="3.4"/><circle cx="7.5" cy="13" r="2.8"/><circle cx="24.5" cy="13" r="2.8"/><path d="M10 27v-3a6 6 0 0 1 12 0v3"/><path d="M3 26v-2a4.5 4.5 0 0 1 7-3.7M29 26v-2a4.5 4.5 0 0 0-7-3.7"/></svg></span><span>다같이</span></button>
+      <button class="mode" data-mode="invite"><span class="ring"><svg viewBox="0 0 32 32" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 18.5l5-5"/><path d="M11 15l-3 3a4.2 4.2 0 0 0 6 6l3-3"/><path d="M21 17l3-3a4.2 4.2 0 0 0-6-6l-3 3"/></svg></span><span>초대</span></button>
+      <button class="mode main big" data-mode="invite" data-arrive hidden><span class="ring"><svg viewBox="0 0 32 32" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 28V8a7 7 0 0 1 14 0v20M5 28h22"/><circle cx="19" cy="18" r="1" fill="currentColor"/></svg></span><span>초대받은 카페</span></button>
+    </div>
+    <script>
+      // 3D 장면을 불러오는 동안에도 단추가 바로 보이고 눌림. 누른 것은 기억했다가 준비되면 들어감
+      (function () {
+        var bs = document.querySelectorAll('#enter .mode');
+        if (/[?&]c=[a-z0-9]{4,16}/.test(location.search)) for (var i = 0; i < bs.length; i++) bs[i].hidden = !bs[i].hasAttribute('data-arrive');
+        for (var j = 0; j < bs.length; j++) bs[j].addEventListener('click', function (e) {
+          if (window.__enterReady) return;
+          window.__pick = e.currentTarget.getAttribute('data-mode');
+          for (var k = 0; k < bs.length; k++) bs[k].disabled = true;
+        });
+      })();
+    </script>
   </div>
   <div id="toast" hidden aria-live="polite"></div>
   <script type="importmap">

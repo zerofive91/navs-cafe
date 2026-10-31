@@ -11,7 +11,7 @@
 const SUPABASE_URL = 'https://esbhbhjnpupcrjwbnwet.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_BJB1Jth8sAEJllf9nnvA3A_iHQB5-Sz'; // 공개용(publishable) 키
 export const RANDOM_CAP = 10;
-export const INVITE_CAP = 15;
+export const INVITE_CAP = 10;
 const MAX_CAFES = 30;
 
 let libPromise = null;
@@ -117,7 +117,7 @@ export function initTogether({ scene, me, look, makeChar, poseAvatar, upgradeCup
       r: me.racket || 0, sw: me.swim ? 1 : 0, s: me.state === 'sit' && me.seat ? me.seat.kind : 0,
     };
   }
-  // 사람이 많을수록 천천히 보냄: 2명 0.8초, 10명 2.5초, 15명 3.75초
+  // 사람이 많을수록 천천히 보냄: 2명 0.8초, 10명 2.5초
   const period = () => Math.max(0.8, 0.25 * st.count);
   function send() {
     const m = snapshot();
