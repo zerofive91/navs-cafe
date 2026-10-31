@@ -208,5 +208,5 @@ export function initTogether({ scene, me, look, makeChar, poseAvatar, upgradeCup
 
   window.addEventListener('pagehide', () => { if (channel) { channel.untrack(); client.removeChannel(channel); } });
 
-  return { st, start, step, people };
+  return { st, start, step, people, applyState }; // applyState: 시험용으로도 씀
 }

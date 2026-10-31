@@ -2,6 +2,7 @@
 // 각 시설은 가까이 가면 동작 버튼이 뜨고, 체험이 끝나면 어울리는 말씀이 떠오름
 import * as THREE from 'three';
 import { GLTFLoader } from '../vendor/loaders/GLTFLoader.js';
+import { mergeGeometries } from '../vendor/utils/BufferGeometryUtils.js';
 import { PARK, POOL, GATE, R_PARK, R_WALK, R_GARDEN, LANES, polar, deg, inPool, poolDepth, parkClear, isFree } from './layout.js';
 import { place } from './props.js';
 import { showVerse, showNext } from './verses.js';
@@ -60,6 +61,29 @@ function ringLine(g, r, u, v, y = 0.02, from = 0, len = Math.PI * 2) {
   at(m, u, y, v);
   g.add(m);
   return m;
+}
+// 움직이지 않는 조각들(울타리·기둥·잎 등)을 재질별로 한 덩어리로 합쳐 그리기 횟수를 줄임
+// 그룹의 바로 아래 메시 중 보이고, 누를 수 없고, 움직이지 않는 것(userData.dyn 아님)만
+export function mergeStatic(g) {
+  const by = new Map();
+  for (const c of g.children) {
+    if (!c.isMesh || c.isInstancedMesh || !c.visible || c.userData.onTap || c.userData.dyn || c.material.transparent) continue;
+    const key = c.material.uuid + (c.geometry.index ? 'i' : 'n') + Object.keys(c.geometry.attributes).sort().join();
+    if (!by.has(key)) by.set(key, []);
+    by.get(key).push(c);
+  }
+  for (const list of by.values()) {
+    if (list.length < 2) continue;
+    const geos = list.map((c) => { c.updateMatrix(); return c.geometry.clone().applyMatrix4(c.matrix); });
+    const merged = mergeGeometries(geos);
+    geos.forEach((q) => q.dispose());
+    if (!merged) continue;
+    const m = new THREE.Mesh(merged, list[0].material);
+    m.castShadow = list.some((c) => c.castShadow); m.receiveShadow = true;
+    for (const c of list) g.remove(c);
+    g.add(m);
+  }
+  return g;
 }
 const ease = (x) => (x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x));
 
@@ -295,21 +319,19 @@ export function initPark({ scene, me, interactive, act, sfx, fxSprite, burst, wa
     for (const u of [-3, 3]) for (const v of [-1.8, 1.8]) for (let k = 0; k < 4; k++) {
       const l = new THREE.Mesh(leafGeo, MAT.leaf); l.scale.setScalar(0.5); at(l, u + (rnd() - 0.5) * 0.3, 0.5 + k * 0.55, v + (rnd() - 0.5) * 0.3); g.add(l);
     }
-    const grapeGeo = new THREE.SphereGeometry(0.045, 6, 5);
+    // 포도알 14개를 한 송이 모양으로 합침
+    const bunchGeo = mergeGeometries(Array.from({ length: 14 }, (_, j) => {
+      const row = Math.floor(j / 4), a = j * 2.4;
+      return new THREE.SphereGeometry(0.045, 6, 5).translate(Math.cos(a) * (0.09 - row * 0.02), -row * 0.07, Math.sin(a) * (0.09 - row * 0.02));
+    }));
     for (let k = 0; k < 12; k++) {
       const c = new THREE.Group();
-      for (let j = 0; j < 14; j++) {
-        const row = Math.floor(j / 4);
-        const gr = new THREE.Mesh(grapeGeo, grapeMat);
-        const a = j * 2.4;
-        gr.position.set(Math.cos(a) * (0.09 - row * 0.02), -row * 0.07, Math.sin(a) * (0.09 - row * 0.02));
-        c.add(gr);
-      }
+      c.add(new THREE.Mesh(bunchGeo, grapeMat));
       at(c, -2.6 + (k % 6) * 1.05 + rnd() * 0.2, 2.35, k < 6 ? -1.1 : 1.1);
       g.add(c);
       grapes.push(c);
     }
-    shadow(g);
+    shadow(g); mergeStatic(g);
     let glow = 0;
     tapTo(grapes, () => zn.at(0, 0), () => { glow = 3; sfx('orb', 0.2); showVerse('vine', { cooldown: 20 }); }, 3.5);
     steps.push((dt, t) => {
@@ -410,6 +432,7 @@ export function initPark({ scene, me, interactive, act, sfx, fxSprite, burst, wa
   {
     const zn = P.sower;
     const g = zoneGroup(scene, zn);
+    const furM = M(0x4d3828, 1);
     const STRIPS = [
       { v: -2.6, mat: M(0xcfc3ad, 1), kind: 'path' },
       { v: -0.9, mat: M(0x9c8770, 1), kind: 'rock' },
@@ -431,7 +454,7 @@ export function initPark({ scene, me, interactive, act, sfx, fxSprite, burst, wa
         at(th, -5 + k * 1.1 + rnd() * 0.3, 0.1, st.v + (rnd() - 0.5) * 0.9);
         g.add(th); thorns.push(th);
       }
-      if (st.kind === 'good') for (let k = -5; k <= 5; k += 0.5) { const fur = box(0.08, 0.04, 1.3, M(0x4d3828, 1)); at(fur, k, 0.11, st.v); g.add(fur); }
+      if (st.kind === 'good') for (let k = -5; k <= 5; k += 0.5) { const fur = box(0.08, 0.04, 1.3, furM); at(fur, k, 0.11, st.v); g.add(fur); }
     }
     // 새싹·이삭 (미리 만들어 두고 숨김)
     const sproutGeo = new THREE.ConeGeometry(0.035, 0.3, 4);
@@ -469,6 +492,7 @@ export function initPark({ scene, me, interactive, act, sfx, fxSprite, burst, wa
     shadow(g, false);
     let T = -1;
     const spot = () => zn.at(-6.6, -3.6);
+    mergeStatic(g);
     actions.sow = () => go(spot, () => { faceTo(me, zn.at(0, 0)); act('sow', 3); T = 0; });
     avail.push(() => (near(zn, 2) && T < 0 ? 'sow' : null));
     steps.push((dt, t) => {
@@ -550,6 +574,7 @@ export function initPark({ scene, me, interactive, act, sfx, fxSprite, burst, wa
         g.add(rail);
       }
     }
+    mergeStatic(shadow(g));
     // 우리 안 양들
     const flock = [];
     for (let k = 0; k < 8; k++) {
@@ -1386,7 +1411,7 @@ export function initPark({ scene, me, interactive, act, sfx, fxSprite, burst, wa
 
   // 성경 이야기 체험과 숲속 코스
   const ctx = { scene, me, act, sfx, fxSprite, burst, faceTo, standUp, walkTo, actions, avail, steps, mixers, go, tapTo, audio, loadFresh,
-    H: { M, MAT, shadow, zoneGroup, at, box, flat, ease, G0 } };
+    H: { M, MAT, shadow, zoneGroup, at, box, flat, ease, G0, mergeStatic } };
   addStories(ctx);
   addCourses(ctx);
 
@@ -1425,6 +1450,7 @@ function flapBird(b, t) {
   b.userData.wings.forEach((w, i) => { w.rotation.z = (i ? -1 : 1) * (0.2 + Math.sin(t * 22) * 0.8 * f); });
 }
 const wool = M(0xf7f4ee, 1), faceM = M(0x3a3430, 0.8);
+const eyeM = M(0xffffff);
 function makeSheep() {
   const g = new THREE.Group();
   const geo = new THREE.IcosahedronGeometry(0.2, 1);
@@ -1435,15 +1461,15 @@ function makeSheep() {
   const tuft = new THREE.Mesh(new THREE.IcosahedronGeometry(0.08, 1), wool); tuft.position.set(0, 0.66, 0.34); g.add(tuft);
   for (const s of [-1, 1]) {
     const ear = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 4), faceM); ear.scale.set(1.4, 0.5, 0.7); ear.position.set(s * 0.12, 0.58, 0.32); g.add(ear);
-    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.018, 6, 4), M(0xffffff)); eye.position.set(s * 0.05, 0.58, 0.45); g.add(eye);
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.018, 6, 4), eyeM); eye.position.set(s * 0.05, 0.58, 0.45); g.add(eye);
   }
   const legs = [];
   for (const [x, z] of [[-0.1, 0.15], [0.1, 0.15], [-0.1, -0.15], [0.1, -0.15]]) {
-    const l = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.3, 5), faceM); l.geometry.translate(0, -0.15, 0); l.position.set(x, 0.3, z); g.add(l); legs.push(l);
+    const l = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.3, 5), faceM); l.geometry.translate(0, -0.15, 0); l.position.set(x, 0.3, z); g.add(l); legs.push(l); l.userData.dyn = true;
   }
   g.userData.legs = legs;
   g.traverse((c) => { if (c.isMesh) c.castShadow = true; });
-  return g;
+  return mergeStatic(g);
 }
 function legWalk(o, t, moving) {
   o.userData.legs.forEach((l, i) => { l.rotation.x = moving ? Math.sin(t * 10 + (i % 2 ? Math.PI : 0) + (i > 1 ? Math.PI : 0)) * 0.5 : 0; });
