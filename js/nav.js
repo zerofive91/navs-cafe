@@ -1,8 +1,8 @@
 // 격자 A* 길찾기 (이진 힙) + 직선 펴기
-import { R_HALL, isFree } from './layout.js';
+import { R_GARDEN, isFree } from './layout.js';
 
 const CELL = 0.35;
-const HALF = R_HALL + 1;
+const HALF = R_GARDEN + 1;
 const N = Math.ceil((HALF * 2) / CELL);
 const free = new Uint8Array(N * N);
 const cx = (i) => -HALF + i * CELL + CELL / 2;

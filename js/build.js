@@ -1,7 +1,7 @@
 // 3D 공간 만들기: 높은 층고의 흰색 모던 카페, 수레바퀴 바닥, 전시물
 import * as THREE from 'three';
 import {
-  R_HALL, R_RIM_IN, R_HUB, SPOKE, CEIL, deg, polar, Q, PRAYER_POOL_R, WITNESS_POOL_R,
+  R_HALL, R_RIM_IN, TREES, FLOWER_BEDS, R_WALK, R_HUB, SPOKE, CEIL, deg, polar, Q, PRAYER_POOL_R, WITNESS_POOL_R,
   columns, COUNTER, LONG_TABLE, BIBLE, planters, TRAY, stools, BOAT,
 } from './layout.js';
 import { buildNavigators } from './navs.js';
@@ -118,15 +118,10 @@ export function buildWorld(scene) {
   let s = 5;
   const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
   const treeGeo = new THREE.IcosahedronGeometry(1, 1);
-  for (let k = 0; k < 90; k++) {
-    const a = rnd() * Math.PI * 2;
-    const r = 34 + rnd() * 50;
-    if (Math.abs(a - Math.PI / 2) < 0.12 && r < 45) continue; // 입구 앞
-    const x = Math.cos(a) * r, z = Math.sin(a) * r;
-    const h = 4 + rnd() * 6;
+  for (const { x, z, h, dark } of TREES) {
     const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.35, h * 0.45, 6), mat.trunk);
     trunk.position.set(x, h * 0.22, z);
-    const crown = new THREE.Mesh(treeGeo, rnd() < 0.5 ? mat.leaf : mat.leafDark);
+    const crown = new THREE.Mesh(treeGeo, dark ? mat.leaf : mat.leafDark);
     crown.scale.set(h * 0.38, h * 0.48, h * 0.38);
     crown.position.set(x, h * 0.62, z);
     scene.add(shadowy(trunk, true, false), shadowy(crown, true, false));
@@ -138,6 +133,31 @@ export function buildWorld(scene) {
   path.position.set(0, -0.49, R_HALL + 15);
   path.receiveShadow = true;
   scene.add(path);
+
+  // 건물을 한 바퀴 도는 정원 산책길 + 둥근 꽃밭(흙과 돌 테두리)
+  const gravel = new THREE.MeshStandardMaterial({ color: 0xe9e1d2, roughness: 1 });
+  const walk = new THREE.Mesh(new THREE.RingGeometry(R_WALK - 1.1, R_WALK + 1.1, 160), gravel);
+  walk.rotation.x = -Math.PI / 2;
+  walk.position.y = -0.485;
+  walk.receiveShadow = true;
+  scene.add(walk);
+  const soil = new THREE.MeshStandardMaterial({ color: 0x8a6e55, roughness: 1 });
+  for (const b of FLOWER_BEDS) {
+    const d = new THREE.Mesh(new THREE.CylinderGeometry(b.r, b.r, 0.16, 40), soil);
+    d.position.set(b.x, -0.44, b.z);
+    d.receiveShadow = true;
+    const edge = new THREE.Mesh(new THREE.TorusGeometry(b.r, 0.13, 6, 48), mat.stone);
+    edge.rotation.x = Math.PI / 2;
+    edge.position.set(b.x, -0.38, b.z);
+    scene.add(d, edge);
+    // 산책길에서 꽃밭까지 짧은 오솔길
+    const a = Math.atan2(b.z, b.x);
+    const lane = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 3.2), gravel);
+    lane.rotation.set(-Math.PI / 2, 0, -a + Math.PI / 2);
+    lane.position.set(Math.cos(a) * (R_WALK + 2.2), -0.486, Math.sin(a) * (R_WALK + 2.2));
+    lane.receiveShadow = true;
+    scene.add(lane);
+  }
 
   // 건물 기단
   const base = new THREE.Mesh(new THREE.CylinderGeometry(R_HALL + 0.6, R_HALL + 0.8, 0.5, 128, 1, true), mat.stone);
@@ -469,9 +489,12 @@ export function buildWorld(scene) {
     boat.rotation.y = -deg(BOAT.rot);
     scene.add(shadowy(boat));
     boat.traverse((c) => { if (c.isMesh) { c.userData.action = 'boat'; interactive.push(c); } });
-    anim.push((t) => {
-      boat.position.y = -0.02 + Math.sin(t * 0.9) * 0.025;
-      boat.rotation.z = Math.sin(t * 0.7) * 0.015;
+    // 풍랑이 일면 크게 흔들림 (ctx.storm 0~1)
+    anim.push((t, ctx) => {
+      const st = (ctx && ctx.storm) || 0;
+      boat.position.y = -0.02 + Math.sin(t * (0.9 + st * 1.6)) * (0.025 + st * 0.09);
+      boat.rotation.z = Math.sin(t * (0.7 + st * 1.4)) * (0.015 + st * 0.11);
+      boat.rotation.x = Math.sin(t * 1.3) * st * 0.06;
     });
 
     // 물고기 모빌(사람 낚는 어부): 얇은 종이 물고기 떼가 배 위에서 세계 화면 쪽으로 흘러감

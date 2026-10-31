@@ -3,9 +3,10 @@ import { RoomEnvironment } from '../vendor/RoomEnvironment.js';
 import { buildWorld } from './build.js';
 import { makeAvatar, poseAvatar } from './avatar.js';
 import { findPath, nearestFree } from './nav.js';
-import { floorY, seats, SPOTS, SPAWN, planters, polar, COUNTER, CEIL, Q, isFree } from './layout.js';
+import { floorY, seats, SPOTS, SPAWN, planters, polar, COUNTER, CEIL, Q, isFree, R_HALL, R_WALK, onWater } from './layout.js';
 import { ICONS } from './icons.js';
 import { loadProps, upgradeCup, fxSprite } from './props.js';
+import { initSigns } from './signs.js';
 
 const canvas = document.getElementById('cafe');
 const bar = document.getElementById('actions');
@@ -229,8 +230,11 @@ const ACTIONS = {
   },
   jump: () => {
     if (me.seat) standUp(me);
-    if (me.jump > 0) return;
-    me.jump = 0.0001;
+    // 공중에서 두 번 더 눌러 3단 점프까지
+    if ((me.jumps || 0) >= 3) return;
+    me.vy = [4.2, 4.0, 4.6][me.jumps || 0];
+    me.jumps = (me.jumps || 0) + 1;
+    me.jump = me.jumps;
   },
   sit: () => {
     // 가까운 빈 자리가 있으면 거기에, 없으면 바닥에 앉음
@@ -260,6 +264,8 @@ const ACTIONS = {
   tray: () => walkTo(me, SPOTS.tray, () => { faceTo(me, polar(25.5, 105)); me.item = null; }),
   wave: () => act('wave', 2.4),
   vhand: () => act('vhand', 2.6),
+  calm: () => signs.calm(),
+  loaves: () => signs.feed(),
 };
 function nearestFreeSeat(near, maxD) {
   let best = null, bd = maxD;
@@ -312,6 +318,29 @@ function stepBursts(dt) {
     if (b.t >= 1) { scene.remove(b.sp); b.sp.material.dispose(); bursts.splice(i, 1); }
   }
 }
+// 물 위를 걸을 때 발밑에 퍼지는 물결
+const wakeGeo = new THREE.RingGeometry(0.16, 0.22, 32);
+const wakes = [];
+let wakeT = 0;
+function stepWakes(dt) {
+  const w = onWater(me.x, me.z);
+  wakeT -= dt;
+  if (w && (me.state === 'walk' || me.jumps || signs.sinking()) && wakeT <= 0 && (me.hop || 0) < 0.05) {
+    wakeT = 0.32;
+    const m = new THREE.Mesh(wakeGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, depthWrite: false }));
+    m.rotation.x = -Math.PI / 2;
+    m.position.set(me.x, w.y + 0.015, me.z);
+    scene.add(m);
+    wakes.push({ m, t: 0 });
+  }
+  for (let i = wakes.length - 1; i >= 0; i--) {
+    const k = wakes[i];
+    k.t += dt / 1.6;
+    k.m.scale.setScalar(1 + k.t * 7);
+    k.m.material.opacity = 0.7 * (1 - k.t);
+    if (k.t >= 1) { scene.remove(k.m); k.m.material.dispose(); wakes.splice(i, 1); }
+  }
+}
 function stepGifts(dt) {
   for (let i = gifts.length - 1; i >= 0; i--) {
     const g = gifts[i];
@@ -338,14 +367,17 @@ function wrapTask(first, then) {
 
 function availableActions() {
   const list = [];
-  if (me.state === 'walk' || me.action === 'wait') return list;
+  if (me.action === 'wait') return list;
+  if (signs.canCalm()) list.push('calm'); // 풍랑 속: 손을 들어 잠잠케
+  if (me.state === 'walk') return ['jump']; // 걷는 중에는 점프만
   const near = (s) => Math.hypot(me.x - s.x, me.z - s.z) < s.r;
   // 그 장소에서만 할 수 있는 일
   if (near(SPOTS.light)) list.push('light');
   if (near(SPOTS.order) && !me.item) list.push('order');
   if (near(SPOTS.boat)) list.push('boat');
-  if (Math.hypot(me.x, me.z) > 22.5) list.push('water');
+  if (Math.hypot(me.x, me.z) > 22.5 && Math.hypot(me.x, me.z) < R_HALL) list.push('water');
   if (me.item === 'cup') list.push('sip');
+  if (signs.nearBread()) list.push('loaves');
   if (me.item === 'cup' && near(SPOTS.tray)) list.push('tray');
   // 어디서나 할 수 있는 일
   list.push(me.state === 'sit' ? 'stand' : 'sit');
@@ -563,6 +595,7 @@ const PLACES = [
   ['read', SPOTS.read, Q.word],
   ['order', SPOTS.order, Q.fellow],
   ['boat', SPOTS.boat, Q.witness],
+  ['garden', polar(R_WALK, 70), polar(60, 70)],
 ];
 for (const [icon, spot, look] of PLACES) {
   const b = document.createElement('button');
@@ -615,17 +648,18 @@ function stepChar(ch, dt) {
     if (ch.seat.kind === 'kneel') fy = ch.seat.free ? floorY(ch.x, ch.z) - 0.02 : 0.12;
     if (ch.seat.kind === 'floor') fy = floorY(ch.x, ch.z) - 0.2;
     if (ch.seat.kind === 'lounge') fy = floorY(ch.x, ch.z) + 0.22;
+    if (ch.seat.kind === 'gbench') fy = floorY(ch.x, ch.z) + 0.25;
   }
   ch.y += (fy - ch.y) * Math.min(1, dt * 10);
-  // 점프: 0.55초 동안 포물선
-  let hop = 0;
-  if (ch.jump > 0) {
-    ch.jump += dt / 0.55;
-    if (ch.jump >= 1) { ch.jump = 0; if (ch === me) sfx('land', 0.15); }
-    else hop = Math.sin(ch.jump * Math.PI) * 0.55;
+  // 점프: 위로 튀어 올랐다가 중력으로 내려옴 (공중에서 다시 누르면 한 번 더)
+  let hop = ch.hop || 0;
+  if (ch.jumps) {
+    hop += ch.vy * dt;
+    ch.vy -= 13 * dt;
+    if (hop <= 0) { hop = 0; ch.vy = 0; ch.jumps = 0; ch.jump = 0; if (ch === me) sfx('land', 0.15); }
   }
   ch.hop = hop;
-  ch.av.position.set(ch.x, ch.y + hop, ch.z);
+  ch.av.position.set(ch.x, ch.y + hop + (ch.sinkY || 0), ch.z);
   // 부드럽게 돌기
   let da = ch.face - ch.av.rotation.y;
   da = Math.atan2(Math.sin(da), Math.cos(da));
@@ -653,7 +687,7 @@ function frame(now) {
   barista.av.userData.book.visible = false;
 
   const camR = Math.hypot(camera.position.x, camera.position.z);
-  for (const f of anim) f(t, { reading: me.action === 'read', praying: me.action === 'pray' && Math.hypot(me.x - SPOTS.pray.x, me.z - SPOTS.pray.z) < SPOTS.pray.r + 2, me, camR }, dt * (window.__cafe.speed || 1));
+  for (const f of anim) f(t, { reading: me.action === 'read', praying: me.action === 'pray' && Math.hypot(me.x - SPOTS.pray.x, me.z - SPOTS.pray.z) < SPOTS.pray.r + 2, me, camR, storm: signs.storm.level }, dt * (window.__cafe.speed || 1));
 
   if (ripple) {
     ripple.t += dt;
@@ -707,6 +741,8 @@ function frame(now) {
   }
   stepFades(dt);
   stepBursts(dt);
+  stepWakes(dt);
+  signs.step(dt * (window.__cafe.speed || 1));
 
   refreshActions();
   renderer.render(scene, camera);
@@ -719,6 +755,7 @@ enter.addEventListener('click', () => {
   walkTo(me, { x: 0, z: 19 });
   setTimeout(maybeHint, 1200);
 });
+const signs = initSigns({ scene, me, npcs, interactive, act, sfx, fxSprite, burst, sun, walkTo, faceTo });
 requestAnimationFrame(frame);
 // 첫 화면이 뜬 뒤 소품 모델을 천천히 불러와 바꿔 끼움
 setTimeout(() => {
@@ -727,4 +764,4 @@ setTimeout(() => {
   for (const n of npcs) if (n.av) upgradeCup(n.av);
 }, 300);
 
-window.__cafe = { me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick };
+window.__cafe = { me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs };

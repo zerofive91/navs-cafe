@@ -3,6 +3,15 @@ const svg = (body) =>
   `<svg viewBox="0 0 32 32" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
 
 export const ICONS = {
+  // 풍랑을 잔잔케: 들어 올린 손과 고요해지는 물결
+  calm: svg('<path d="M16 15V5M12.5 15V7.5M19.5 15V7.5M23 15v-4.5M9 17v-5"/><path d="M9 17c0 3 3 5 7 5s7-2 7-5v-2"/><path d="M4 27c3-1.5 5-1.5 8 0s5 1.5 8 0 5-1.5 8 0"/>'),
+  // 오병이어: 바구니와 떡
+  loaves: svg('<path d="M5 15h22l-2.5 10a2 2 0 0 1-2 1.5h-13a2 2 0 0 1-2-1.5z"/><path d="M9 15c0-3 2.5-5 5-5s3 2 3 2 1-3 4-3 4 3 4 6"/><path d="M9 20h14"/>'),
+  // 정원 산책: 꽃
+  garden: svg('<circle cx="16" cy="10" r="2.5"/><path d="M16 4.5a3 3 0 0 1 0 0M13.5 10a3 3 0 1 1 2.5-4 3 3 0 1 1 2.5 4 3 3 0 1 1-1 4.5 3 3 0 1 1-3 0 3 3 0 1 1-1-4.5z"/><path d="M16 15v13M16 23c-3-3-6-3-8-2M16 21c3-3 6-3 8-2"/>'),
+  // 음악 켜기/끄기
+  music: svg('<path d="M12 24V8l14-3v16"/><circle cx="9" cy="24" r="3"/><circle cx="23" cy="21" r="3"/>'),
+  musicOff: svg('<path d="M12 24V8l14-3v16" opacity=".45"/><circle cx="9" cy="24" r="3" opacity=".45"/><circle cx="23" cy="21" r="3" opacity=".45"/><path d="M5 5l22 22"/>'),
   // 점프
   jump: svg('<circle cx="16" cy="6" r="3"/><path d="M16 9v8M11 13l5-2 5 2M12 23l4-6 4 6"/><path d="M8 28h16" stroke-dasharray="2 3"/>'),
   // 앉기 / 일어서기

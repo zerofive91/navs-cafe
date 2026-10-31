@@ -8,6 +8,8 @@ export const R_RIM_IN = 23.5; // 둘레 회랑 안쪽 경계
 export const R_HUB = 5;       // 가운데 단
 export const SPOKE = 2;       // 바퀴살 길 절반 폭
 export const CEIL = 11;       // 층고
+export const R_GARDEN = 46;   // 걸어 다닐 수 있는 바깥 정원 끝
+export const R_WALK = 34;     // 건물을 한 바퀴 도는 정원 산책길(가운데)
 
 export const deg = (d) => (d * Math.PI) / 180;
 // 각도 기준: 0 = 동, 90 = 남, -90 = 북, 180 = 서
@@ -25,10 +27,20 @@ export const WITNESS_POOL_R = 5.2;
 // 바닥 높이: 가운데 단과 바퀴살·둘레 길은 살짝 올라와 있음
 export function floorY(x, z) {
   const r = Math.hypot(x, z);
+  if (r >= R_HALL) return r < R_HALL + 0.6 ? 0 : -0.5; // 기단 위, 그 밖은 잔디
+  const w = onWater(x, z);
+  if (w) return w.y; // 물 위를 걸음
   if (r < R_HUB) return 0.5;
   if (r >= R_RIM_IN) return 0.25;
   if (Math.abs(x) < SPOKE || Math.abs(z) < SPOKE) return 0.25;
   return 0;
+}
+
+// 걸을 수 있는 물: 기도의 고요한 물, 증거의 물
+export function onWater(x, z) {
+  if (Math.hypot(x - Q.prayer.x, z - Q.prayer.z) < PRAYER_POOL_R) return { y: 0.03 };
+  if (Math.hypot(x - Q.witness.x, z - Q.witness.z) < WITNESS_POOL_R) return { y: -0.06 };
+  return null;
 }
 
 // 장애물(원)
@@ -88,6 +100,30 @@ export const SPAWN = polar(26.2, 90);
 export const LOUNGES = [-15, 45, -105, 165].map((a) => ({ a, chair: polar(26.3, a), table: polar(26.4, a + 3.4), approach: polar(25.0, a) }));
 for (const l of LOUNGES) { block(l.chair.x, l.chair.z, 0.5); block(l.table.x, l.table.z, 0.35); }
 
+// ---------- 바깥 정원 ----------
+// 숲 나무(정원 안쪽에 있는 나무는 피해 다님)
+export const TREES = [];
+{
+  let s = 5;
+  const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+  for (let k = 0; k < 110; k++) {
+    const a = rnd() * Math.PI * 2;
+    const r = 38.5 + rnd() * 48;
+    const h = 4 + rnd() * 6;
+    if (Math.abs(a - Math.PI / 2) < 0.1 && r < 62) continue; // 입구 앞 길
+    TREES.push({ x: Math.cos(a) * r, z: Math.sin(a) * r, h, dark: rnd() < 0.5 });
+  }
+}
+// 둥근 꽃밭 6곳, 산책길 바깥쪽 벤치 6개, 길가 등
+export const FLOWER_BEDS = [-150, -90, -30, 30, 150, 210].map((a) => ({ a, ...polar(39.5, a), r: 2.3 }));
+export const GARDEN_BENCHES = [0, 60, 120, 180, 240, 300].map((a) => ({ a, ...polar(36.2, a), approach: polar(35.1, a) }));
+export const GARDEN_LAMPS = [];
+for (let a = 15; a < 360; a += 30) GARDEN_LAMPS.push(polar(32.5, a));
+for (const t of TREES) if (Math.hypot(t.x, t.z) < R_GARDEN + 1) block(t.x, t.z, 0.6);
+for (const b of FLOWER_BEDS) block(b.x, b.z, b.r);
+for (const b of GARDEN_BENCHES) block(b.x, b.z, 0.55);
+for (const l of GARDEN_LAMPS) block(l.x, l.z, 0.15);
+
 // 앉을 수 있는 자리
 export const seats = [];
 function seat(x, z, faceTo, kind, approach) {
@@ -96,6 +132,8 @@ function seat(x, z, faceTo, kind, approach) {
 }
 
 for (const l of LOUNGES) seat(l.chair.x, l.chair.z, { x: 0, z: 0 }, 'lounge', l.approach);
+// 정원 벤치: 숲(바깥)을 바라봄
+for (const b of GARDEN_BENCHES) seat(b.x, b.z, polar(60, b.a), 'gbench', b.approach);
 
 // 그리스도: 빛 둘레의 둥근 벤치 4곳(대각선)
 for (const a of [-135, -45, 45, 135]) {
@@ -124,8 +162,10 @@ export const stools = [];
 }
 // 증거: 물 위 배에 두 자리
 export const BOAT = { x: Q.witness.x + 0.5, z: Q.witness.z - 0.5, rot: 30 };
+block(Q.prayer.x, Q.prayer.z, 1.5); // 기도하는 손이 선 작은 섬
 {
   const dir = polar(1, BOAT.rot);
+  for (const t of [-1.5, -0.75, 0, 0.75, 1.5]) block(BOAT.x + dir.x * t, BOAT.z + dir.z * t, 0.55); // 배는 피해 감
   for (const t of [-0.8, 0.8]) {
     const p = { x: BOAT.x + dir.x * t, z: BOAT.z + dir.z * t };
     const edge = { x: Q.witness.x + Math.cos(deg(-45)) * (WITNESS_POOL_R + 0.6), z: Q.witness.z + Math.sin(deg(-45)) * (WITNESS_POOL_R + 0.6) };
@@ -154,9 +194,11 @@ export const SPOTS = {
 export const BODY = 0.35;
 export function isFree(x, z) {
   const r = Math.hypot(x, z);
-  if (r > R_HALL - 0.7) return false;
-  if (Math.hypot(x - Q.prayer.x, z - Q.prayer.z) < PRAYER_POOL_R + BODY) return false;
-  if (Math.hypot(x - Q.witness.x, z - Q.witness.z) < WITNESS_POOL_R + BODY) return false;
+  if (r > R_GARDEN) return false;
+  if (r > R_HALL - 0.7 && r < R_HALL + 1.1) {
+    // 유리벽은 입구로만 드나듦
+    if (!(z > 0 && Math.abs(x) < 1.15)) return false;
+  }
   for (const o of obstacles) {
     if (Math.hypot(x - o.x, z - o.z) < o.r + BODY) return false;
   }
