@@ -279,6 +279,21 @@ export function poseAvatar(av, ch, t, dt) {
     case 'wait':
       headX = Math.sin(t * 1.5) * 0.05;
       break;
+    case 'climb':
+      // 줄기를 번갈아 붙잡으며 오름
+      armL = -2.6 + Math.sin(t * 7) * 0.4; armR = -2.6 - Math.sin(t * 7) * 0.4; armLz = 0.25; armRz = -0.25; headX = -0.3;
+      u.legs.forEach((l, i) => { l.rotation.x = -0.6 + Math.sin(t * 7 + i * Math.PI) * 0.5; });
+      break;
+    case 'hang':
+      // 가지에 두 손으로 매달려 다리를 흔듦
+      armL = -3.05; armR = -3.05; armLz = 0.12; armRz = -0.12; headX = -0.2;
+      u.legs.forEach((l, i) => { l.rotation.x = Math.sin(t * 2.4 + i * 0.6) * 0.45; });
+      break;
+    case 'praise':
+      // 두 손을 높이 들고 천천히 흔듦
+      armL = -2.75 + Math.sin(t * 1.6) * 0.12; armR = -2.75 - Math.sin(t * 1.6) * 0.12; armLz = 0.35; armRz = -0.35; headX = -0.3;
+      bodyY += Math.sin(t * 1.6) * 0.01;
+      break;
     case 'kick':
       armL = 0.5; armR = -0.5; armLz = 0.3; armRz = -0.3;
       break;

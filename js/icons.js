@@ -51,6 +51,16 @@ export const ICONS = {
   wave: svg('<path d="M10 18V9a2 2 0 0 1 4 0v7"/><path d="M14 15V7a2 2 0 0 1 4 0v8"/><path d="M18 15V9a2 2 0 0 1 4 0v9a8 8 0 0 1-8 8h-1a7 7 0 0 1-6-3l-3-5a2 2 0 0 1 3-2l3 3"/>'),
   // 낚시 (한 세겔)
   fish: svg('<path d="M7 27L24 5"/><path d="M24 5v15"/><path d="M21 22a3 3 0 1 0 6 0"/><path d="M5 27h6"/>'),
+  // 나무 오르기 / 내려오기
+  climb: svg('<path d="M14 30V18M14 22l-5-5M14 19l5-6"/><path d="M14 18c-6 0-9-4-9-8a9 9 0 0 1 18 0c0 4-3 8-9 8z"/><path d="M24 26v-8M21 21l3-3 3 3"/>'),
+  down: svg('<path d="M16 5v18"/><path d="M9 16l7 7 7-7"/><path d="M6 28h20"/>'),
+  // 정원에서 걷기 / 달리기
+  walk: svg('<circle cx="16" cy="6" r="2.5"/><path d="M16 10v9l-3 8M16 19l3 8M12 14l4-3 4 3"/>'),
+  run: svg('<circle cx="19" cy="5.5" r="2.5"/><path d="M17 10l-3 7 5 3-2 7M14 17l-6 1M17 10l5 4 4-1"/><path d="M4 12h5M3 17h4"/>'),
+  // 화면 눕히기
+  rotate: svg('<rect x="9" y="4" width="14" height="24" rx="2.5"/><path d="M4 20a12 12 0 0 0 9 8.5"/><path d="M10 25.5l3 3-3.5 2"/>'),
+  // 찬양: 높이 든 두 손과 음표
+  praise: svg('<path d="M9 27v-8l-3-9a1.4 1.4 0 0 1 2.6-1L11 15V5.5a1.4 1.4 0 0 1 2.8 0V15"/><path d="M23 27v-8l3-9a1.4 1.4 0 0 0-2.6-1L21 15V5.5a1.4 1.4 0 0 0-2.8 0V15"/>'),
   // 테마파크 액티비티
   kick: svg('<circle cx="21" cy="21" r="6"/><path d="M21 15l-2.5 3.5 2.5 3 3-1.5"/><path d="M5 9l5 2 2 6-4 6"/>'),
   shoot: svg('<circle cx="12" cy="20" r="6"/><path d="M6 20h12M12 14v12"/><path d="M20 6h8M22 6l2 6 2-6"/><path d="M17 15c2-4 4-6 6-7"/>'),

@@ -48,10 +48,12 @@ export const VERSES = {
   wheel: ['이제는 내가 사는 것이 아니요 오직 내 안에 그리스도께서 사신 것이라', '갈라디아서 2:20'],
 };
 
+import { STREAMS } from './wordstream.js';
+
 const el = () => document.getElementById('verse');
 const last = {};
 let hideT = 0;
-export function showVerse(key, { delay = 0, cooldown = 90 } = {}) {
+export function showVerse(key, { delay = 0, cooldown = 90, title = '' } = {}) {
   const v = VERSES[key];
   if (!v) return false;
   const now = performance.now() / 1000;
@@ -62,6 +64,7 @@ export function showVerse(key, { delay = 0, cooldown = 90 } = {}) {
     if (!e) return;
     e.querySelector('p').textContent = v[0];
     e.querySelector('cite').textContent = v[1];
+    setTitle(e, title);
     e.hidden = false;
     requestAnimationFrame(() => e.classList.add('on'));
     clearTimeout(hideT);
@@ -71,4 +74,54 @@ export function showVerse(key, { delay = 0, cooldown = 90 } = {}) {
     }, 6500 + v[0].length * 40);
   }, delay * 1000);
   return true;
+}
+
+// 이어지는 말씀: 버튼을 누른 동안 한 구절씩 차례로(겹치지 않게 섞어서) 계속 띄움
+let stream = null;
+const decks = {};
+function nextOf(kind) {
+  if (!decks[kind] || !decks[kind].length) decks[kind] = [...STREAMS[kind]].sort(() => Math.random() - 0.5);
+  return decks[kind].pop();
+}
+// 구절 위에 작은 이름(상징 이름 등)
+function setTitle(e, title) {
+  let t = e.querySelector('.vt');
+  if (!t) { t = document.createElement('b'); t.className = 'vt'; e.prepend(t); }
+  t.textContent = title || '';
+  t.hidden = !title;
+}
+function showPair(v) {
+  const e = el();
+  if (!e) return 0;
+  setTitle(e, '');
+  e.querySelector('p').textContent = v[0];
+  e.querySelector('cite').textContent = v[1];
+  e.hidden = false;
+  requestAnimationFrame(() => e.classList.add('on'));
+  return 6500 + v[0].length * 45;
+}
+export function startStream(kind, delay = 1.2) {
+  if (stream && stream.kind === kind) return;
+  stopStream(true);
+  const s = { kind, t: 0 };
+  stream = s;
+  const tick = () => {
+    if (stream !== s) return;
+    clearTimeout(hideT);
+    const ms = showPair(nextOf(kind));
+    s.t = setTimeout(() => {
+      if (stream !== s) return;
+      el().classList.remove('on');
+      s.t = setTimeout(tick, 1700); // 사라진 뒤 잠시 쉬고 다음 구절
+    }, ms);
+  };
+  s.t = setTimeout(tick, delay * 1000);
+}
+export function stopStream(quick) {
+  if (!stream) return;
+  clearTimeout(stream.t);
+  stream = null;
+  const e = el();
+  if (e && quick) e.classList.remove('on');
+  else if (e) hideT = setTimeout(() => e.classList.remove('on'), 2500);
 }

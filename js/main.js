@@ -3,12 +3,12 @@ import { RoomEnvironment } from '../vendor/RoomEnvironment.js';
 import { buildWorld } from './build.js';
 import { makeAvatar, poseAvatar } from './avatar.js';
 import { findPath, nearestFree } from './nav.js';
-import { floorY, seats, SPOTS, SPAWN, planters, polar, COUNTER, CEIL, Q, isFree, R_HALL, R_WALK, onWater, inPool, R_PARK } from './layout.js';
+import { floorY, seats, SPOTS, SPAWN, planters, polar, COUNTER, CEIL, Q, isFree, R_HALL, R_WALK, onWater, inPool, R_PARK, nearTree } from './layout.js';
 import { ICONS } from './icons.js';
 import { loadProps, upgradeCup, fxSprite } from './props.js';
 import { initSigns } from './signs.js';
 import { initMusic } from './music.js';
-import { showVerse } from './verses.js';
+import { showVerse, startStream, stopStream } from './verses.js';
 import { initPark } from './park.js';
 
 const canvas = document.getElementById('cafe');
@@ -146,7 +146,8 @@ const npcs = [barista, owner];
 // ---------- 이동 ----------
 const SPEED = 2.6;
 // 바깥 정원에서는 달림
-const runBoost = (ch) => (inPool(ch.x, ch.z) ? 0.55 : Math.hypot(ch.x, ch.z) > R_HALL + 1.2 ? 2.1 : 1);
+const outdoors = (ch) => Math.hypot(ch.x, ch.z) > R_HALL + 1.2;
+const runBoost = (ch) => (inPool(ch.x, ch.z) ? 0.55 : outdoors(ch) && !ch.walkMode ? 2.1 : 1);
 
 function standUp(ch) {
   if (ch.seat) {
@@ -231,6 +232,7 @@ const ACTIONS = {
     act('read');
   },
   jump: () => {
+    if (me.climb) { const h = me.climb.y; dropFromTree(); me.hop = h; me.vy = 4.2; me.jumps = 1; return; }
     if (me.seat) standUp(me);
     // 공중에서 두 번 더 눌러 3단 점프까지
     if ((me.jumps || 0) >= 3) return;
@@ -265,7 +267,20 @@ const ACTIONS = {
   },
   tray: () => walkTo(me, SPOTS.tray, () => { faceTo(me, polar(25.5, 105)); me.item = null; me.food = null; }),
   wave: () => act('wave', 2.4),
+  praise: () => { if (me.seat && me.seat.kind !== 'kneel') standUp(me); act('praise'); },
   vhand: () => act('vhand', 2.6),
+  climb: () => {
+    const t = nearTree(me.x, me.z, 1.8);
+    if (!t) return;
+    standUp(me); me.path = []; me.task = null;
+    const a = Math.atan2(me.z - t.z, me.x - t.x);
+    me.climb = { t, y: 0, phase: 'up', x: t.x + Math.cos(a) * 0.38, z: t.z + Math.sin(a) * 0.38, top: Math.max(0.6, t.h * 1.15 * 0.3 - 1.35) }; // 손이 가장 낮은 가지에 닿는 높이
+    me.face = Math.atan2(t.x - me.x, t.z - me.z);
+    me.jumps = 0; me.vy = 0;
+  },
+  down: () => dropFromTree(),
+  walk: () => { me.walkMode = true; shown = ''; },
+  run: () => { me.walkMode = false; shown = ''; },
   calm: () => signs.calm(),
   loaves: () => signs.feed(),
   fish: () => signs.fish(),
@@ -456,6 +471,13 @@ function stepGifts(dt) {
   }
 }
 
+// 나무에서 손을 놓으면 그 높이에서 떨어짐(점프 낙하와 같음)
+function dropFromTree() {
+  if (!me.climb) return;
+  me.climb = null;
+  me.action = null;
+  me.jumps = 1; me.vy = 0.5;
+}
 function wrapTask(first, then) {
   return () => { if (first) first(); then(); };
 }
@@ -463,12 +485,14 @@ function wrapTask(first, then) {
 function availableActions() {
   const list = [];
   if (me.action === 'wait') return list;
+  if (me.climb) return me.climb.phase === 'hang' ? ['down', 'jump'] : ['down'];
+  const walkToggle = outdoors(me) && !inPool(me.x, me.z) ? [me.walkMode ? 'run' : 'walk'] : [];
   if (me.action === 'menu') {
     if (Math.hypot(me.x - SPOTS.order.x, me.z - SPOTS.order.z) < SPOTS.order.r) return [...(me.item ? [] : DRINKS), ...(me.food ? [] : FOODS)];
     me.action = null;
   }
   if (signs.canCalm()) list.push('calm'); // 풍랑 속: 손을 들어 잠잠케
-  if (me.state === 'walk') return ['jump']; // 걷는 중에는 점프만
+  if (me.state === 'walk') return ['jump', ...walkToggle]; // 걷는 중에는 점프(와 걷기·달리기)만
   const near = (s) => Math.hypot(me.x - s.x, me.z - s.z) < s.r;
   // 그 장소에서만 할 수 있는 일
   if (near(SPOTS.light)) list.push('light');
@@ -480,12 +504,14 @@ function availableActions() {
   if (signs.nearBread()) list.push('loaves');
   if (signs.canFish()) list.push('fish');
   list.push(...park.available());
+  if (outdoors(me) && nearTree(me.x, me.z, 1.8)) list.push('climb');
+  list.push(...walkToggle);
   if ((me.item === 'cup' || me.food) && !near(SPOTS.tray)) list.push('putdown');
   if ((me.item === 'cup' || me.food) && near(SPOTS.tray)) list.push('tray');
   // 어디서나 할 수 있는 일
   list.push(me.state === 'sit' ? 'stand' : 'sit');
   if (me.state !== 'sit') list.push('jump');
-  list.push('pray', 'read');
+  list.push('pray', 'read', 'praise');
   if (nearestPerson(6)) list.push('share');
   list.push('wave');
   return list;
@@ -516,22 +542,38 @@ function refreshActions() {
 
 // ---------- 카메라 (끌어서 돌리기, 휠/두 손가락으로 확대) ----------
 const view = { az: 0, el: 0.55, dist: 7.5, tx: me.x, ty: 0.62, tz: me.z, mode: 'third', pitch: 0, follow: true };
+// 휴대폰이 세로로 잠겨 있어도(카카오톡 안 브라우저 등) 버튼으로 화면 전체를 눕혀 가로로 볼 수 있음
+const rot = { on: false };
+const vw = () => (rot.on ? window.innerHeight : window.innerWidth);
+const vh = () => (rot.on ? window.innerWidth : window.innerHeight);
+// 화면 좌표 → 눕힌 화면 안의 좌표
+const pt = (e) => (rot.on ? { x: e.clientY, y: window.innerWidth - e.clientX } : { x: e.clientX, y: e.clientY });
+function setRotated(v) {
+  rot.on = v;
+  document.documentElement.classList.toggle('rot', v);
+  resize();
+}
 function resize() {
-  const w = window.innerWidth, h = window.innerHeight;
+  // 진짜로 가로가 되었으면 눕히기는 풀기
+  if (rot.on && window.innerWidth > window.innerHeight) { rot.on = false; document.documentElement.classList.remove('rot'); }
+  const w = vw(), h = vh();
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
   camera.fov = w < h ? 62 : 50;
   camera.updateProjectionMatrix();
 }
 window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', () => setTimeout(resize, 250));
+if (screen.orientation) screen.orientation.addEventListener?.('change', () => setTimeout(resize, 250));
 resize();
 
 const pointers = new Map();
 let drag = null, pinch = null;
 canvas.addEventListener('pointerdown', (e) => {
   canvas.setPointerCapture(e.pointerId);
-  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-  if (pointers.size === 1) drag = { x: e.clientX, y: e.clientY, t: performance.now(), moved: 0, az: view.az, el: view.el, pitch: view.pitch };
+  const q = pt(e);
+  pointers.set(e.pointerId, q);
+  if (pointers.size === 1) drag = { x: q.x, y: q.y, t: performance.now(), moved: 0, az: view.az, el: view.el, pitch: view.pitch };
   if (pointers.size === 2) {
     const [a, b] = [...pointers.values()];
     pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), dist: view.dist };
@@ -540,13 +582,14 @@ canvas.addEventListener('pointerdown', (e) => {
 });
 canvas.addEventListener('pointermove', (e) => {
   if (!pointers.has(e.pointerId)) return;
-  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  const q = pt(e);
+  pointers.set(e.pointerId, q);
   if (pinch && pointers.size === 2) {
     const [a, b] = [...pointers.values()];
     const d = Math.hypot(a.x - b.x, a.y - b.y);
     view.dist = clamp(pinch.dist * (pinch.d / d), 4.5, 16);
   } else if (drag) {
-    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    const dx = q.x - drag.x, dy = q.y - drag.y;
     drag.moved = Math.max(drag.moved, Math.hypot(dx, dy));
     if (drag.moved > 6) {
       if (view.mode === 'first') {
@@ -562,7 +605,7 @@ canvas.addEventListener('pointermove', (e) => {
 function endPointer(e) {
   if (!pointers.has(e.pointerId)) return;
   pointers.delete(e.pointerId);
-  if (drag && drag.moved <= 6 && performance.now() - drag.t < 600) tap(e.clientX, e.clientY);
+  if (drag && drag.moved <= 6 && performance.now() - drag.t < 600) { const q = pt(e); tap(q.x, q.y); }
   if (pointers.size < 2) pinch = null;
   drag = null;
 }
@@ -585,7 +628,7 @@ rippleMesh.visible = false;
 scene.add(rippleMesh);
 
 function tap(sx, sy) {
-  ndc.set((sx / window.innerWidth) * 2 - 1, -(sy / window.innerHeight) * 2 + 1);
+  ndc.set((sx / vw()) * 2 - 1, -(sy / vh()) * 2 + 1);
   ray.setFromCamera(ndc, camera);
   const hits = ray.intersectObjects(interactive, false);
   if (hits.length && hits[0].distance < 60) {
@@ -622,7 +665,8 @@ const keys = new Set();
 function setStick(e) {
   const r = stickEl.getBoundingClientRect();
   const R = r.width / 2;
-  let dx = e.clientX - (r.left + R), dy = e.clientY - (r.top + R);
+  const c = pt({ clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 }), q = pt(e);
+  let dx = q.x - c.x, dy = q.y - c.y;
   const d = Math.hypot(dx, dy), max = R - 10;
   if (d > max) { dx *= max / d; dy *= max / d; }
   knob.style.transform = `translate(${dx}px, ${dy}px)`;
@@ -659,7 +703,8 @@ function driveStick(dt) {
     return;
   }
   if (!stickDriving) {
-    // 조이스틱을 잡는 순간 하던 일을 멈추고 일어섬
+    // 조이스틱을 잡는 순간 하던 일을 멈추고 일어섬 (나무에 있으면 뛰어내림)
+    if (me.climb) dropFromTree();
     standUp(me); me.path = []; me.task = null; me.action = null;
     stickDriving = true;
   }
@@ -669,9 +714,10 @@ function driveStick(dt) {
   me.running = runBoost(me) > 1 && mag > 0.6;
   const step = SPEED * (0.35 + 0.65 * mag) * (me.running ? runBoost(me) : 1) * dt;
   const nx = me.x + mx * step, nz = me.z + mz * step;
-  if (isFree(nx, nz)) { me.x = nx; me.z = nz; }
-  else if (isFree(nx, me.z)) me.x = nx;
-  else if (isFree(me.x, nz)) me.z = nz;
+  const hop = me.hop || 0; // 점프 중이면 낮은 물건은 넘어감
+  if (isFree(nx, nz, hop)) { me.x = nx; me.z = nz; }
+  else if (isFree(nx, me.z, hop)) me.x = nx;
+  else if (isFree(me.x, nz, hop)) me.z = nz;
   me.face = Math.atan2(mx, mz);
   me.state = 'walk';
 }
@@ -712,6 +758,13 @@ for (const [icon, spot, look] of PLACES) {
   });
   placesEl.appendChild(b);
 }
+// 화면 눕히기 단추 (세로 화면일 때만 보임)
+const rotBtn = document.createElement('button');
+rotBtn.id = 'rotBtn';
+rotBtn.setAttribute('aria-label', 'rotate');
+rotBtn.innerHTML = ICONS.rotate;
+rotBtn.addEventListener('pointerdown', (e) => { e.stopPropagation(); setRotated(!rot.on); });
+document.body.appendChild(rotBtn);
 const viewBtn = document.createElement('button');
 viewBtn.className = 'place view';
 function showViewIcon() {
@@ -734,6 +787,18 @@ const music = initMusic(musicBtn, ICONS);
 
 // ---------- 루프 ----------
 function stepChar(ch, dt) {
+  if (ch.climb) {
+    // 나무 타기: 줄기를 붙잡고 올라가 가지에 매달림
+    const c = ch.climb;
+    if (c.phase === 'up') { c.y = Math.min(c.top, c.y + dt * 0.8); if (c.y >= c.top) { c.phase = 'hang'; sfx('impact/impactWood_light_000', 0.12); } }
+    ch.x = c.x; ch.z = c.z; ch.state = 'idle';
+    ch.action = c.phase === 'up' ? 'climb' : 'hang';
+    ch.y = floorY(ch.x, ch.z); ch.hop = c.y;
+    ch.av.position.set(ch.x, ch.y + c.y, ch.z);
+    let da = ch.face - ch.av.rotation.y; da = Math.atan2(Math.sin(da), Math.cos(da));
+    ch.av.rotation.y += da * Math.min(1, dt * 10);
+    return;
+  }
   if (ch.state === 'walk' && ch.path.length) {
     const tg = ch.path[0];
     const dx = tg.x - ch.x, dz = tg.z - ch.z;
@@ -767,7 +832,12 @@ function stepChar(ch, dt) {
   if (ch.jumps) {
     hop += ch.vy * dt;
     ch.vy -= 13 * dt;
-    if (hop <= 0) { hop = 0; ch.vy = 0; ch.jumps = 0; ch.jump = 0; if (ch === me) sfx('land', 0.15); }
+    if (hop <= 0) {
+      hop = 0; ch.vy = 0; ch.jumps = 0; ch.jump = 0;
+      if (ch === me) sfx('land', 0.15);
+      // 물건 위에 내려앉으면 바로 옆 빈 곳으로 미끄러져 내려옴
+      if (!isFree(ch.x, ch.z)) { const p = nearestFree({ x: ch.x, z: ch.z }); if (p) { ch.x = p.x; ch.z = p.z; } }
+    }
   }
   ch.hop = hop;
   ch.av.position.set(ch.x, ch.y + hop + (ch.sinkY || 0) + (ch.swimY || 0), ch.z);
@@ -778,13 +848,16 @@ function stepChar(ch, dt) {
 }
 
 // 동작을 시작하거나 자리에 앉으면 잠시 뒤 그 동작에 어울리는 말씀이 은은하게 떠오름
-const ACTION_VERSE = { gaze: 'light', pray: 'pray', read: 'read', water: 'water_plant', share: 'share', sip: 'drink', eat: 'eat' };
+const ACTION_VERSE = { gaze: 'light', water: 'water_plant', share: 'share', sip: 'drink', eat: 'eat' };
+const STREAM_OF = { read: 'read', pray: 'pray', praise: 'praise' }; // 누르고 있는 동안 말씀이 이어짐
 const SEAT_VERSE = { lounge: 'rest', bench: 'rest', gbench: 'garden', boat: 'boat', floor: 'still', log: 'campfire', vine: 'vine', picnic: 'bbq' };
 let prevAct = null, prevSeat = null;
 function verseHooks() {
   if (me.action !== prevAct) {
     prevAct = me.action;
     const k = ACTION_VERSE[me.action];
+    if (STREAM_OF[me.action]) startStream(STREAM_OF[me.action], me.action === 'read' ? 1.5 : 2);
+    else stopStream();
     if (k) showVerse(k, { delay: me.action === 'pray' || me.action === 'read' || me.action === 'gaze' ? 2.5 : 1.2 });
   }
   const sk = me.state === 'sit' && me.seat ? me.seat.kind : null;
@@ -833,7 +906,7 @@ function frame(now) {
   const k = 1 - Math.exp(-dt * 8);
   view.tx += (me.x - view.tx) * k;
   view.tz += (me.z - view.tz) * k;
-  view.ty += (me.y + 0.62 - view.ty) * k;
+  view.ty += (me.y + 0.62 + (me.climb ? me.climb.y : 0) - view.ty) * k;
   // 걷는 동안에는 시점이 천천히 캐릭터 뒤로 돌아감 (방금 화면을 끌었다면 잠시 기다림)
   const moving = me.state === 'walk';
   // 조이스틱으로 방향을 틀어도 화면이 진행 방향 쪽으로 따라 돎 (카메라 쪽으로 걸어올 때는 돌리지 않음)
@@ -899,7 +972,7 @@ Object.assign(ACTIONS, park.actions);
 requestAnimationFrame(frame);
 // 첫 화면이 뜬 뒤 소품 모델을 천천히 불러와 바꿔 끼움
 setTimeout(() => {
-  loadProps({ scene, deco, interactive, anim, renderer });
+  loadProps({ scene, deco, interactive, anim, renderer, occluders });
   upgradeCup(me.av);
   for (const n of npcs) if (n.av) upgradeCup(n.av);
 }, 300);

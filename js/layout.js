@@ -50,7 +50,8 @@ export function onWater(x, z) {
 
 // 장애물(원)
 export const obstacles = [];
-const block = (x, z, r) => obstacles.push({ x, z, r });
+// h: 높이(점프해서 이보다 높이 뜨면 넘어갈 수 있음). 실내 물건은 넘을 수 없음
+const block = (x, z, r, h = Infinity) => obstacles.push({ x, z, r, h });
 
 // 기둥: 바퀴살 사이 대각선 방향
 export const columns = [];
@@ -194,36 +195,36 @@ export const GARDEN_BENCHES = [0, 60, 120, 180, 240, 300].map((a) => ({ a, ...po
 export const GARDEN_LAMPS = [];
 for (let a = 15; a < 360; a += 30) GARDEN_LAMPS.push(polar(32.5, a));
 for (const t of TREES) if (Math.hypot(t.x, t.z) < R_GARDEN + 1) block(t.x, t.z, 0.6);
-for (const b of FLOWER_BEDS) block(b.x, b.z, b.r);
-for (const b of GARDEN_BENCHES) block(b.x, b.z, 0.55);
-for (const l of GARDEN_LAMPS) block(l.x, l.z, 0.15);
+for (const b of FLOWER_BEDS) block(b.x, b.z, b.r, 0.35);
+for (const b of GARDEN_BENCHES) block(b.x, b.z, 0.55, 0.95);
+for (const l of GARDEN_LAMPS) block(l.x, l.z, 0.15, 1.7);
 // 테마파크 시설물 (사람이 지나갈 수 없는 것만)
 {
   const P = PARK;
-  const b = (zn, u, v, r) => { const p = zn.at(u, v); block(p.x, p.z, r); };
+  const b = (zn, u, v, r, h = Infinity) => { const p = zn.at(u, v); block(p.x, p.z, r, h); };
   // 좁은 문 양옆 생울타리
-  for (const dx of [-1, 1]) for (let k = 0; k < 6; k++) block(dx * (GATE.w / 2 + 0.45 + k * 0.6), GATE.r, 0.4);
-  for (let u = -5; u <= 5; u += 2.5) b(P.market, u, 1.8, 1.3);
+  for (const dx of [-1, 1]) for (let k = 0; k < 6; k++) block(dx * (GATE.w / 2 + 0.45 + k * 0.6), GATE.r, 0.4, 1.2);
+  for (let u = -5; u <= 5; u += 2.5) b(P.market, u, 1.8, 1.3, 2.6);
   b(P.mustard, 0, 0, 0.7);
   for (const u of [-3, 3]) for (const v of [-1.8, 1.8]) b(P.vine, u, v, 0.2);
   // 양 우리 울타리(둥근 울, 산책길 쪽으로 문)
   for (let k = 0; k < 28; k++) {
     const ang = (k / 28) * Math.PI * 2;
     if (Math.abs(Math.atan2(Math.sin(ang - Math.PI), Math.cos(ang - Math.PI))) < 0.35) continue; // 안쪽(건물 쪽) 문
-    b(P.fold, Math.sin(ang) * 4.2, Math.cos(ang) * 4.2, 0.3);
+    b(P.fold, Math.sin(ang) * 4.2, Math.cos(ang) * 4.2, 0.3, 0.95);
   }
-  b(P.well, 0, 0, 1.1);
+  b(P.well, 0, 0, 1.1, 0.9);
   // 수영장 둘레는 걸을 수 있음, 선베드 두 개
-  for (const u of [-3, 0, 3]) b(P.camp, u, 2.8, 1.2); // 텐트
-  b(P.camp, 0, -1.2, 0.7); // 모닥불
-  b(P.bbq, -2, 0.5, 0.6); for (const u of [1.5, 3.4]) b(P.bbq, u, 1.2, 0.8); // 화로, 피크닉 탁자
+  for (const u of [-3, 0, 3]) b(P.camp, u, 2.8, 1.2, 1.5); // 텐트
+  b(P.camp, 0, -1.2, 0.7, 0.6); // 모닥불
+  b(P.bbq, -2, 0.5, 0.6, 1.05); for (const u of [1.5, 3.4]) b(P.bbq, u, 1.2, 0.8, 0.8); // 화로, 피크닉 탁자
   for (let u = -7; u <= 7; u += 1.4) b(P.ark, u, 1, 2.1 - Math.abs(u) * 0.12); // 방주
-  for (const v of [-2.4, -3.6, -4.8]) b(P.ark, 0, v, 0.75); // 경사로
-  for (const u of [-11, 11]) for (const v of [-1.3, 1.3]) b(P.soccer, u, v, 0.15); // 골대 기둥
+  for (const v of [-2.4, -3.6, -4.8]) b(P.ark, 0, v, 0.75, 1.3); // 경사로
+  for (const u of [-11, 11]) for (const v of [-1.3, 1.3]) b(P.soccer, u, v, 0.15, 1.25); // 골대 기둥
   b(P.basket, 5.8, 0, 0.3);
-  for (const v of [-4.8, 4.8]) b(P.tennis, 0, v, 0.12);
-  for (const v of [-3.2, 3.2]) b(P.badminton, 0, v, 0.1);
-  for (const u of [-0.9, 0, 0.9]) b(P.pingpong, 0, u * 0.6, 0.55);
+  for (const v of [-4.8, 4.8]) b(P.tennis, 0, v, 0.12, 1.05);
+  for (const v of [-3.2, 3.2]) b(P.badminton, 0, v, 0.1, 1.6);
+  for (const u of [-0.9, 0, 0.9]) b(P.pingpong, 0, u * 0.6, 0.55, 0.8);
 }
 
 // 앉을 수 있는 자리
@@ -312,7 +313,7 @@ export const SPOTS = {
 
 // 사람이 설 수 있는 곳인지
 export const BODY = 0.35;
-export function isFree(x, z) {
+export function isFree(x, z, hop = 0) {
   const r = Math.hypot(x, z);
   if (r > R_GARDEN) return false;
   if (r > R_HALL - 0.7 && r < R_HALL + 1.1) {
@@ -323,9 +324,19 @@ export function isFree(x, z) {
   if (!buckets) buildBuckets();
   const list = buckets.get(bkey(Math.floor(x / BK), Math.floor(z / BK)));
   if (list) for (const o of list) {
+    if (hop > o.h) continue; // 그 위로 뛰어 넘는 중
     if (Math.hypot(x - o.x, z - o.z) < o.r + BODY) return false;
   }
   return true;
+}
+// 이 자리에서 가장 가까운 나무 (매달리기·오르기)
+export function nearTree(x, z, maxD = 1.5) {
+  let best = null, bd = maxD;
+  for (const t of TREES) {
+    const d = Math.hypot(t.x - x, t.z - z);
+    if (d < bd && Math.hypot(t.x, t.z) < R_GARDEN + 1) { bd = d; best = t; }
+  }
+  return best;
 }
 const BK = 4;
 let buckets = null;

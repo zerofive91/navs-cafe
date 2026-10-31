@@ -64,7 +64,7 @@ function seatTop(m, seat) {
 
 const F = 'assets/furniture/', N = 'assets/nature/', D = 'assets/food/';
 
-export function loadProps({ scene, deco, interactive, anim, renderer }) {
+export function loadProps({ scene, deco, interactive, anim, renderer, occluders = [] }) {
   // ---------- 하늘 ----------
   new THREE.TextureLoader().load('assets/sky/day.jpg', (t) => {
     t.mapping = THREE.EquirectangularReflectionMapping;
@@ -77,7 +77,7 @@ export function loadProps({ scene, deco, interactive, anim, renderer }) {
   const TREES = ['tree_default', 'tree_oak', 'tree_detailed', 'tree_fat', 'tree_tall'];
   deco.trees.forEach((t, k) => {
     place(scene, N + TREES[k % TREES.length] + '.glb', { x: t.x, z: t.z, y: -0.5, rot: k * 1.7, height: t.h * 1.15, shadow: false })
-      .then((m) => { if (m) t.parts.forEach((p) => { p.visible = false; }); });
+      .then((m) => { if (!m) return; t.parts.forEach((p) => { p.visible = false; }); m.traverse((c) => { if (c.isMesh) occluders.push(c); }); }); // 카메라를 가리면 반투명
   });
   let s = 11;
   const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
