@@ -205,6 +205,10 @@ export function poseAvatar(av, ch, t, dt) {
     case 'wave':
       armR = Math.PI * 0.85 + Math.sin(t * 10) * 0.25; armRz = -0.3;
       break;
+    case 'share':
+      // 두 손으로 무언가를 건네는 자세
+      armL = -1.25; armR = -1.25; armLz = -0.25; armRz = 0.25; headX = 0.1;
+      break;
     case 'vhand':
       armR = Math.PI * 0.92; armRz = -0.15; headX = -0.08;
       break;

@@ -3,6 +3,13 @@ const svg = (body) =>
   `<svg viewBox="0 0 32 32" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
 
 export const ICONS = {
+  // 점프
+  jump: svg('<circle cx="16" cy="6" r="3"/><path d="M16 9v8M11 13l5-2 5 2M12 23l4-6 4 6"/><path d="M8 28h16" stroke-dasharray="2 3"/>'),
+  // 앉기 / 일어서기
+  sit: svg('<circle cx="13" cy="6" r="3"/><path d="M13 10v8h8v8M8 26V16"/><path d="M6 20h4"/>'),
+  stand: svg('<circle cx="16" cy="5" r="3"/><path d="M16 9v10M11 14l5-2 5 2M12 28l4-9 4 9"/>'),
+  // 전도: 빛을 건넴
+  share: svg('<circle cx="8" cy="9" r="3"/><circle cx="24" cy="9" r="3"/><path d="M4 26v-6a4 4 0 0 1 8 0M20 26v-6a4 4 0 0 1 8 0"/><circle cx="16" cy="17" r="2.2" fill="currentColor"/><path d="M12 17h1.5M18.5 17H20"/>'),
   // 3인칭(캐릭터 뒤에서) / 1인칭(눈으로) 시점
   third: svg('<circle cx="19" cy="9" r="3"/><path d="M14 26v-6a5 5 0 0 1 10 0v6"/><path d="M4 18l4-2v6l-4-2z"/><rect x="8" y="15" width="5" height="8" rx="1"/>'),
   first: svg('<path d="M3 16s5-8 13-8 13 8 13 8-5 8-13 8S3 16 3 16z"/><circle cx="16" cy="16" r="4"/>'),
