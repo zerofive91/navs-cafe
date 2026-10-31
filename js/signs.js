@@ -4,28 +4,10 @@
 //  3. 오병이어 (요 6)          : 긴 테이블의 작은 바구니를 누르면 모두에게 떡이 가고 열두 바구니가 남음
 // 구절은 저작권이 끝난 개역한글판을 씀
 import * as THREE from 'three';
-import { onWater, LONG_TABLE, polar } from './layout.js';
+import { onWater, LONG_TABLE, polar, Q, WITNESS_POOL_R } from './layout.js';
+import { showVerse as sv } from './verses.js';
 
-const VERSES = {
-  water: ['안심하라 내니 두려워 말라', '마태복음 14:27'],
-  storm: ['잠잠하라 고요하라 하시니 바람이 그치고 아주 잔잔하여지더라', '마가복음 4:39'],
-  bread: ['나는 생명의 떡이니 내게 오는 자는 결코 주리지 아니할 터이요', '요한복음 6:35'],
-};
-
-const verseEl = document.getElementById('verse');
-let verseTimer = 0;
-export function showVerse(key) {
-  const [text, ref] = VERSES[key];
-  verseEl.querySelector('p').textContent = text;
-  verseEl.querySelector('cite').textContent = ref;
-  verseEl.hidden = false;
-  requestAnimationFrame(() => verseEl.classList.add('on'));
-  clearTimeout(verseTimer);
-  verseTimer = setTimeout(() => {
-    verseEl.classList.remove('on');
-    verseTimer = setTimeout(() => { verseEl.hidden = true; }, 1600);
-  }, 7000);
-}
+const showVerse = (k) => sv(k, { cooldown: 5 });
 
 const ease = (u) => u * u * (3 - 2 * u);
 
@@ -204,8 +186,87 @@ export function initSigns({ scene, me, npcs, interactive, act, sfx, fxSprite, bu
     }
   }
 
+  // ---------- 4. 낚시: 고기 입에서 한 세겔 (마 17:27) ----------
+  const coinMat = new THREE.MeshStandardMaterial({ color: 0xe6c35a, metalness: 0.8, roughness: 0.3, emissive: 0x6a4a10, emissiveIntensity: 0.4 });
+  const lineMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 });
+  const fishing = { phase: null, t: 0, wait: 3, bob: null, line: null, fish: null, coin: null, spot: null };
+  const nearPool = () => (me.seat && me.seat.kind === 'boat') || Math.hypot(me.x - Q.witness.x, me.z - Q.witness.z) < WITNESS_POOL_R + 1.8;
+  const tip = new THREE.Vector3();
+  function startFish() {
+    if (fishing.phase || !nearPool()) return;
+    // 물 쪽(연못 가운데 방향)으로 2.4m 앞에 찌를 던짐, 배 위라면 오른편으로 (요 21:6)
+    let dx = Q.witness.x - me.x, dz = Q.witness.z - me.z;
+    if (me.seat && me.seat.kind === 'boat') { dx = -Math.cos(me.face); dz = Math.sin(me.face); }
+    const d = Math.hypot(dx, dz) || 1;
+    const r = Math.min(2.4, Math.max(1.4, d - 0.6));
+    const sx = me.x + (dx / d) * r, sz = me.z + (dz / d) * r;
+    faceTo(me, { x: sx, z: sz });
+    act('fish', 9);
+    fishing.spot = { x: sx, z: sz, y: (onWater(sx, sz) || { y: -0.06 }).y };
+    fishing.bob = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 8), new THREE.MeshStandardMaterial({ color: 0xd9483b, roughness: 0.5 }));
+    fishing.line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), lineMat);
+    scene.add(fishing.bob, fishing.line);
+    fishing.phase = 'cast'; fishing.t = 0; fishing.wait = 2.5 + Math.random() * 2;
+    sfx('tap', 0.12);
+  }
+  function endFish() {
+    for (const k of ['bob', 'line', 'fish', 'coin']) if (fishing[k]) { scene.remove(fishing[k]); fishing[k] = null; }
+    fishing.phase = null;
+    if (me.action === 'fish') me.action = null;
+  }
+  function stepFish(dt) {
+    if (!fishing.phase) return;
+    if (me.action !== 'fish' && fishing.phase !== 'coin') return endFish(); // 걷거나 다른 동작을 하면 거둠
+    fishing.t += dt;
+    const S = fishing.spot;
+    me.av.userData.rodTip.getWorldPosition(tip);
+    if (fishing.phase === 'cast') {
+      const u = Math.min(1, fishing.t / 0.7);
+      fishing.bob.position.set(tip.x + (S.x - tip.x) * u, tip.y + (S.y - tip.y) * u + Math.sin(u * Math.PI) * 0.8, tip.z + (S.z - tip.z) * u);
+      if (u >= 1) { fishing.phase = 'wait'; fishing.t = 0; }
+    } else if (fishing.phase === 'wait') {
+      fishing.bob.position.set(S.x, S.y + 0.02 + Math.sin(fishing.t * 3) * 0.012, S.z);
+      if (fishing.t > fishing.wait) { fishing.phase = 'bite'; fishing.t = 0; sfx('orb', 0.15); }
+    } else if (fishing.phase === 'bite') {
+      fishing.bob.position.set(S.x, S.y - 0.06 * Math.abs(Math.sin(fishing.t * 14)), S.z);
+      if (fishing.t > 0.7) {
+        fishing.phase = 'catch'; fishing.t = 0;
+        fishing.fish = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 8), fishMat);
+        fishing.fish.scale.set(2.4, 0.8, 1);
+        scene.add(fishing.fish);
+        fishing.bob.visible = false;
+      }
+    } else if (fishing.phase === 'catch') {
+      const u = Math.min(1, fishing.t / 0.9);
+      fishing.fish.position.set(S.x + (tip.x - S.x) * u, S.y + (tip.y - 0.4 - S.y) * u + Math.sin(u * Math.PI) * 0.9, S.z + (tip.z - S.z) * u);
+      fishing.fish.rotation.z = Math.sin(fishing.t * 20) * 0.4;
+      if (u >= 1) {
+        // 고기 입을 열면 은빛 한 세겔
+        fishing.phase = 'coin'; fishing.t = 0;
+        fishing.coin = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.015, 24), coinMat);
+        fishing.coin.add(fxSprite('star_06', 0xfff0c0, 0.5));
+        scene.add(fishing.coin);
+        sfx('share', 0.2);
+        showVerse('shekel');
+      }
+    } else if (fishing.phase === 'coin') {
+      const u = Math.min(1, fishing.t / 3);
+      fishing.coin.position.set(me.x, me.y + 1.3 + ease(Math.min(1, u * 2)) * 0.7, me.z);
+      fishing.coin.rotation.set(Math.PI / 2, 0, fishing.t * 4);
+      if (fishing.fish) fishing.fish.position.set(tip.x, tip.y - 0.45, tip.z);
+      if (u >= 1) { burst(me.x, me.y + 2, me.z); endFish(); }
+    }
+    if (fishing.line) {
+      const end = fishing.fish && fishing.phase !== 'coin' ? fishing.fish.position : fishing.bob.position;
+      fishing.line.geometry.setFromPoints([tip.clone(), end.clone()]);
+      fishing.line.visible = fishing.phase !== 'coin';
+    }
+  }
+
   return {
-    step(dt) { stepWater(dt); stepStorm(dt); stepBread(dt); },
+    step(dt) { stepWater(dt); stepStorm(dt); stepBread(dt); stepFish(dt); },
+    fish: startFish,
+    canFish: () => nearPool() && !fishing.phase,
     storm,
     feed,
     calm,

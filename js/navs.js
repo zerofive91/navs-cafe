@@ -5,6 +5,7 @@
 //  - 핵심가치: 가운데 위에 매달린 열 장의 빛 카드
 import * as THREE from 'three';
 import { Q, CEIL, WORD_HAND, CYCLE, HISTORY, deg } from './layout.js';
+import { showVerse } from './verses.js';
 
 const sculpt = new THREE.MeshStandardMaterial({ color: 0xfbfaf7, roughness: 0.95 });
 
@@ -92,7 +93,7 @@ function prayerLights(scene, anim, interactive) {
     scene.add(o, string);
     const orb = { o, halo, y: o.position.y, manual: 0, pulse: 0 };
     // 빛을 직접 눌러 켜고 끔
-    o.userData.onTap = () => { orb.manual = orb.manual ? 0 : 1; orb.pulse = 1; };
+    o.userData.onTap = () => { orb.manual = orb.manual ? 0 : 1; orb.pulse = 1; showVerse('orbs', { delay: 1 }); };
     interactive.push(o);
     orbs.push(orb);
   });
@@ -137,8 +138,13 @@ function cycleMarks(scene, anim) {
     ring.rotation.x = -Math.PI / 2;
     ring.position.set(p.x, 0.263, p.z);
     scene.add(ring);
-    return { p, m, ring, glow: 0 };
+    // 밟으면 솟아오르는 빛기둥
+    const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.8, 6, 32, 1, true), new THREE.MeshBasicMaterial({ color: 0xffd58a, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+    pillar.position.set(p.x, 3.26, p.z);
+    scene.add(pillar);
+    return { p, m, ring, pillar, glow: 0, flash: 0 };
   });
+  const CYCLE_VERSE = ['c_globe', 'c_seed', 'c_wheel', 'c_worker', 'c_send'];
   // 표식 사이를 잇는 점선 빛(순서대로 밟으면 이어짐)
   const dots = [];
   for (let k = 0; k < 5; k++) {
@@ -166,21 +172,28 @@ function cycleMarks(scene, anim) {
         if (k > 0 || done > 0) done = Math.min(5, done + 1);
         next = (next + 1) % 5;
         mk.glow = 1;
-        if (done === 5) celebrate = 6;
+        mk.flash = 1;
+        if (done === 5) { celebrate = 8; marks.forEach((o) => { o.flash = 1.4; }); showVerse('wheel', { delay: 0.8, cooldown: 30 }); }
+        else showVerse(CYCLE_VERSE[k], { delay: 0.4, cooldown: 45 });
       } else if (near && k === 0 && next !== 0) {
         // 처음부터 다시
         next = 1; done = 0; marks.forEach((o) => { o.glow = 0; }); mk.glow = 1;
       }
       const target = mk.glow;
-      mk.m.emissiveIntensity = 0.05 + target * (0.55 + 0.1 * Math.sin(t * 2 + k));
-      mk.ring.material.opacity = 0.25 + target * 0.6;
+      mk.flash = Math.max(0, mk.flash - dt * 0.45);
+      mk.m.emissiveIntensity = 0.05 + target * (0.9 + 0.2 * Math.sin(t * 2 + k)) + mk.flash * 1.2;
+      mk.ring.material.opacity = 0.25 + target * 0.7;
+      mk.ring.scale.setScalar(1 + mk.flash * 0.6);
+      mk.pillar.material.opacity = Math.min(0.55, mk.flash * 0.6) + (celebrate > 0 ? 0.18 + 0.12 * Math.sin(t * 4 + k) : 0);
+      mk.pillar.scale.y = 0.3 + Math.min(1, mk.flash) * 0.7;
     });
     celebrate = Math.max(0, celebrate - dt);
     dots.forEach((seg, k) => {
       const on = k < done;
       seg.forEach((d, s) => {
         const wave = celebrate > 0 ? 0.5 + 0.5 * Math.sin(t * 6 - (k * 14 + s) * 0.35) : 0;
-        d.material.opacity = on ? 0.55 + wave * 0.45 : 0.1;
+        d.material.opacity = on ? 0.6 + wave * 0.4 : 0.12;
+        d.scale.setScalar(on ? 1.4 + wave * 0.8 : 1);
       });
     });
     if (celebrate === 0 && done === 5) { done = 0; next = 0; marks.forEach((o) => { o.glow = 0; }); }
@@ -253,7 +266,7 @@ function coreValues(scene, anim, interactive) {
     scene.add(g, line);
     const card = { g, glass: glass.material, a, k, spin: 0 };
     // 누르면 한 바퀴 돌며 밝게 빛남
-    glass.userData.onTap = () => { card.spin = 1; };
+    glass.userData.onTap = () => { card.spin = 1; showVerse('values', { delay: 1.2 }); };
     interactive.push(glass);
     cards.push(card);
   }
@@ -319,9 +332,18 @@ function historyPanels(scene, anim) {
     g.lookAt(0, 0.25, 0);
     g.traverse((c) => { if (c.isMesh && c !== glow) { c.castShadow = true; c.receiveShadow = true; } });
     scene.add(g);
-    frames.push(panel.material);
+    frames.push({ m: panel.material, glow, h, lit: 0 });
   });
-  anim.push((t) => {
-    frames.forEach((m, k) => { m.emissiveIntensity = 0.1 + 0.05 * Math.sin(t * 0.5 + k); });
+  // 가까이 가면 패널이 환히 밝아지고 바닥 빛이 번짐
+  anim.push((t, ctx, dt) => {
+    const me = ctx && ctx.me;
+    frames.forEach((f, k) => {
+      const near = me && Math.hypot(me.x - f.h.x, me.z - f.h.z) < 3.2;
+      f.lit += ((near ? 1 : 0) - f.lit) * Math.min(1, (dt || 0.016) * 3);
+      f.m.emissiveIntensity = 0.12 + 0.05 * Math.sin(t * 0.5 + k) + f.lit * 0.75;
+      f.glow.material.opacity = 0.2 + f.lit * 0.55;
+      f.glow.scale.set(1 + f.lit * 0.6, 1 + f.lit * 1.4, 1);
+      if (near && f.lit > 0.6) showVerse('history', { cooldown: 120 });
+    });
   });
 }
