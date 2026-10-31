@@ -1019,29 +1019,15 @@ async function choose(mode, btn) {
   else if (mode === 'random' && together.st.cafe > 1) toast(`1호점이 가득 차서 ${together.st.cafe}호점으로 왔어요.`, 4);
   else if (mode === 'invite' && !inviteCodeFromUrl.arrived) setTimeout(shareInvite, 600);
 }
-{
-  const modes = enter.querySelector('.modes');
-  const add = (mode, icon, label, cls = '') => {
-    const b = document.createElement('button');
-    b.className = 'mode ' + cls;
-    b.innerHTML = `<span class="ring">${ICONS[icon]}</span><span>${label}</span>`;
-    b.addEventListener('click', () => choose(mode, b));
-    modes.appendChild(b);
-  };
-  if (inviteCodeFromUrl()) {
-    // 초대 링크로 온 사람: 초대한 카페로 들어가는 문 하나
-    inviteCodeFromUrl.arrived = true;
-    add('invite', 'door', '초대받은 카페', 'main big');
-  } else {
-    add('solo', 'solo', '혼자');
-    add('random', 'together', '함께', 'main');
-    add('invite', 'invite', '초대');
-  }
-}
+// 단추는 index.html에 미리 있음. 장면을 불러오기 전에 눌렀다면 지금 그 모드로 들어감
+for (const b of enter.querySelectorAll('.mode')) b.addEventListener('click', () => choose(b.dataset.mode, b));
+if (inviteCodeFromUrl()) inviteCodeFromUrl.arrived = true;
+window.__enterReady = true;
 const signs = initSigns({ scene, me, npcs, interactive, act, sfx, fxSprite, burst, sun, walkTo, faceTo });
 const park = initPark({ scene, me, interactive, act, sfx, fxSprite, burst, walkTo, faceTo, standUp });
 Object.assign(ACTIONS, park.actions);
 requestAnimationFrame(frame);
+if (window.__pick) choose(window.__pick);
 // 첫 화면이 뜬 뒤 소품 모델을 천천히 불러와 바꿔 끼움
 setTimeout(() => {
   loadProps({ scene, deco, interactive, anim, renderer, occluders });

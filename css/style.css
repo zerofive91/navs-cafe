@@ -133,6 +133,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 #enter .mode:active .ring { transform: scale(0.92); }
 #enter .mode.main .ring { animation: glow 2.6s ease-out infinite; }
 #enter .mode.big .ring { width: 78px; height: 78px; }
+#enter .mode[hidden] { display: none; }
 #enter .mode[disabled] { opacity: 0.6; cursor: progress; }
 #enter .mode[disabled] .ring svg { animation: spin 1.4s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
