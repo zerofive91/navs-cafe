@@ -51,6 +51,38 @@ export async function place(scene, path, { x, z, y = null, rot = 0, height, widt
   return pivot;
 }
 
+// 같은 모델을 여러 자리에: 모델마다 한 번에 그리는 인스턴스로 묶음 (꽃·풀·숲 나무처럼 많고 움직이지 않는 것)
+export function instancer(scene) {
+  const jobs = new Map();
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), one = new THREE.Vector3();
+  return {
+    add(path, opts) { if (!jobs.has(path)) jobs.set(path, []); jobs.get(path).push(opts); },
+    async flush() {
+      await Promise.all([...jobs].map(async ([path, list]) => {
+        const src = await load(path);
+        if (!src) return;
+        src.updateMatrixWorld(true);
+        const box = new THREE.Box3().setFromObject(src);
+        const size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
+        const base = new THREE.Matrix4().makeTranslation(-c.x, -box.min.y, -c.z);
+        const place = list.map((o) => {
+          const sc = o.height ? o.height / size.y : o.width / Math.max(size.x, size.z);
+          q.setFromAxisAngle(up, o.rot || 0);
+          return new THREE.Matrix4().compose(new THREE.Vector3(o.x, o.y === undefined || o.y === null ? floorY(o.x, o.z) : o.y, o.z), q.clone(), one.set(sc, sc, sc)).multiply(base);
+        });
+        src.traverse((m) => {
+          if (!m.isMesh) return;
+          const im = new THREE.InstancedMesh(m.geometry, m.material, list.length);
+          place.forEach((P, i) => { m4.multiplyMatrices(P, m.matrixWorld); im.setMatrixAt(i, m4); });
+          im.castShadow = !!list[0].shadow; im.receiveShadow = true;
+          im.computeBoundingSphere();
+          scene.add(im);
+        });
+      }));
+    },
+  };
+}
+
 // 의자 모델의 앉는 면 높이: 앉는 방향으로 조금 앞쪽을 위에서 아래로 재어 봄
 const down = new THREE.Raycaster();
 function seatTop(m, seat) {
@@ -75,7 +107,10 @@ export function loadProps({ scene, deco, interactive, anim, renderer, occluders 
 
   // ---------- 바깥 정원: 나무·꽃·풀 ----------
   const TREES = ['tree_default', 'tree_oak', 'tree_detailed', 'tree_fat', 'tree_tall'];
+  const many = instancer(scene);
   deco.trees.forEach((t, k) => {
+    // 숲의 나무는 묶어서 한 번에 그림, 정원 안 나무는 카메라를 가리면 반투명해지도록 하나씩
+    if (Math.hypot(t.x, t.z) > 76) { many.add(N + TREES[k % TREES.length] + '.glb', { x: t.x, z: t.z, y: -0.5, rot: k * 1.7, height: t.h * 1.15 }); return; }
     place(scene, N + TREES[k % TREES.length] + '.glb', { x: t.x, z: t.z, y: -0.5, rot: k * 1.7, height: t.h * 1.15, shadow: false })
       .then((m) => { if (!m) return; t.parts.forEach((p) => { p.visible = false; }); m.traverse((c) => { if (c.isMesh) occluders.push(c); }); }); // 카메라를 가리면 반투명
   });
@@ -83,7 +118,7 @@ export function loadProps({ scene, deco, interactive, anim, renderer, occluders 
   const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
   const FL = ['flower_redA', 'flower_yellowA', 'flower_purpleA', 'flower_redB', 'flower_yellowB', 'flower_purpleB', 'flower_redC', 'flower_yellowC', 'flower_purpleC'];
   const pick = (arr) => arr[Math.floor(rnd() * arr.length)];
-  const flower = (x, z, h = 0.4 + rnd() * 0.25, kind = pick(FL)) => place(scene, N + kind + '.glb', { x, z, y: -0.5, rot: rnd() * 6, height: h, shadow: false });
+  const flower = (x, z, h = 0.4 + rnd() * 0.25, kind = pick(FL)) => many.add(N + kind + '.glb', { x, z, y: -0.5, rot: rnd() * 6, height: h });
   const nearEntry = (a) => LANES.some((la) => Math.abs(Math.atan2(Math.sin(a - deg(la)), Math.cos(a - deg(la)))) < (la === 90 ? 0.07 : 0.045));
   // 산책길 양옆 꽃 테두리 (색이 구간마다 바뀜)
   for (const [r, step] of [[R_WALK - 1.6, 0.034], [R_WALK + 1.6, 0.03]]) {
@@ -102,7 +137,7 @@ export function loadProps({ scene, deco, interactive, anim, renderer, occluders 
     for (const [rr, n] of [[0.9, 9], [1.7, 15]]) {
       for (let i = 0; i < n; i++) {
         const a = (i / n) * Math.PI * 2 + rnd() * 0.2;
-        place(scene, N + FL[(k * 3 + (rr > 1 ? 1 : 0)) % FL.length] + '.glb', { x: b.x + Math.cos(a) * rr, z: b.z + Math.sin(a) * rr, y: -0.36, rot: rnd() * 6, height: 0.45 + rnd() * 0.2, shadow: false });
+        many.add(N + FL[(k * 3 + (rr > 1 ? 1 : 0)) % FL.length] + '.glb', { x: b.x + Math.cos(a) * rr, z: b.z + Math.sin(a) * rr, y: -0.36, rot: rnd() * 6, height: 0.45 + rnd() * 0.2 });
       }
     }
   });
@@ -124,8 +159,9 @@ export function loadProps({ scene, deco, interactive, anim, renderer, occluders 
     if (r > 40 && !parkClear(x, z, 0.5)) continue;
     const kind = pick(MEADOW);
     const h = kind.startsWith('stump') || kind === 'log' ? 0.4 : kind.startsWith('rock') ? 0.25 : kind.startsWith('plant') ? 0.8 : 0.35 + rnd() * 0.25;
-    place(scene, N + kind + '.glb', { x, z, y: -0.5, rot: rnd() * 6, height: h, shadow: false });
+    many.add(N + kind + '.glb', { x, z, y: -0.5, rot: rnd() * 6, height: h });
   }
+  many.flush().then(() => deco.trees.forEach((t) => { if (Math.hypot(t.x, t.z) > 76) t.parts.forEach((p) => { p.visible = false; }); }));
 
   // ---------- 둘레 화분: 잎을 덤불 모델로 ----------
   deco.plantGroups.forEach(({ g, p }, k) => {

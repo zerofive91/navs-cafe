@@ -68,7 +68,7 @@ const COURSES = {
 
 export function addCourses(ctx) {
   const { scene, me, sfx, fxSprite, burst, steps, audio, H } = ctx;
-  const { M, MAT, shadow, ease, G0 } = H;
+  const { M, MAT, shadow, ease, G0, mergeStatic } = H;
   const hit = (name, vol = 0.3, rate = 1) => sfx('impact/' + name, vol, rate);
   const C = {
     path: M(0xcbb894, 1), dark: M(0x5b5550, 0.95), grey: M(0x8f8a84, 0.95), mud: M(0x6a5236, 0.6),
@@ -84,6 +84,8 @@ export function addCourses(ctx) {
   const bx = (w, h, d, mat, x, y, z) => mesh(new THREE.BoxGeometry(w, h, d), mat, x, y, z);
   const glowAt = (g, color, size, x, y, z, op = 0.8) => { const s = fxSprite('light_01', color, size); s.position.set(x, y, z); s.material.opacity = op; g.add(s); return s; };
   const anims = []; // (dt, t) 장면 움직임
+  const far = []; // 멀리 있으면 그리지 않는 것들 (숲속이라 나무에 가려 보이지도 않음)
+  const cullable = (o, p) => { far.push({ o, x: p.x, z: p.z }); return o; };
 
   // 길 바닥: 둘레길 바깥부터 숲 끝까지 띠 모양
   for (const tr of Object.values(TRAILS)) {
@@ -288,7 +290,7 @@ export function addCourses(ctx) {
     },
     glory(g) { flowers(g, 0, 0, 2.6, 40, 0xffd34a); glowAt(g, 0xffe8a0, 5, 0, 1.5, 0, 0.5); },
     pearl(g) {
-      const gate = mesh(new THREE.TorusGeometry(2.4, 0.55, 16, 40), C.pearl, 0, 2.4, 0); g.add(gate);
+      const gate = mesh(new THREE.TorusGeometry(2.4, 0.55, 16, 40), C.pearl, 0, 2.4, 0); gate.userData.dyn = true; g.add(gate);
       for (let k = 0; k < 12; k++) { const a = (k / 12) * Math.PI * 2; g.add(mesh(new THREE.SphereGeometry(0.28, 14, 10), C.pearl, Math.cos(a) * 3.4, 2.4 + Math.sin(a) * 3.4, 0)); }
       const street = mesh(new THREE.PlaneGeometry(2.4, 7), C.gold, 0, 0.03, -3.4); street.rotation.x = -Math.PI / 2; g.add(street);
       for (const s of [-1, 1]) g.add(bx(5, 3, 0.6, M(0xc8e8f0, 0.1, { transparent: true, opacity: 0.7, emissive: 0x88c8e8, emissiveIntensity: 0.4 }), s * 5.3, 1.5, 0.4));
@@ -430,16 +432,18 @@ export function addCourses(ctx) {
       g.position.set(base.x, G0, base.z);
       // +z = 길 앞, side 정거장은 +x가 길 쪽을 보도록
       g.rotation.y = Math.atan2(st.dir.x, st.dir.z) + (st.side < 0 ? Math.PI : 0);
-      scene.add(g);
+      scene.add(g); cullable(g, base);
       const S = { ...st, g, name, key, fx, i };
       if (scenes[kind]) scenes[kind](g, S);
       g.traverse((c) => { if (c.isMesh) { c.castShadow = !c.material.transparent; c.receiveShadow = true; } });
+      mergeStatic(g);
       // 길가 등불: 지나가면 켜짐
       const lp = st.side ? { x: st.x - st.right.x * st.side * 1.8, z: st.z - st.right.z * st.side * 1.8 } : { x: st.x + st.right.x * 1.8, z: st.z + st.right.z * 1.8 };
       const post = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 1.3, 6), MAT.woodDark); post.position.set(lp.x, G0 + 0.65, lp.z); scene.add(post);
       const bulbM = M(0x8a8070, 0.5, { emissive: course.color, emissiveIntensity: 0 });
       const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), bulbM); bulb.position.set(lp.x, G0 + 1.38, lp.z); scene.add(bulb);
       const halo = fxSprite('light_01', course.color, 0.9 + i * 0.08); halo.position.copy(bulb.position); halo.material.opacity = 0; scene.add(halo);
+      cullable(post, lp); cullable(bulb, lp); cullable(halo, lp);
       S.lit = (on) => { bulbM.emissiveIntensity = on ? 1.3 : 0; halo.material.opacity = on ? 0.75 : 0; };
       S.title = `${course.name} ${i + 1}/${tr.stations.length} · ${name}`;
       S.course = course; S.near = false;
@@ -457,7 +461,9 @@ export function addCourses(ctx) {
     shadow(arch);
   }
 
+  let cullT = 0;
   steps.push((dt, t) => {
+    if ((cullT -= dt) < 0) { cullT = 0.5; for (const f of far) f.o.visible = Math.hypot(me.x - f.x, me.z - f.z) < 75; }
     for (const f of anims) f(dt, t);
     for (const S of live) {
       const d = Math.min(Math.hypot(me.x - S.x, me.z - S.z), S.side ? Math.hypot(me.x - S.show.x, me.z - S.show.z) + 0.6 : 99);
