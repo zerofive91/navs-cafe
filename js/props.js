@@ -2,11 +2,11 @@
 // 모델은 화면이 뜬 뒤 천천히 불러오고, 다 불러오면 임시 모양을 바꿔 끼움
 import * as THREE from 'three';
 import { GLTFLoader } from '../vendor/loaders/GLTFLoader.js';
-import { Q, PRAYER_POOL_R, COUNTER, LONG_TABLE, LOUNGES, FLOWER_BEDS, GARDEN_BENCHES, GARDEN_LAMPS, R_WALK, polar, deg, floorY } from './layout.js';
+import { Q, PRAYER_POOL_R, COUNTER, LONG_TABLE, LOUNGES, FLOWER_BEDS, GARDEN_BENCHES, GARDEN_LAMPS, R_WALK, LANES, parkClear, polar, deg, floorY } from './layout.js';
 
 const loader = new GLTFLoader();
 const cache = new Map();
-function load(path) {
+export function load(path) {
   if (!cache.has(path)) cache.set(path, new Promise((ok) => loader.load(path, (g) => ok(g.scene), undefined, () => ok(null))));
   return cache.get(path);
 }
@@ -31,7 +31,7 @@ function soften(obj, sat = 0.5, light = 0.35) {
 }
 
 // 모델을 원하는 높이(또는 너비)로 맞춰 바닥에 세움
-async function place(scene, path, { x, z, y = null, rot = 0, height, width, tone, shadow = true, parent }) {
+export async function place(scene, path, { x, z, y = null, rot = 0, height, width, tone, shadow = true, parent }) {
   const src = await load(path);
   if (!src) return null;
   const o = src.clone(true);
@@ -84,7 +84,7 @@ export function loadProps({ scene, deco, interactive, anim, renderer }) {
   const FL = ['flower_redA', 'flower_yellowA', 'flower_purpleA', 'flower_redB', 'flower_yellowB', 'flower_purpleB', 'flower_redC', 'flower_yellowC', 'flower_purpleC'];
   const pick = (arr) => arr[Math.floor(rnd() * arr.length)];
   const flower = (x, z, h = 0.4 + rnd() * 0.25, kind = pick(FL)) => place(scene, N + kind + '.glb', { x, z, y: -0.5, rot: rnd() * 6, height: h, shadow: false });
-  const nearEntry = (a) => Math.abs(Math.atan2(Math.sin(a - Math.PI / 2), Math.cos(a - Math.PI / 2))) < 0.07;
+  const nearEntry = (a) => LANES.some((la) => Math.abs(Math.atan2(Math.sin(a - deg(la)), Math.cos(a - deg(la)))) < (la === 90 ? 0.07 : 0.045));
   // 산책길 양옆 꽃 테두리 (색이 구간마다 바뀜)
   for (const [r, step] of [[R_WALK - 1.6, 0.034], [R_WALK + 1.6, 0.03]]) {
     for (let a = 0; a < Math.PI * 2; a += step) {
@@ -121,6 +121,7 @@ export function loadProps({ scene, deco, interactive, anim, renderer }) {
     if (nearEntry(a)) continue;
     const x = Math.cos(a) * r, z = Math.sin(a) * r;
     if (FLOWER_BEDS.some((b) => Math.hypot(b.x - x, b.z - z) < b.r + 0.4)) continue;
+    if (r > 40 && !parkClear(x, z, 0.5)) continue;
     const kind = pick(MEADOW);
     const h = kind.startsWith('stump') || kind === 'log' ? 0.4 : kind.startsWith('rock') ? 0.25 : kind.startsWith('plant') ? 0.8 : 0.35 + rnd() * 0.25;
     place(scene, N + kind + '.glb', { x, z, y: -0.5, rot: rnd() * 6, height: h, shadow: false });
@@ -200,6 +201,24 @@ export function upgradeCup(av) {
     u.drinks.coffee = fit(coffee, 0.16, 0.07);
     u.cup.add(u.drinks.coffee);
     if (mug) { u.drinks.tea = fit(mug, 0.17, 0.07); u.cup.add(u.drinks.tea); }
+  });
+  // 우물물 한 잔 (투명한 유리컵)
+  {
+    const g = new THREE.Group();
+    const glass = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.045, 0.13, 14, 1, true), new THREE.MeshStandardMaterial({ color: 0xe8f4fb, transparent: true, opacity: 0.35, roughness: 0.1, side: THREE.DoubleSide }));
+    const water = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.044, 0.09, 14), new THREE.MeshStandardMaterial({ color: 0x8cc6e6, transparent: true, opacity: 0.75, roughness: 0.1 }));
+    glass.position.y = 0.065; water.position.y = 0.046;
+    g.add(glass, water);
+    g.position.y = -0.05;
+    u.drinks.water = g;
+    u.cup.add(g);
+  }
+  load('assets/camp/fish.glb').then((src) => {
+    if (!src) return;
+    const o = fit(src, 0.24, 0.04);
+    o.rotation.z = Math.PI / 2;
+    u.foods.fish = o;
+    u.food.add(o);
   });
   for (const k of ['croissant', 'donut', 'muffin']) {
     load(D + k + '.glb').then((src) => {

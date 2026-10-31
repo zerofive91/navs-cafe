@@ -3,12 +3,13 @@ import { RoomEnvironment } from '../vendor/RoomEnvironment.js';
 import { buildWorld } from './build.js';
 import { makeAvatar, poseAvatar } from './avatar.js';
 import { findPath, nearestFree } from './nav.js';
-import { floorY, seats, SPOTS, SPAWN, planters, polar, COUNTER, CEIL, Q, isFree, R_HALL, R_WALK, onWater } from './layout.js';
+import { floorY, seats, SPOTS, SPAWN, planters, polar, COUNTER, CEIL, Q, isFree, R_HALL, R_WALK, onWater, inPool, R_PARK } from './layout.js';
 import { ICONS } from './icons.js';
 import { loadProps, upgradeCup, fxSprite } from './props.js';
 import { initSigns } from './signs.js';
 import { initMusic } from './music.js';
 import { showVerse } from './verses.js';
+import { initPark } from './park.js';
 
 const canvas = document.getElementById('cafe');
 const bar = document.getElementById('actions');
@@ -26,7 +27,7 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xcfe3ee);
-scene.fog = new THREE.Fog(0xcfe3ee, 70, 160);
+scene.fog = new THREE.Fog(0xcfe3ee, 90, 200);
 const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 
@@ -52,11 +53,11 @@ const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 400);
 // 작은 효과음 (Kenney Interface Sounds, CC0) — 아주 작게
 let actx = null;
 const sfxBuf = {};
-function sfx(name, vol = 0.25) {
+function sfx(name, vol = 0.25, rate = 1) {
   try {
     if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
     if (actx.state === 'suspended') actx.resume();
-    const play = (b) => { const s = actx.createBufferSource(); const g = actx.createGain(); g.gain.value = vol; s.buffer = b; s.connect(g).connect(actx.destination); s.start(); };
+    const play = (b) => { const s = actx.createBufferSource(); const g = actx.createGain(); g.gain.value = vol; s.buffer = b; s.playbackRate.value = rate; s.connect(g).connect(actx.destination); s.start(); };
     if (sfxBuf[name] instanceof AudioBuffer) return play(sfxBuf[name]);
     if (!sfxBuf[name]) sfxBuf[name] = fetch('assets/sfx/' + name + '.mp3').then((r) => r.arrayBuffer()).then((a) => actx.decodeAudioData(a)).then((b) => { sfxBuf[name] = b; return b; }).catch(() => {});
     sfxBuf[name].then?.((b) => b && play(b));
@@ -145,7 +146,7 @@ const npcs = [barista, owner];
 // ---------- 이동 ----------
 const SPEED = 2.6;
 // 바깥 정원에서는 달림
-const runBoost = (ch) => (Math.hypot(ch.x, ch.z) > R_HALL + 1.2 ? 2.1 : 1);
+const runBoost = (ch) => (inPool(ch.x, ch.z) ? 0.55 : Math.hypot(ch.x, ch.z) > R_HALL + 1.2 ? 2.1 : 1);
 
 function standUp(ch) {
   if (ch.seat) {
@@ -478,6 +479,7 @@ function availableActions() {
   if (me.food) list.push('eat');
   if (signs.nearBread()) list.push('loaves');
   if (signs.canFish()) list.push('fish');
+  list.push(...park.available());
   if ((me.item === 'cup' || me.food) && !near(SPOTS.tray)) list.push('putdown');
   if ((me.item === 'cup' || me.food) && near(SPOTS.tray)) list.push('tray');
   // 어디서나 할 수 있는 일
@@ -697,7 +699,7 @@ const PLACES = [
   ['read', SPOTS.read, Q.word],
   ['order', SPOTS.order, Q.fellow],
   ['boat', SPOTS.boat, Q.witness],
-  ['garden', polar(R_WALK, 70), polar(60, 70)],
+  ['garden', { x: 0, z: R_PARK - 2 }, { x: 0, z: 80 }],
 ];
 for (const [icon, spot, look] of PLACES) {
   const b = document.createElement('button');
@@ -768,7 +770,7 @@ function stepChar(ch, dt) {
     if (hop <= 0) { hop = 0; ch.vy = 0; ch.jumps = 0; ch.jump = 0; if (ch === me) sfx('land', 0.15); }
   }
   ch.hop = hop;
-  ch.av.position.set(ch.x, ch.y + hop + (ch.sinkY || 0), ch.z);
+  ch.av.position.set(ch.x, ch.y + hop + (ch.sinkY || 0) + (ch.swimY || 0), ch.z);
   // 부드럽게 돌기
   let da = ch.face - ch.av.rotation.y;
   da = Math.atan2(Math.sin(da), Math.cos(da));
@@ -777,7 +779,7 @@ function stepChar(ch, dt) {
 
 // 동작을 시작하거나 자리에 앉으면 잠시 뒤 그 동작에 어울리는 말씀이 은은하게 떠오름
 const ACTION_VERSE = { gaze: 'light', pray: 'pray', read: 'read', water: 'water_plant', share: 'share', sip: 'drink', eat: 'eat' };
-const SEAT_VERSE = { lounge: 'rest', bench: 'rest', gbench: 'garden', boat: 'boat', floor: 'still' };
+const SEAT_VERSE = { lounge: 'rest', bench: 'rest', gbench: 'garden', boat: 'boat', floor: 'still', log: 'campfire', vine: 'vine', picnic: 'bbq' };
 let prevAct = null, prevSeat = null;
 function verseHooks() {
   if (me.action !== prevAct) {
@@ -865,10 +867,18 @@ function frame(now) {
     camera.rotateX(Math.atan(0.22 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))));
     if (++occFrame % 3 === 0) fadeOccluders(P, camPos);
   }
+  if (window.__cafe.camOverride) { const o = window.__cafe.camOverride; camera.position.set(...o.pos); camera.lookAt(...o.look); } // 시험용 시점
   stepFades(dt);
   stepBursts(dt);
   stepWakes(dt);
   signs.step(dt * (window.__cafe.speed || 1));
+  park.step(dt * (window.__cafe.speed || 1), t);
+  // 그림자 범위가 캐릭터를 따라감 (넓은 정원에서도 그림자)
+  {
+    const sx = Math.round(me.x / 4) * 4, sz = Math.round(me.z / 4) * 4;
+    sun.position.set(sx - 14, 40, sz - 10);
+    sun.target.position.set(sx, 0, sz);
+  }
 
   verseHooks();
   refreshActions();
@@ -884,6 +894,8 @@ enter.addEventListener('click', () => {
   setTimeout(maybeHint, 1200);
 });
 const signs = initSigns({ scene, me, npcs, interactive, act, sfx, fxSprite, burst, sun, walkTo, faceTo });
+const park = initPark({ scene, me, interactive, act, sfx, fxSprite, burst, walkTo, faceTo, standUp });
+Object.assign(ACTIONS, park.actions);
 requestAnimationFrame(frame);
 // 첫 화면이 뜬 뒤 소품 모델을 천천히 불러와 바꿔 끼움
 setTimeout(() => {
@@ -892,4 +904,4 @@ setTimeout(() => {
   for (const n of npcs) if (n.av) upgradeCup(n.av);
 }, 300);
 
-window.__cafe = { me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs, placed };
+window.__cafe = { me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs, placed, park, renderer };
