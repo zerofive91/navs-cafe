@@ -57,3 +57,63 @@ canvas { display: block; touch-action: none; }
 #enter.gone { opacity: 0; pointer-events: none; }
 @keyframes turn { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { #enter svg { animation: none; } }
+
+/* 위쪽: 장소 바로가기 + 시점 전환 */
+#places {
+  position: fixed;
+  left: 50%;
+  top: calc(12px + env(safe-area-inset-top));
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 30px;
+  background: rgba(255, 250, 240, 0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: 0 3px 12px rgba(60, 40, 20, 0.12);
+}
+.place {
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #8a6a50;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.place svg { width: 22px; height: 22px; }
+.place:active { transform: scale(0.9); }
+.place.view { background: #fffaf0; color: #6b4f3a; margin-left: 4px; }
+
+/* 왼쪽 아래: 걷기 조이스틱 */
+#stick {
+  position: fixed;
+  left: calc(22px + env(safe-area-inset-left));
+  bottom: calc(22px + env(safe-area-inset-bottom));
+  width: 116px;
+  height: 116px;
+  border-radius: 50%;
+  background: rgba(255, 250, 240, 0.35);
+  border: 2px solid rgba(255, 250, 240, 0.7);
+  touch-action: none;
+}
+#knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 50px;
+  height: 50px;
+  margin: -25px 0 0 -25px;
+  border-radius: 50%;
+  background: rgba(255, 250, 240, 0.9);
+  box-shadow: 0 2px 8px rgba(60, 40, 20, 0.2);
+  pointer-events: none;
+}
+/* 조이스틱과 겹치지 않게 동작 버튼은 오른쪽으로 */
+@media (max-width: 640px) {
+  #actions { left: auto; right: calc(14px + env(safe-area-inset-right)); transform: none; gap: 8px; }
+  .act { width: 48px; height: 48px; }
+}

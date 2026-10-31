@@ -3,7 +3,7 @@ import { RoomEnvironment } from '../vendor/RoomEnvironment.js';
 import { buildWorld } from './build.js';
 import { makeAvatar, poseAvatar } from './avatar.js';
 import { findPath, nearestFree } from './nav.js';
-import { floorY, seats, SPOTS, SPAWN, planters, polar, COUNTER, CEIL } from './layout.js';
+import { floorY, seats, SPOTS, SPAWN, planters, polar, COUNTER, CEIL, Q, isFree } from './layout.js';
 import { ICONS } from './icons.js';
 
 const canvas = document.getElementById('cafe');
@@ -221,7 +221,7 @@ function refreshActions() {
 }
 
 // ---------- 카메라 (끌어서 돌리기, 휠/두 손가락으로 확대) ----------
-const view = { az: 0, el: 0.5, dist: 15, tx: me.x, ty: 1, tz: me.z };
+const view = { az: 0, el: 0.32, dist: 8, tx: me.x, ty: 1, tz: me.z, mode: 'third', pitch: 0, follow: true };
 function resize() {
   const w = window.innerWidth, h = window.innerHeight;
   renderer.setSize(w, h, false);
@@ -237,7 +237,7 @@ let drag = null, pinch = null;
 canvas.addEventListener('pointerdown', (e) => {
   canvas.setPointerCapture(e.pointerId);
   pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-  if (pointers.size === 1) drag = { x: e.clientX, y: e.clientY, t: performance.now(), moved: 0, az: view.az, el: view.el };
+  if (pointers.size === 1) drag = { x: e.clientX, y: e.clientY, t: performance.now(), moved: 0, az: view.az, el: view.el, pitch: view.pitch };
   if (pointers.size === 2) {
     const [a, b] = [...pointers.values()];
     pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), dist: view.dist };
@@ -250,13 +250,15 @@ canvas.addEventListener('pointermove', (e) => {
   if (pinch && pointers.size === 2) {
     const [a, b] = [...pointers.values()];
     const d = Math.hypot(a.x - b.x, a.y - b.y);
-    view.dist = clamp(pinch.dist * (pinch.d / d), 6, 34);
+    view.dist = clamp(pinch.dist * (pinch.d / d), 3, 30);
   } else if (drag) {
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
     drag.moved = Math.max(drag.moved, Math.hypot(dx, dy));
     if (drag.moved > 6) {
       view.az = drag.az - dx * 0.006;
-      view.el = clamp(drag.el + dy * 0.004, 0.12, 1.35);
+      if (view.mode === 'first') view.pitch = clamp(drag.pitch - dy * 0.004, -0.7, 0.6);
+      else view.el = clamp(drag.el + dy * 0.004, 0.05, 1.35);
+      view.dragAt = performance.now();
     }
   }
 });
@@ -271,7 +273,7 @@ canvas.addEventListener('pointerup', endPointer);
 canvas.addEventListener('pointercancel', endPointer);
 canvas.addEventListener('wheel', (e) => {
   e.preventDefault();
-  view.dist = clamp(view.dist * Math.exp(e.deltaY * 0.001), 6, 34);
+  view.dist = clamp(view.dist * Math.exp(e.deltaY * 0.001), 3, 30);
 }, { passive: false });
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
@@ -307,6 +309,98 @@ function tap(sx, sy) {
   else walkTo(me, { x: p.x, z: p.z });
   ripple = { x: p.x, z: p.z, t: 0 };
 }
+
+// ---------- 조이스틱 · 방향키로 걷기 ----------
+const stickEl = document.getElementById('stick');
+const knob = document.getElementById('knob');
+const stick = { on: false, x: 0, y: 0, id: null };
+const keys = new Set();
+function setStick(e) {
+  const r = stickEl.getBoundingClientRect();
+  const R = r.width / 2;
+  let dx = e.clientX - (r.left + R), dy = e.clientY - (r.top + R);
+  const d = Math.hypot(dx, dy), max = R - 10;
+  if (d > max) { dx *= max / d; dy *= max / d; }
+  knob.style.transform = `translate(${dx}px, ${dy}px)`;
+  stick.x = dx / max; stick.y = dy / max;
+}
+stickEl.addEventListener('pointerdown', (e) => {
+  e.stopPropagation();
+  stickEl.setPointerCapture(e.pointerId);
+  stick.on = true; stick.id = e.pointerId;
+  setStick(e);
+});
+stickEl.addEventListener('pointermove', (e) => { if (stick.on && e.pointerId === stick.id) setStick(e); });
+function stickUp(e) {
+  if (e.pointerId !== stick.id) return;
+  stick.on = false; stick.x = stick.y = 0; stick.id = null;
+  knob.style.transform = '';
+}
+stickEl.addEventListener('pointerup', stickUp);
+stickEl.addEventListener('pointercancel', stickUp);
+const KEYMAP = { ArrowUp: 'u', KeyW: 'u', ArrowDown: 'd', KeyS: 'd', ArrowLeft: 'l', KeyA: 'l', ArrowRight: 'r', KeyD: 'r' };
+window.addEventListener('keydown', (e) => { if (KEYMAP[e.code]) { keys.add(KEYMAP[e.code]); e.preventDefault(); } });
+window.addEventListener('keyup', (e) => { keys.delete(KEYMAP[e.code]); });
+let stickDriving = false;
+function driveStick(dt) {
+  let jx = stick.x, jy = stick.y;
+  if (keys.size) { jx = (keys.has('r') ? 1 : 0) - (keys.has('l') ? 1 : 0); jy = (keys.has('d') ? 1 : 0) - (keys.has('u') ? 1 : 0); }
+  const mag = Math.min(1, Math.hypot(jx, jy));
+  if (mag < 0.15) {
+    if (stickDriving) { stickDriving = false; if (me.state === 'walk' && !me.path.length) me.state = 'idle'; }
+    return;
+  }
+  if (!stickDriving) {
+    // 조이스틱을 잡는 순간 하던 일을 멈추고 일어섬
+    standUp(me); me.path = []; me.task = null; me.action = null;
+    stickDriving = true;
+  }
+  const fx = -Math.sin(view.az), fz = -Math.cos(view.az); // 화면 안쪽
+  const rx = Math.cos(view.az), rz = -Math.sin(view.az);  // 화면 오른쪽
+  const mx = (fx * -jy + rx * jx) / mag, mz = (fz * -jy + rz * jx) / mag;
+  const step = SPEED * (0.35 + 0.65 * mag) * dt;
+  const nx = me.x + mx * step, nz = me.z + mz * step;
+  if (isFree(nx, nz)) { me.x = nx; me.z = nz; }
+  else if (isFree(nx, me.z)) me.x = nx;
+  else if (isFree(me.x, nz)) me.z = nz;
+  me.face = Math.atan2(mx, mz);
+  me.state = 'walk';
+}
+
+// ---------- 위쪽 버튼: 장소 바로가기 + 시점 전환 ----------
+const placesEl = document.getElementById('places');
+const PLACES = [
+  ['gaze', SPOTS.light, { x: 0, z: 0 }],
+  ['pray', SPOTS.pray, Q.prayer],
+  ['read', SPOTS.read, Q.word],
+  ['order', SPOTS.order, Q.fellow],
+  ['boat', SPOTS.boat, Q.witness],
+];
+for (const [icon, spot, look] of PLACES) {
+  const b = document.createElement('button');
+  b.className = 'place';
+  b.setAttribute('aria-label', icon);
+  b.innerHTML = ICONS[icon];
+  b.addEventListener('pointerdown', (e) => {
+    e.stopPropagation();
+    walkTo(me, { x: spot.x, z: spot.z }, () => faceTo(me, look));
+  });
+  placesEl.appendChild(b);
+}
+const viewBtn = document.createElement('button');
+viewBtn.className = 'place view';
+function showViewIcon() {
+  viewBtn.innerHTML = view.mode === 'first' ? ICONS.third : ICONS.first;
+  viewBtn.setAttribute('aria-label', view.mode === 'first' ? 'third person' : 'first person');
+}
+viewBtn.addEventListener('pointerdown', (e) => {
+  e.stopPropagation();
+  if (view.mode === 'third') { view.mode = 'first'; view.az = me.face + Math.PI; view.pitch = 0; }
+  else { view.mode = 'third'; view.az = me.face + Math.PI; view.el = 0.32; view.dist = 8; }
+  showViewIcon();
+});
+showViewIcon();
+placesEl.appendChild(viewBtn);
 
 // ---------- 루프 ----------
 function stepChar(ch, dt) {
@@ -346,6 +440,7 @@ function frame(now) {
   last = now;
   const t = now / 1000;
 
+  driveStick(dt);
   stepChar(me, dt);
   poseAvatar(me.av, me, t, dt);
   // 상주 캐릭터
@@ -374,26 +469,41 @@ function frame(now) {
   }
 
   // 카메라 따라가기
-  const k = 1 - Math.exp(-dt * 4);
+  const k = 1 - Math.exp(-dt * 6);
   view.tx += (me.x - view.tx) * k;
   view.tz += (me.z - view.tz) * k;
   view.ty += (me.y + 1 - view.ty) * k;
-  const cy = Math.min(CEIL - 1.2, view.ty + Math.sin(view.el) * view.dist);
-  const horiz = Math.cos(view.el) * view.dist;
-  let cx = view.tx + Math.sin(view.az) * horiz, cz = view.tz + Math.cos(view.az) * horiz;
-  // 카메라가 유리벽 밖으로 나가지 않게
-  const cr = Math.hypot(cx, cz), maxR = 36;
-  if (cr > maxR) {
-    // 목표점에서 카메라 방향으로 가다가 벽 안쪽에서 멈춤
-    const dx = Math.sin(view.az), dz = Math.cos(view.az);
-    const b = view.tx * dx + view.tz * dz, c = view.tx * view.tx + view.tz * view.tz - maxR * maxR;
-    const s = -b + Math.sqrt(Math.max(0, b * b - c));
-    cx = view.tx + dx * Math.max(1.5, s);
-    cz = view.tz + dz * Math.max(1.5, s);
+  // 걷는 동안에는 시점이 천천히 캐릭터 뒤로 돌아감 (방금 화면을 끌었다면 잠시 기다림)
+  const moving = me.state === 'walk';
+  if (moving && view.mode === 'third' && performance.now() - (view.dragAt || 0) > 1500 && !stick.on) {
+    let d = (me.face + Math.PI) - view.az;
+    d = Math.atan2(Math.sin(d), Math.cos(d));
+    view.az += d * Math.min(1, dt * 1.6);
   }
-  const hReal = Math.hypot(cx - view.tx, cz - view.tz);
-  camera.position.set(cx, Math.min(cy, view.ty + hReal * Math.tan(view.el) + 0.3), cz);
-  camera.lookAt(view.tx, view.ty, view.tz);
+  me.av.visible = view.mode !== 'first';
+  if (view.mode === 'first') {
+    // 1인칭: 캐릭터 눈 높이에서 바라보는 방향
+    const eye = new THREE.Vector3(me.x, me.y + 1.25, me.z);
+    camera.position.copy(eye);
+    const fx = -Math.sin(view.az) * Math.cos(view.pitch), fz = -Math.cos(view.az) * Math.cos(view.pitch);
+    camera.lookAt(eye.x + fx, eye.y + Math.sin(view.pitch), eye.z + fz);
+  } else {
+    const cy = Math.min(CEIL - 1.2, view.ty + Math.sin(view.el) * view.dist);
+    const horiz = Math.cos(view.el) * view.dist;
+    let cx = view.tx + Math.sin(view.az) * horiz, cz = view.tz + Math.cos(view.az) * horiz;
+    // 카메라가 유리벽 밖으로 나가지 않게
+    const cr = Math.hypot(cx, cz), maxR = 27.3;
+    if (cr > maxR) {
+      const dx = Math.sin(view.az), dz = Math.cos(view.az);
+      const b = view.tx * dx + view.tz * dz, c = view.tx * view.tx + view.tz * view.tz - maxR * maxR;
+      const s = -b + Math.sqrt(Math.max(0, b * b - c));
+      cx = view.tx + dx * Math.max(1.2, s);
+      cz = view.tz + dz * Math.max(1.2, s);
+    }
+    const hReal = Math.hypot(cx - view.tx, cz - view.tz);
+    camera.position.set(cx, Math.min(cy, view.ty + hReal * Math.tan(view.el) + 0.3), cz);
+    camera.lookAt(view.tx, view.ty + 0.2, view.tz);
+  }
 
   refreshActions();
   renderer.render(scene, camera);
@@ -407,4 +517,4 @@ enter.addEventListener('click', () => {
 });
 requestAnimationFrame(frame);
 
-window.__cafe = { me, seats, walkTo, ACTIONS, view, sitOn, npcs };
+window.__cafe = { me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick };
