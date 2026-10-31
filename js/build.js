@@ -4,6 +4,7 @@ import {
   R_HALL, R_RIM_IN, TREES, FLOWER_BEDS, R_WALK, R_HUB, SPOKE, CEIL, deg, polar, Q, PRAYER_POOL_R, WITNESS_POOL_R,
   columns, COUNTER, LONG_TABLE, BIBLE, planters, TRAY, stools, BOAT,
 } from './layout.js';
+import { showVerse } from './verses.js';
 import { buildNavigators } from './navs.js';
 
 const WHITE = 0xf5f3ef;
@@ -337,7 +338,23 @@ export function buildWorld(scene) {
     hands.position.set(x, 0.4, z);
     hands.rotation.y = deg(45);
     scene.add(hands);
-    hands.traverse((c) => { if (c.isMesh) { c.userData.action = 'pray'; interactive.push(c); } });
+    // 누르면 손 사이 빛이 위로 솟고, 그 자리에서 기도하며 말씀이 떠오름
+    const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.5, 12, 24, 1, true), new THREE.MeshBasicMaterial({ color: 0xffe3a8, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+    beam.position.set(x, 6.4, z);
+    scene.add(beam);
+    let handsPulse = 0;
+    anim.push((t, ctx, dt) => {
+      handsPulse = Math.max(0, handsPulse - (dt || 0.016) * 0.25);
+      beam.material.opacity = handsPulse * 0.5 * (0.85 + 0.15 * Math.sin(t * 5));
+      beam.scale.set(1 + (1 - handsPulse) * 0.6, 0.2 + Math.min(1, (1 - handsPulse) * 4) * 0.8, 1 + (1 - handsPulse) * 0.6);
+      if (hands.userData.glow) hands.userData.glow.material.opacity = 0.25 + handsPulse * 0.6;
+    });
+    const tapHands = () => {
+      handsPulse = 1;
+      showVerse('hands', { delay: 1.2, cooldown: 30 });
+      if (window.__cafe) window.__cafe.ACTIONS.pray();
+    };
+    hands.traverse((c) => { if (c.isMesh) { c.userData.onTap = tapHands; interactive.push(c); } });
     // 물에 뜬 촛불
     const candles = [];
     for (let k = 0; k < 9; k++) {
@@ -631,16 +648,28 @@ export function buildWorld(scene) {
     book.rotation.y = deg(-45) + Math.PI;
     book.rotation.x = -0.25;
     scene.add(shadowy(book));
-    book.traverse((c) => { if (c.isMesh) { c.userData.action = 'read'; interactive.push(c); } });
+    // 누르면 책장이 빠르게 넘어가며 빛이 번지고, 다가가 읽으며 말씀이 떠오름
+    const bookGlow = new THREE.PointLight(0xffe0a0, 0, 8, 1.6);
+    bookGlow.position.set(x, 2.2, z);
+    scene.add(bookGlow);
+    const tapBook = () => {
+      state.flip = 2.4;
+      showVerse('bible', { delay: 0.8, cooldown: 30 });
+      if (window.__cafe) window.__cafe.ACTIONS.read();
+    };
+    book.traverse((c) => { if (c.isMesh) { c.userData.onTap = tapBook; interactive.push(c); } });
     plinth.userData.action = 'read';
     interactive.push(plinth);
-    const state = { turning: 0 };
+    const state = { turning: 0, flip: 0 };
     anim.push((t, ctx) => {
       // 누군가 읽고 있으면 천천히 한 장씩 넘어감
-      if (ctx && ctx.reading) state.turning += 0.016;
+      const flipping = state.flip > 0;
+      if (flipping) { state.flip -= 0.016; state.turning += 0.05; }
+      else if (ctx && ctx.reading) state.turning += 0.016;
       const ph = state.turning % 1;
       page.rotation.z = ph < 0.6 ? -Math.PI * (ph / 0.6) * 0.92 - 0.18 : -Math.PI * 0.92 - 0.18;
-      if (!ctx || !ctx.reading) page.rotation.z = -0.18;
+      if (!flipping && (!ctx || !ctx.reading)) page.rotation.z = -0.18;
+      bookGlow.intensity += ((flipping ? 14 : ctx && ctx.reading ? 5 : 0) - bookGlow.intensity) * 0.05;
     });
     // 곡선 벤치
     const bench = slab(ringShape(4.75, 4.05, deg(-172), deg(-98)), 0.42, mat.stone);
@@ -733,6 +762,7 @@ function makePrayingHands() {
   const glow = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 3.8), new THREE.MeshBasicMaterial({ color: 0xffd58a, transparent: true, opacity: 0.25, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
   glow.position.y = 2.3;
   g.add(glow);
+  g.userData.glow = glow;
   const foot = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.05, 0.08, 48), mat.sculpt);
   foot.position.y = 0.04;
   g.add(foot);

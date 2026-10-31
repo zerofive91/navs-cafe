@@ -8,6 +8,7 @@ import { ICONS } from './icons.js';
 import { loadProps, upgradeCup, fxSprite } from './props.js';
 import { initSigns } from './signs.js';
 import { initMusic } from './music.js';
+import { showVerse } from './verses.js';
 
 const canvas = document.getElementById('cafe');
 const bar = document.getElementById('actions');
@@ -266,7 +267,81 @@ const ACTIONS = {
   vhand: () => act('vhand', 2.6),
   calm: () => signs.calm(),
   loaves: () => signs.feed(),
+  fish: () => signs.fish(),
+  putdown: () => putDown(),
 };
+// ---------- 들고 있는 컵·빵 내려놓기 / 다시 집기 ----------
+// 앞쪽 바닥 위로 광선을 내려 탁자·카운터 윗면을 찾고, 없으면 발밑 바닥에 둠
+const placed = [];
+const downRay = new THREE.Raycaster();
+function putDown() {
+  const u = me.av.userData;
+  let kind, src;
+  if (me.food) { kind = 'food'; src = u.foods[me.food]; }
+  else if (me.item === 'cup') { kind = 'drink'; src = u.drinks[me.drink || 'coffee']; }
+  if (!kind) return;
+  const fx = Math.sin(me.face), fz = Math.cos(me.face);
+  const base = floorY(me.x, me.z);
+  let spot = null;
+  // 손이 닿는 범위에서 가장 높은 윗면(의자보다 탁자)을 고름
+  for (const r of [0.35, 0.55, 0.8, 1.05]) {
+    const x = me.x + fx * r, z = me.z + fz * r;
+    downRay.set(new THREE.Vector3(x, base + 1.4, z), new THREE.Vector3(0, -1, 0));
+    downRay.far = 1.3;
+    const hit = downRay.intersectObjects(scene.children, true).find((h) => {
+      let o = h.object;
+      while (o) { if (o === me.av || o.userData.placed) return false; o = o.parent; }
+      return h.object.isMesh && h.face && h.face.normal.y > 0.5 && h.object.material && !h.object.material.transparent;
+    });
+    if (hit && hit.point.y > base + 0.35 && hit.point.y < base + 1.3 && (!spot || hit.point.y > spot.y + 0.05)) spot = hit.point;
+  }
+  if (!spot) spot = new THREE.Vector3(me.x + fx * 0.45, base + 0.01, me.z + fz * 0.45);
+  const g = new THREE.Group();
+  g.userData.placed = true;
+  const model = src ? src.clone() : new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.035, 0.09, 12), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+  if (src) {
+    model.position.set(0, 0, 0);
+    model.visible = true;
+    model.traverse((o) => { o.visible = true; });
+    if (kind === 'food') model.scale.multiplyScalar(Math.max(0.4, 1 - (me.bites || 0) * 0.25));
+  }
+  g.add(model);
+  // 바닥이 놓일 자리에 맞도록 모델 아래쪽을 윗면에 붙임
+  g.position.copy(spot);
+  scene.add(g);
+  g.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(model);
+  model.position.y += spot.y - box.min.y + 0.003;
+  g.rotation.y = me.face;
+  // 집기 쉽도록 보이지 않는 넉넉한 터치 영역
+  const hitBox = new THREE.Mesh(new THREE.SphereGeometry(0.28, 8, 6), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
+  hitBox.position.y = 0.08;
+  g.add(hitBox);
+  const rec = { g, hitBox, kind, what: kind === 'food' ? me.food : me.drink, bites: me.bites || 0 };
+  hitBox.userData.onTap = () => pickUp(rec);
+  interactive.push(hitBox);
+  placed.push(rec);
+  if (placed.length > 12) removePlaced(placed[0]);
+  if (kind === 'food') { me.food = null; me.bites = 0; } else { me.item = null; me.drink = null; }
+  if (me.action === 'sip' || me.action === 'eat') me.action = null;
+  sfx('cup', 0.15);
+}
+function removePlaced(rec) {
+  scene.remove(rec.g);
+  const i = interactive.indexOf(rec.hitBox); if (i >= 0) interactive.splice(i, 1);
+  const j = placed.indexOf(rec); if (j >= 0) placed.splice(j, 1);
+}
+function pickUp(rec) {
+  const take = () => {
+    if (rec.kind === 'food') { if (me.food) return; me.food = rec.what; me.bites = rec.bites; }
+    else { if (me.item) return; me.item = 'cup'; me.drink = rec.what; }
+    removePlaced(rec);
+    sfx('cup', 0.15);
+  };
+  const p = rec.g.position;
+  if (Math.hypot(me.x - p.x, me.z - p.z) < 1.4) { faceTo(me, p); take(); }
+  else { const s = nearestFree({ x: p.x + (me.x - p.x) * 0.15, z: p.z + (me.z - p.z) * 0.15 }) || p; walkTo(me, s, () => { faceTo(me, p); take(); }); }
+}
 // 메뉴: 음료 두 가지, 빵 세 가지
 const DRINKS = ['coffee', 'tea'];
 const FOODS = ['croissant', 'donut', 'muffin'];
@@ -402,6 +477,8 @@ function availableActions() {
   if (me.item === 'cup') list.push('sip');
   if (me.food) list.push('eat');
   if (signs.nearBread()) list.push('loaves');
+  if (signs.canFish()) list.push('fish');
+  if ((me.item === 'cup' || me.food) && !near(SPOTS.tray)) list.push('putdown');
   if ((me.item === 'cup' || me.food) && near(SPOTS.tray)) list.push('tray');
   // 어디서나 할 수 있는 일
   list.push(me.state === 'sit' ? 'stand' : 'sit');
@@ -472,10 +549,10 @@ canvas.addEventListener('pointermove', (e) => {
     if (drag.moved > 6) {
       if (view.mode === 'first') {
         // 화면을 손으로 잡아 끄는 느낌: 오른쪽으로 밀면 시선은 왼쪽으로
-        view.az = drag.az + dx * 0.005;
-        view.pitch = clamp(drag.pitch - dy * 0.004, -0.7, 0.6);
-      } else view.az = drag.az - dx * 0.006;
-      if (view.mode !== 'first') view.el = clamp(drag.el + dy * 0.004, 0.08, 1.1);
+        view.az = drag.az - dx * 0.005;
+        view.pitch = clamp(drag.pitch + dy * 0.004, -0.7, 0.6);
+      } else view.az = drag.az + dx * 0.006;
+      if (view.mode !== 'first') view.el = clamp(drag.el - dy * 0.004, 0.08, 1.1);
       view.dragAt = performance.now();
     }
   }
@@ -680,6 +757,7 @@ function stepChar(ch, dt) {
     if (ch.seat.kind === 'floor') fy = floorY(ch.x, ch.z) - 0.2;
     if (ch.seat.kind === 'lounge') fy = floorY(ch.x, ch.z) + 0.22;
     if (ch.seat.kind === 'gbench') fy = floorY(ch.x, ch.z) + 0.25;
+    if (ch.seat.top != null) fy = ch.seat.top - 0.14; // 모델에서 잰 앉는 면 높이
   }
   ch.y += (fy - ch.y) * Math.min(1, dt * 10);
   // 점프: 위로 튀어 올랐다가 중력으로 내려옴 (공중에서 다시 누르면 한 번 더)
@@ -695,6 +773,23 @@ function stepChar(ch, dt) {
   let da = ch.face - ch.av.rotation.y;
   da = Math.atan2(Math.sin(da), Math.cos(da));
   ch.av.rotation.y += da * Math.min(1, dt * 10);
+}
+
+// 동작을 시작하거나 자리에 앉으면 잠시 뒤 그 동작에 어울리는 말씀이 은은하게 떠오름
+const ACTION_VERSE = { gaze: 'light', pray: 'pray', read: 'read', water: 'water_plant', share: 'share', sip: 'drink', eat: 'eat' };
+const SEAT_VERSE = { lounge: 'rest', bench: 'rest', gbench: 'garden', boat: 'boat', floor: 'still' };
+let prevAct = null, prevSeat = null;
+function verseHooks() {
+  if (me.action !== prevAct) {
+    prevAct = me.action;
+    const k = ACTION_VERSE[me.action];
+    if (k) showVerse(k, { delay: me.action === 'pray' || me.action === 'read' || me.action === 'gaze' ? 2.5 : 1.2 });
+  }
+  const sk = me.state === 'sit' && me.seat ? me.seat.kind : null;
+  if (sk !== prevSeat) {
+    prevSeat = sk;
+    if (SEAT_VERSE[sk] && !me.action) showVerse(SEAT_VERSE[sk], { delay: 2.2 });
+  }
 }
 
 let last = performance.now();
@@ -775,6 +870,7 @@ function frame(now) {
   stepWakes(dt);
   signs.step(dt * (window.__cafe.speed || 1));
 
+  verseHooks();
   refreshActions();
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
@@ -796,4 +892,4 @@ setTimeout(() => {
   for (const n of npcs) if (n.av) upgradeCup(n.av);
 }, 300);
 
-window.__cafe = { me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs };
+window.__cafe = { me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs, placed };

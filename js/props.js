@@ -51,6 +51,17 @@ async function place(scene, path, { x, z, y = null, rot = 0, height, width, tone
   return pivot;
 }
 
+// 의자 모델의 앉는 면 높이: 앉는 방향으로 조금 앞쪽을 위에서 아래로 재어 봄
+const down = new THREE.Raycaster();
+function seatTop(m, seat) {
+  m.updateMatrixWorld(true);
+  const top = new THREE.Box3().setFromObject(m).max.y;
+  const fx = Math.sin(seat.face) * 0.12, fz = Math.cos(seat.face) * 0.12;
+  down.set(new THREE.Vector3(seat.x + fx, top + 1, seat.z + fz), new THREE.Vector3(0, -1, 0));
+  const hit = down.intersectObject(m, true)[0];
+  return hit ? hit.point.y : null;
+}
+
 const F = 'assets/furniture/', N = 'assets/nature/', D = 'assets/food/';
 
 export function loadProps({ scene, deco, interactive, anim, renderer }) {
@@ -97,7 +108,8 @@ export function loadProps({ scene, deco, interactive, anim, renderer }) {
   });
   // 벤치(숲을 바라봄)와 길가 등
   for (const b of GARDEN_BENCHES) {
-    place(scene, F + 'bench.glb', { x: b.x, z: b.z, y: -0.5, rot: Math.atan2(b.x, b.z), width: 1.6, tone: [0.7, 0.15] });
+    place(scene, F + 'bench.glb', { x: b.x, z: b.z, y: -0.5, rot: Math.atan2(b.x, b.z), height: 0.9, tone: [0.7, 0.15] })
+      .then((m) => { if (m) b.seat.top = seatTop(m, b.seat); });
     place(scene, N + 'plant_bushSmall.glb', { x: b.x + Math.cos(deg(b.a + 3)) * 0.3, z: b.z + Math.sin(deg(b.a + 3)) * 0.3, y: -0.5, rot: b.a, height: 0.6, shadow: false });
   }
   for (const l of GARDEN_LAMPS) place(scene, F + 'lampRoundFloor.glb', { x: l.x, z: l.z, y: -0.5, height: 1.6, tone: [0.4, 0.4] });
@@ -156,7 +168,7 @@ export function loadProps({ scene, deco, interactive, anim, renderer }) {
   for (const l of LOUNGES) {
     const face = Math.atan2(-l.chair.x, -l.chair.z);
     place(scene, F + 'loungeDesignChair.glb', { x: l.chair.x, z: l.chair.z, rot: face, width: 0.95, tone: [0.35, 0.45] })
-      .then((m) => { if (m) m.traverse((c) => { if (c.isMesh) { c.userData.seat = l; interactive.push(c); } }); });
+      .then((m) => { if (!m) return; l.seat.top = seatTop(m, l.seat); m.traverse((c) => { if (c.isMesh) { c.userData.seat = l; interactive.push(c); } }); });
     place(scene, F + 'sideTable.glb', { x: l.table.x, z: l.table.z, rot: face, width: 0.55, tone: [0.4, 0.4] }).then((t) => {
       if (!t) return;
       const top = new THREE.Box3().setFromObject(t).max.y;

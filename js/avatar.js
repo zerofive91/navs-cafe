@@ -131,6 +131,17 @@ export function makeAvatar(look) {
   book.visible = false;
   body.add(book);
 
+  // 낚싯대 (손에서 앞쪽 위로 뻗음, 끝 위치는 낚싯줄 시작점)
+  const rod = new THREE.Group();
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.016, 1.5, 6), m(0x8a6a4a, 0.6));
+  pole.position.y = 0.75;
+  const rodTip = new THREE.Object3D();
+  rodTip.position.y = 1.5;
+  rod.add(pole, rodTip);
+  rod.rotation.x = 1.6; // 팔을 앞으로 든 자세에서 낚싯대가 앞쪽 위로 향함
+  rod.position.set(0, -0.42, 0.02);
+  rod.visible = false;
+  arms[1].add(rod);
   const can = new THREE.Group();
   const canBody = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.09, 0.14, 12), m(0x8fb4cf, 0.4));
   const spout = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.015, 0.2, 6), m(0x8fb4cf, 0.4));
@@ -161,7 +172,7 @@ export function makeAvatar(look) {
   }
 
   root.traverse((c) => { if (c.isMesh) c.castShadow = true; });
-  root.userData = { body, legs, arms, head, eyes, cup, food, foods: {}, drinks: {}, book, can, drops, vfing, blinkAt: 2 };
+  root.userData = { body, legs, arms, head, eyes, cup, food, rod, rodTip, foods: {}, drinks: {}, book, can, drops, vfing, blinkAt: 2 };
   return root;
 }
 
@@ -225,6 +236,9 @@ export function poseAvatar(av, ch, t, dt) {
     case 'sip':
       armR = -2.2; armRz = 0.4; headX = -0.1;
       break;
+    case 'fish':
+      armR = -0.9; armRz = 0.15; headX = 0.25;
+      break;
     case 'water':
       armR = -1.0; armRz = 0.1; headX = 0.3;
       break;
@@ -253,6 +267,7 @@ export function poseAvatar(av, ch, t, dt) {
   u.book.visible = ch.action === 'read';
   u.can.visible = ch.action === 'water';
   u.vfing.visible = ch.action === 'vhand';
+  u.rod.visible = ch.action === 'fish';
 
   // 물방울
   u.drops.forEach((d, k) => {

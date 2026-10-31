@@ -131,9 +131,9 @@ function seat(x, z, faceTo, kind, approach) {
   seats.push({ x, z, face, kind, approach: approach || { x, z }, taken: false });
 }
 
-for (const l of LOUNGES) seat(l.chair.x, l.chair.z, { x: 0, z: 0 }, 'lounge', l.approach);
+for (const l of LOUNGES) { seat(l.chair.x, l.chair.z, { x: 0, z: 0 }, 'lounge', l.approach); l.seat = seats[seats.length - 1]; }
 // 정원 벤치: 숲(바깥)을 바라봄
-for (const b of GARDEN_BENCHES) seat(b.x, b.z, polar(60, b.a), 'gbench', b.approach);
+for (const b of GARDEN_BENCHES) { seat(b.x, b.z, polar(60, b.a), 'gbench', b.approach); b.seat = seats[seats.length - 1]; }
 
 // 그리스도: 빛 둘레의 둥근 벤치 4곳(대각선)
 for (const a of [-135, -45, 45, 135]) {
