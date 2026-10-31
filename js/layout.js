@@ -84,12 +84,18 @@ block(TRAY.x, TRAY.z, 0.5);
 export const DOOR = polar(R_HALL, 90);
 export const SPAWN = polar(26.2, 90);
 
+// 순종 회랑 창가의 라운지 의자 (CC0 가구)
+export const LOUNGES = [-15, 45, -105, 165].map((a) => ({ a, chair: polar(26.3, a), table: polar(26.4, a + 3.4), approach: polar(25.0, a) }));
+for (const l of LOUNGES) { block(l.chair.x, l.chair.z, 0.5); block(l.table.x, l.table.z, 0.35); }
+
 // 앉을 수 있는 자리
 export const seats = [];
 function seat(x, z, faceTo, kind, approach) {
   const face = Math.atan2(faceTo.x - x, faceTo.z - z);
   seats.push({ x, z, face, kind, approach: approach || { x, z }, taken: false });
 }
+
+for (const l of LOUNGES) seat(l.chair.x, l.chair.z, { x: 0, z: 0 }, 'lounge', l.approach);
 
 // 그리스도: 빛 둘레의 둥근 벤치 4곳(대각선)
 for (const a of [-135, -45, 45, 135]) {

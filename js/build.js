@@ -106,6 +106,8 @@ function glowRing(r, width, y = 0.012) {
 export function buildWorld(scene) {
   const anim = []; // 매 프레임 움직일 것들
   const interactive = []; // 눌러서 체험할 수 있는 물체
+  // 나중에 CC0 모델로 바꿔 끼울 임시 모양들
+  const deco = { trees: [], machine: null, pastries: [], counterCups: [], plantLeaves: [], plantGroups: [] };
 
   // ---------- 바깥 ----------
   const ground = new THREE.Mesh(new THREE.CircleGeometry(160, 64), mat.grass);
@@ -128,6 +130,7 @@ export function buildWorld(scene) {
     crown.scale.set(h * 0.38, h * 0.48, h * 0.38);
     crown.position.set(x, h * 0.62, z);
     scene.add(shadowy(trunk, true, false), shadowy(crown, true, false));
+    deco.trees.push({ x, z, h, parts: [trunk, crown] });
   }
   // 입구 앞 길
   const path = new THREE.Mesh(new THREE.PlaneGeometry(4, 30), mat.stone);
@@ -366,6 +369,7 @@ export function buildWorld(scene) {
     machine.position.set(mp.x, 1.12, mp.z);
     machine.rotation.y = -deg(-60) + Math.PI / 2;
     scene.add(shadowy(machine));
+    deco.machine = machine;
     const caseG = new THREE.Group();
     const cb = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.9, 0.7), mat.white);
     cb.position.y = 0.45;
@@ -378,6 +382,7 @@ export function buildWorld(scene) {
       b.scale.y = 0.6;
       b.position.set(-0.55 + k * 0.22, 0.98, 0);
       caseG.add(b);
+      deco.pastries.push(b);
     }
     const cp = polar(COUNTER.r, -34.5);
     caseG.position.set(cp.x, 0, cp.z);
@@ -388,6 +393,7 @@ export function buildWorld(scene) {
       const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.05, 0.12, 12), mat.sculpt);
       cup.position.set(p.x, 1.18, p.z);
       scene.add(cup);
+      deco.counterCups.push(cup);
     }
     // 카운터 위 펜던트 조명
     for (const a of [-64, -54, -44]) {
@@ -646,16 +652,19 @@ export function buildWorld(scene) {
     const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, 1.6, 6), mat.trunk);
     trunk.position.y = 1.5;
     g.add(trunk);
+    deco.plantLeaves.push(trunk);
     for (let k = 0; k < 4; k++) {
       const leaf = new THREE.Mesh(treeGeo, k % 2 ? mat.leaf : mat.leafDark);
       leaf.scale.setScalar(0.55 - k * 0.05);
       leaf.position.set(Math.cos(k * 1.7) * 0.35, 2.2 + k * 0.18, Math.sin(k * 1.7) * 0.35);
       g.add(leaf);
+      deco.plantLeaves.push(leaf);
     }
     g.position.set(p.x, 0.25, p.z);
     scene.add(shadowy(g));
     g.traverse((c) => { if (c.isMesh) { c.userData.action = 'water'; c.userData.pot = p; interactive.push(c); } });
     plantParts.push(g);
+    deco.plantGroups.push({ g, p });
   }
   {
     const st = new THREE.Group();
@@ -674,7 +683,7 @@ export function buildWorld(scene) {
   }
 
   buildNavigators(scene, anim, interactive);
-  return { anim, interactive };
+  return { anim, interactive, deco };
 }
 
 // 기도: 두 개의 흰 곡면 날개가 위로 모여 맞닿는 추상 조형 (모은 두 손의 은유)
