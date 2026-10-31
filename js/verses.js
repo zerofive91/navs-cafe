@@ -125,3 +125,17 @@ export function stopStream(quick) {
   if (e && quick) e.classList.remove('on');
   else if (e) hideT = setTimeout(() => e.classList.remove('on'), 2500);
 }
+
+// 버튼을 누를 때마다 한 구절 (같은 구절은 목록을 다 돌 때까지 반복하지 않음)
+export function showNext(kind, delay = 0.6) {
+  stopStream(true);
+  setTimeout(() => {
+    const ms = showPair(nextOf(kind));
+    clearTimeout(hideT);
+    hideT = setTimeout(() => {
+      const e = el();
+      e.classList.remove('on');
+      hideT = setTimeout(() => { e.hidden = true; }, 1600);
+    }, ms);
+  }, delay * 1000);
+}

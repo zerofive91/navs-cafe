@@ -8,7 +8,7 @@ import { ICONS } from './icons.js';
 import { loadProps, upgradeCup, fxSprite } from './props.js';
 import { initSigns } from './signs.js';
 import { initMusic } from './music.js';
-import { showVerse, startStream, stopStream } from './verses.js';
+import { showVerse, showNext } from './verses.js';
 import { initPark } from './park.js';
 
 const canvas = document.getElementById('cafe');
@@ -533,6 +533,8 @@ function refreshActions() {
     b.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
       sfx(name === 'sip' || name === 'order' || name === 'eat' ? 'cup' : 'tap', 0.15);
+      if (VERSE_OF[name]) showNext(VERSE_OF[name], on ? 0.2 : 1.2);
+      if (on && VERSE_OF[name]) return; // 이미 하는 중이면 다음 구절만
       if (on && name !== 'wave' && name !== 'share') { me.action = null; if (me.seat && me.seat.free) standUp(me); shown = ''; return; }
       ACTIONS[name]();
     });
@@ -849,15 +851,13 @@ function stepChar(ch, dt) {
 
 // 동작을 시작하거나 자리에 앉으면 잠시 뒤 그 동작에 어울리는 말씀이 은은하게 떠오름
 const ACTION_VERSE = { gaze: 'light', water: 'water_plant', share: 'share', sip: 'drink', eat: 'eat' };
-const STREAM_OF = { read: 'read', pray: 'pray', praise: 'praise' }; // 누르고 있는 동안 말씀이 이어짐
+const VERSE_OF = { read: 'read', pray: 'pray', praise: 'praise' }; // 누를 때마다 말씀 한 구절
 const SEAT_VERSE = { lounge: 'rest', bench: 'rest', gbench: 'garden', boat: 'boat', floor: 'still', log: 'campfire', vine: 'vine', picnic: 'bbq' };
 let prevAct = null, prevSeat = null;
 function verseHooks() {
   if (me.action !== prevAct) {
     prevAct = me.action;
     const k = ACTION_VERSE[me.action];
-    if (STREAM_OF[me.action]) startStream(STREAM_OF[me.action], me.action === 'read' ? 1.5 : 2);
-    else stopStream();
     if (k) showVerse(k, { delay: me.action === 'pray' || me.action === 'read' || me.action === 'gaze' ? 2.5 : 1.2 });
   }
   const sk = me.state === 'sit' && me.seat ? me.seat.kind : null;
