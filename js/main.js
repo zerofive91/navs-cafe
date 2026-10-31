@@ -859,7 +859,7 @@ function verseHooks() {
   if (me.action !== prevAct) {
     prevAct = me.action;
     const k = ACTION_VERSE[me.action];
-    if (k) showVerse(k, { delay: me.action === 'pray' || me.action === 'read' || me.action === 'gaze' ? 2.5 : 1.2 });
+    if (k && !(me.action === 'gaze' && Math.hypot(me.x, me.z) > 8)) showVerse(k, { delay: me.action === 'pray' || me.action === 'read' || me.action === 'gaze' ? 2.5 : 1.2 });
   }
   const sk = me.state === 'sit' && me.seat ? me.seat.kind : null;
   if (sk !== prevSeat) {
@@ -916,7 +916,7 @@ function frame(now) {
     d = Math.atan2(Math.sin(d), Math.cos(d));
     if (Math.abs(d) < 2.4) view.az += d * Math.min(1, dt * (stickDriving ? 1.4 : 1.8));
   }
-  me.av.visible = view.mode !== 'first';
+  me.av.visible = view.mode !== 'first' && !me.hidden;
   if (view.mode === 'first') {
     // 1인칭: 캐릭터 눈 높이에서 바라보는 방향
     const eye = new THREE.Vector3(me.x, me.y + 1.25, me.z);

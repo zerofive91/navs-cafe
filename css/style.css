@@ -328,3 +328,20 @@ html.rot body #verse p { font-size: 19px; line-height: 1.45; margin-bottom: 6px;
 html.rot #musicPanel { max-height: calc(100vw - 64px); }
 #verse .vt { display: block; font-size: 13px; font-weight: 600; letter-spacing: 0.18em; color: #ffe2a8; margin-bottom: 8px; }
 #verse .vt[hidden] { display: none; }
+
+/* 요나: 큰 물고기 뱃속 (사흘 밤낮) */
+#belly {
+  position: fixed; inset: 0;
+  background: radial-gradient(ellipse at 50% 60%, rgba(40, 18, 22, 0.88) 0%, rgba(10, 6, 10, 0.97) 70%);
+  opacity: 0; transition: opacity 0.8s ease;
+  pointer-events: none;
+  display: flex; align-items: flex-end; justify-content: center; gap: 18px;
+  padding-bottom: 22vh;
+}
+#belly.on { opacity: 1; }
+#belly i {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: rgba(255, 230, 170, 0.15);
+  transition: background 0.8s ease, box-shadow 0.8s ease;
+}
+#belly i.on { background: #ffe6a8; box-shadow: 0 0 14px 4px rgba(255, 220, 150, 0.6); }
