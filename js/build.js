@@ -312,7 +312,7 @@ export function buildWorld(scene) {
     scene.add(shadowy(island));
     const hands = makePrayingHands();
     hands.position.set(x, 0.4, z);
-    hands.rotation.y = deg(45 + 90);
+    hands.rotation.y = deg(45);
     scene.add(hands);
     hands.traverse((c) => { if (c.isMesh) { c.userData.action = 'pray'; interactive.push(c); } });
     // 물에 뜬 촛불
@@ -600,7 +600,7 @@ export function buildWorld(scene) {
     bench.position.z = z;
     scene.add(shadowy(bench));
     // 책 기둥 조각들
-    for (const [dx, dz, h] of [[3.6, 0.6, 2.2], [0.8, 3.9, 1.8]]) {
+    for (const [dx, dz, h] of []) {
       const stack = new THREE.Group();
       let y = 0;
       for (let k = 0; y < h; k++) {
@@ -658,33 +658,34 @@ export function buildWorld(scene) {
   return { anim, interactive };
 }
 
-// 기도하는 손 (단순한 조형)
+// 기도: 두 개의 흰 곡면 날개가 위로 모여 맞닿는 추상 조형 (모은 두 손의 은유)
 function makePrayingHands() {
   const g = new THREE.Group();
+  const blade = new THREE.Shape();
+  blade.moveTo(-1.25, 0);
+  blade.bezierCurveTo(-1.3, 1.8, -0.55, 3.6, -0.04, 4.6);
+  blade.bezierCurveTo(-0.35, 3.4, -0.7, 1.7, -0.62, 0);
+  blade.closePath();
+  const geo = new THREE.ExtrudeGeometry(blade, { depth: 0.22, bevelEnabled: true, bevelSize: 0.08, bevelThickness: 0.08, bevelSegments: 4, curveSegments: 40 });
+  geo.translate(0, 0, -0.11);
+  geo.computeVertexNormals();
   for (const sgn of [-1, 1]) {
-    const hand = new THREE.Group();
-    const palm = new THREE.Mesh(new THREE.CapsuleGeometry(0.42, 1.5, 8, 16), mat.sculpt);
-    palm.scale.set(1, 1, 0.45);
-    palm.position.y = 1.4;
-    hand.add(palm);
-    for (let k = 0; k < 4; k++) {
-      const f = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 0.8 - Math.abs(k - 1.5) * 0.15, 6, 10), mat.sculpt);
-      f.position.set(-0.27 + k * 0.18, 2.55 - Math.abs(k - 1.5) * 0.08, 0);
-      hand.add(f);
-    }
-    const thumb = new THREE.Mesh(new THREE.CapsuleGeometry(0.11, 0.55, 6, 10), mat.sculpt);
-    thumb.position.set(0.15, 1.6, 0.22);
-    thumb.rotation.x = -0.35;
-    hand.add(thumb);
-    const wrist = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.42, 0.9, 16), mat.sculpt);
-    wrist.scale.z = 0.6;
-    wrist.position.y = 0.35;
-    hand.add(wrist);
-    hand.position.z = sgn * 0.2;
-    hand.rotation.x = sgn * 0.08;
-    g.add(hand);
+    const m = new THREE.Mesh(geo, mat.sculpt);
+    m.scale.x = sgn;
+    m.rotation.y = sgn * 0.12;
+    g.add(m);
   }
-  g.scale.setScalar(1.25);
+  // 두 날개 사이로 새어 나오는 가는 빛
+  const slit = new THREE.Mesh(new THREE.BoxGeometry(0.035, 3.6, 0.035), new THREE.MeshBasicMaterial({ color: 0xffe3a8 }));
+  slit.position.y = 2.3;
+  g.add(slit);
+  const glow = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 3.8), new THREE.MeshBasicMaterial({ color: 0xffd58a, transparent: true, opacity: 0.25, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+  glow.position.y = 2.3;
+  g.add(glow);
+  const foot = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.05, 0.08, 48), mat.sculpt);
+  foot.position.y = 0.04;
+  g.add(foot);
+  g.scale.setScalar(1.05);
   return shadowy(g);
 }
 

@@ -62,7 +62,7 @@ export const BIBLE = { x: Q.word.x, z: Q.word.z, plinth: 2.6 };
 block(BIBLE.x, BIBLE.z, BIBLE.plinth);
 // 말씀의 손 조형(성경을 쥔 손)
 export const WORD_HAND = { x: Q.word.x + 3.1, z: Q.word.z + 2.7 };
-block(WORD_HAND.x, WORD_HAND.z, 1.1);
+block(WORD_HAND.x, WORD_HAND.z, 1.7);
 // 순종 회랑의 일꾼 배가 순환 바닥 표식(세계 → 초신자 → 제자 → 일꾼 → 파송)
 export const CYCLE = [135, 207, 279, 351, 63].map((a) => ({ ...polar(24.2, a), a }));
 

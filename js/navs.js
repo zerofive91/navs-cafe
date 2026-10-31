@@ -1,5 +1,5 @@
 // 네비게이토 예화에서 온 조형물들 (글자 없이 빛과 형상으로만)
-//  - 말씀의 손: 성경을 쥔 손, 다섯 손가락(듣기·읽기·공부·암송·묵상)이 차례로 빛남
+//  - 말씀의 다섯 줄기: 곡면 벽 위 다섯 줄기 빛(듣기·읽기·공부·암송·묵상)이 차례로 켜짐
 //  - 기도의 다섯 빛: 찬양·감사·자백·중보·간구
 //  - 일꾼 배가 순환: 순종 회랑 바닥의 다섯 표식(세계 → 초신자 → 제자 → 일꾼 → 파송)
 //  - 핵심가치: 가운데 위에 매달린 열 장의 빛 카드
@@ -19,89 +19,59 @@ export function buildNavigators(scene, anim, interactive) {
   coreValues(scene, anim);
 }
 
-// ---------- 말씀의 손 ----------
+// ---------- 말씀: 다섯 줄기 빛이 흐르는 곡면 벽 ----------
+// 휘어진 흰 벽 위로 다섯 줄기(듣기·읽기·공부·암송·묵상)의 빛이 아래에서 위로 흐름.
+// 성경을 읽는 동안 한 줄기씩 켜짐
 function wordHand(scene, anim, interactive) {
   const g = new THREE.Group();
-  // 받침
-  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 1.05, 0.3, 48), sculpt);
-  base.position.y = 0.15;
+  const W = 3.2, H = 4.2, BEND = 0.7;
+  const surf = (x) => -BEND * (x / (W / 2)) ** 2; // 가운데가 앞으로 나온 곡면
+  const geo = new THREE.BoxGeometry(W, H, 0.16, 32, 1, 1);
+  const pos = geo.attributes.position;
+  for (let i = 0; i < pos.count; i++) pos.setZ(i, pos.getZ(i) + surf(pos.getX(i)));
+  geo.computeVertexNormals();
+  geo.translate(0, H / 2 + 0.12, 0);
+  const wall = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0xf7f4ee, roughness: 0.85 }));
+  g.add(wall);
+  const base = new THREE.Mesh(new THREE.BoxGeometry(W + 0.3, 0.12, 0.9), sculpt);
+  base.position.set(0, 0.06, -0.35);
   g.add(base);
-  // 손목·손바닥(세워진 손, 손바닥이 앞을 봄)
-  const hand = new THREE.Group();
-  const wrist = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.42, 1.2, 24), sculpt);
-  wrist.scale.z = 0.6;
-  wrist.position.y = 0.9;
-  hand.add(wrist);
-  const palm = new THREE.Mesh(new THREE.BoxGeometry(1.15, 1.25, 0.38), sculpt);
-  palm.position.y = 2.0;
-  hand.add(palm);
-  const knuckle = new THREE.Mesh(new THREE.CapsuleGeometry(0.19, 0.8, 6, 12), sculpt);
-  knuckle.rotation.z = Math.PI / 2;
-  knuckle.position.set(0, 2.6, 0);
-  hand.add(knuckle);
-  // 성경(손바닥 앞에 세워 쥠)
-  const book = new THREE.Group();
-  const cover = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.4, 0.32), new THREE.MeshStandardMaterial({ color: 0x3e4d6b, roughness: 0.6 }));
-  const pages = new THREE.Mesh(new THREE.BoxGeometry(0.96, 1.34, 0.28), new THREE.MeshStandardMaterial({ color: 0xfffdf6, roughness: 0.9 }));
-  pages.position.x = 0.04;
-  const crossV = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.4, 0.01), new THREE.MeshBasicMaterial({ color: 0xffd99a }));
-  crossV.position.set(-0.05, 0.12, 0.165);
-  const crossH = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.06, 0.01), crossV.material);
-  crossH.position.set(-0.05, 0.2, 0.165);
-  book.add(cover, pages, crossV, crossH);
-  book.position.set(0, 2.15, 0.38);
-  hand.add(book);
-  // 다섯 손가락: 엄지(묵상)는 옆에서 책을 감싸고, 네 손가락은 책 위로 넘어옴
-  const fingers = [];
-  const fGeo = new THREE.CapsuleGeometry(0.13, 0.7, 6, 12);
-  const order = [
-    { x: -0.42, len: 0.95 }, // 듣기(새끼)
-    { x: -0.14, len: 1.1 },  // 읽기(약지)
-    { x: 0.14, len: 1.2 },   // 공부(중지)
-    { x: 0.42, len: 1.05 },  // 암송(검지)
-  ];
-  for (const f of order) {
-    const pivot = new THREE.Group();
-    pivot.position.set(f.x, 2.75, 0);
-    const m = new THREE.Mesh(fGeo, sculpt);
-    m.scale.y = f.len;
-    m.position.set(0, 0.32, 0.08);
-    pivot.rotation.x = 0.55;
-    const tip = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 10), glowMat());
-    tip.position.set(0, 0.72 * f.len, 0.12);
-    pivot.add(m, tip);
-    hand.add(pivot);
-    fingers.push(tip);
+
+  const lines = [];
+  for (let k = 0; k < 5; k++) {
+    const pts = [];
+    for (let s = 0; s <= 24; s++) {
+      const t = s / 24;
+      const x = -1.15 + k * 0.42 + 0.38 * Math.sin(t * Math.PI * 1.1 + k * 0.5) - 0.2 * t;
+      const y = 0.35 + t * (H - 0.6 - Math.abs(k - 2) * 0.25);
+      pts.push(new THREE.Vector3(x, y, surf(x) + 0.1));
+    }
+    const curve = new THREE.CatmullRomCurve3(pts);
+    const m = new THREE.Mesh(new THREE.TubeGeometry(curve, 64, 0.03, 8), new THREE.MeshStandardMaterial({ color: 0xf4efe6, emissive: 0xffc77a, emissiveIntensity: 0.08 }));
+    g.add(m);
+    lines.push(m);
   }
-  const thumbPivot = new THREE.Group();
-  thumbPivot.position.set(0.6, 1.75, 0.05);
-  thumbPivot.rotation.set(0.6, 0, -0.75);
-  const thumb = new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 0.6, 6, 12), sculpt);
-  thumb.position.y = 0.35;
-  const thumbTip = new THREE.Mesh(new THREE.SphereGeometry(0.11, 12, 10), glowMat());
-  thumbTip.position.set(0, 0.72, 0.06);
-  thumbPivot.add(thumb, thumbTip);
-  hand.add(thumbPivot);
-  fingers.push(thumbTip); // 묵상(엄지)
-  hand.scale.setScalar(1.35);
-  hand.position.y = 0.3;
-  g.add(hand);
+  // 바닥으로 번지는 빛
+  const pool = new THREE.Mesh(new THREE.CircleGeometry(1.6, 48), new THREE.MeshBasicMaterial({ color: 0xffd58a, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }));
+  pool.rotation.x = -Math.PI / 2;
+  pool.scale.y = 0.5;
+  pool.position.set(0, 0.13, 0.6);
+  g.add(pool);
 
   g.position.set(WORD_HAND.x, 0, WORD_HAND.z);
-  g.lookAt(Q.word.x - 2, 0, Q.word.z - 2); // 성경 받침 쪽을 바라봄
-  g.traverse((c) => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; c.userData.action = 'read'; interactive.push(c); } });
+  g.lookAt(Q.word.x - 2, 0, Q.word.z - 2); // 볼록한 앞면이 성경 받침과 벤치를 향함
+  g.traverse((c) => { if (c.isMesh && c !== pool) { c.castShadow = true; c.receiveShadow = true; c.userData.action = 'read'; interactive.push(c); } });
   scene.add(g);
 
-  // 성경을 읽는 동안 손가락이 하나씩 켜지고, 다 켜지면 다섯이 함께 숨쉬듯 빛남
   let lit = 0;
   anim.push((t, ctx, dt) => {
     if (ctx && ctx.reading) lit = Math.min(5.5, lit + dt / 2.2);
     else lit = Math.max(0, lit - dt / 4);
-    fingers.forEach((tip, k) => {
+    lines.forEach((m, k) => {
       const on = Math.max(0, Math.min(1, lit - k));
-      const full = lit >= 5 ? 0.25 * Math.sin(t * 2) : 0;
-      tip.material.emissiveIntensity = on * (1.4 + full) + 0.05;
+      m.material.emissiveIntensity = 0.08 + on * (1.7 + (lit >= 5 ? 0.3 * Math.sin(t * 2 + k) : 0));
     });
+    pool.material.opacity = Math.min(1, lit / 5) * 0.3;
   });
 }
 
