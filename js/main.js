@@ -10,6 +10,7 @@ import { initSigns } from './signs.js';
 import { initMusic } from './music.js';
 import { showVerse, showNext } from './verses.js';
 import { initPark } from './park.js';
+import { initScrolls } from './scrolls.js';
 
 const canvas = document.getElementById('cafe');
 const bar = document.getElementById('actions');
@@ -946,6 +947,7 @@ function frame(now) {
   stepWakes(dt);
   signs.step(dt * (window.__cafe.speed || 1));
   park.step(dt * (window.__cafe.speed || 1), t);
+  scrolls.step(dt * (window.__cafe.speed || 1), t);
   // 그림자 범위가 캐릭터를 따라감 (넓은 정원에서도 그림자)
   {
     const sx = Math.round(me.x / 4) * 4, sz = Math.round(me.z / 4) * 4;
@@ -969,6 +971,7 @@ enter.addEventListener('click', () => {
 const signs = initSigns({ scene, me, npcs, interactive, act, sfx, fxSprite, burst, sun, walkTo, faceTo });
 const park = initPark({ scene, me, interactive, act, sfx, fxSprite, burst, walkTo, faceTo, standUp });
 Object.assign(ACTIONS, park.actions);
+const scrolls = initScrolls({ scene, me, sfx, fxSprite, burst, icon: ICONS.scroll });
 requestAnimationFrame(frame);
 // 첫 화면이 뜬 뒤 소품 모델을 천천히 불러와 바꿔 끼움
 setTimeout(() => {
@@ -977,4 +980,4 @@ setTimeout(() => {
   for (const n of npcs) if (n.av) upgradeCup(n.av);
 }, 300);
 
-window.__cafe = { me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs, placed, park, renderer };
+window.__cafe = { me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs, placed, park, scrolls, renderer };
