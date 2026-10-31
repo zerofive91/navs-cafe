@@ -64,6 +64,9 @@ block(BIBLE.x, BIBLE.z, BIBLE.plinth);
 export const WORD_HAND = { x: Q.word.x + 3.1, z: Q.word.z + 2.7 };
 block(WORD_HAND.x, WORD_HAND.z, 1.7);
 // 순종 회랑의 일꾼 배가 순환 바닥 표식(세계 → 초신자 → 제자 → 일꾼 → 파송)
+// 순종 회랑 바깥쪽 역사 빛 패널 (1960년대 → 지금, 배가의 성장)
+export const HISTORY = [186, 197, 220, 231, 251, 262].map((a) => ({ ...polar(26.9, a), a }));
+for (const h of HISTORY) block(h.x, h.z, 0.75);
 export const CYCLE = [135, 207, 279, 351, 63].map((a) => ({ ...polar(24.2, a), a }));
 
 // 순종: 둘레 화분, 쟁반 반납대

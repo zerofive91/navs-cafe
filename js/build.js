@@ -468,39 +468,53 @@ export function buildWorld(scene) {
       boat.rotation.z = Math.sin(t * 0.7) * 0.015;
     });
 
-    // 물고기 모빌(사람 낚는 어부)
+    // 물고기 모빌(사람 낚는 어부): 얇은 종이 물고기 떼가 배 위에서 세계 화면 쪽으로 흘러감
     const fishGroup = new THREE.Group();
-    const fishBody = new THREE.SphereGeometry(0.5, 16, 10);
-    fishBody.scale(1, 0.36, 0.26);
-    const fishTail = new THREE.ConeGeometry(0.2, 0.32, 3);
-    fishTail.rotateZ(Math.PI / 2);
+    const fs = new THREE.Shape();
+    fs.moveTo(0.5, 0);
+    fs.quadraticCurveTo(0.2, 0.2, -0.25, 0.04);
+    fs.lineTo(-0.48, 0.17);
+    fs.lineTo(-0.4, 0);
+    fs.lineTo(-0.48, -0.17);
+    fs.lineTo(-0.25, -0.04);
+    fs.quadraticCurveTo(0.2, -0.2, 0.5, 0);
+    const fishGeo = new THREE.ExtrudeGeometry(fs, { depth: 0.02, bevelEnabled: true, bevelSize: 0.012, bevelThickness: 0.012, bevelSegments: 1, curveSegments: 10 });
+    fishGeo.translate(0, 0, -0.01);
+    const fishMat = new THREE.MeshStandardMaterial({ color: 0xfdfcf9, roughness: 0.7, side: THREE.DoubleSide });
+    const fishGold = new THREE.MeshStandardMaterial({ color: 0xf3e2bf, roughness: 0.5, metalness: 0.3, side: THREE.DoubleSide });
+    const sp0 = new THREE.Vector3(x + 3.5, 6.2, z - 3.5);
+    const scr = polar(R_HALL - 2.6, 135);
+    const sp1 = new THREE.Vector3(scr.x, 7.4, scr.z);
+    const ctrl = new THREE.Vector3(x - 2.5, 9.3, z - 2.0);
+    const path = new THREE.QuadraticBezierCurve3(sp0, ctrl, sp1);
     const strings = [];
     const fishes = [];
-    for (let k = 0; k < 46; k++) {
-      const a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * 8.5;
-      const fx = x + Math.cos(a) * r + 1.5, fz = z + Math.sin(a) * r - 1.5;
-      const fy = 4.6 + rnd() * 4.2;
-      const f = new THREE.Group();
-      const b = new THREE.Mesh(fishBody, mat.sculpt);
-      const tl = new THREE.Mesh(fishTail, mat.sculpt);
-      tl.position.x = -0.58;
-      f.add(b, tl);
-      const sc = 0.8 + rnd() * 0.6;
-      f.scale.setScalar(sc);
+    for (let k = 0; k < 64; k++) {
+      const u = k / 63;
+      const c = path.getPoint(u);
+      const tan = path.getTangent(u);
+      const spread = 0.6 + Math.sin(u * Math.PI) * 1.6;
+      const side = new THREE.Vector3(-tan.z, 0, tan.x).normalize();
+      const off = (rnd() - 0.5) * 2 * spread;
+      const fx = c.x + side.x * off, fz = c.z + side.z * off;
+      const fy = c.y + (rnd() - 0.5) * spread * 0.9;
+      const f = new THREE.Mesh(fishGeo, k % 9 === 0 ? fishGold : fishMat);
+      f.scale.setScalar(0.75 + rnd() * 0.35);
       f.position.set(fx, fy, fz);
-      f.rotation.y = deg(-150) + (rnd() - 0.5) * 0.5;
+      const head = Math.atan2(-tan.z, tan.x);
+      f.rotation.set(0, head, (rnd() - 0.5) * 0.25);
       fishGroup.add(f);
-      fishes.push({ f, base: f.rotation.y, y: fy, ph: rnd() * 6 });
-      strings.push(fx, fy + 0.15, fz, fx, CEIL, fz);
+      fishes.push({ f, base: head, y: fy, ph: rnd() * 6 });
+      strings.push(fx, fy + 0.05, fz, fx, CEIL, fz);
     }
     const sg = new THREE.BufferGeometry();
     sg.setAttribute('position', new THREE.Float32BufferAttribute(strings, 3));
-    fishGroup.add(new THREE.LineSegments(sg, new THREE.LineBasicMaterial({ color: 0xcfcac2, transparent: true, opacity: 0.5 })));
+    fishGroup.add(new THREE.LineSegments(sg, new THREE.LineBasicMaterial({ color: 0xd8d3ca, transparent: true, opacity: 0.35 })));
     scene.add(shadowy(fishGroup, true, false));
     anim.push((t) => {
       for (const q of fishes) {
-        q.f.rotation.y = q.base + Math.sin(t * 0.35 + q.ph) * 0.18;
-        q.f.position.y = q.y + Math.sin(t * 0.6 + q.ph) * 0.06;
+        q.f.rotation.y = q.base + Math.sin(t * 0.4 + q.ph) * 0.12;
+        q.f.position.y = q.y + Math.sin(t * 0.6 + q.ph) * 0.05;
       }
     });
 
@@ -701,54 +715,73 @@ function makeBoat() {
   const hullGeo = new THREE.ExtrudeGeometry(shape, { depth: 0.55, bevelEnabled: true, bevelSize: 0.06, bevelThickness: 0.06, bevelSegments: 2, curveSegments: 24 });
   hullGeo.rotateX(Math.PI / 2);
   hullGeo.translate(0, 0.55, 0);
+  hullGeo.scale(1, 1, 0.82);
   const hull = new THREE.Mesh(hullGeo, mat.sculpt);
   g.add(hull);
   const inner = new THREE.Mesh(new THREE.ShapeGeometry(shape, 24), new THREE.MeshStandardMaterial({ color: 0xc8ab82, roughness: 0.8 }));
   inner.geometry.rotateX(Math.PI / 2);
-  inner.geometry.scale(0.84, 1, 0.74);
+  inner.geometry.scale(0.84, 1, 0.6);
   inner.position.y = 0.63;
   // 뱃전(테두리)
   const rimLine = new THREE.Mesh(new THREE.TorusGeometry(1, 0.05, 6, 48), new THREE.MeshStandardMaterial({ color: 0x9b7b55, roughness: 0.6 }));
   rimLine.rotation.x = Math.PI / 2;
-  rimLine.scale.set(1.95, 0.8, 1);
+  rimLine.scale.set(1.95, 0.66, 1);
   rimLine.position.set(0.05, 0.64, 0);
   g.add(rimLine);
   g.add(inner);
   for (const t of [-0.8, 0.8]) {
-    const seatPlank = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.06, 1.3), new THREE.MeshStandardMaterial({ color: 0xcbb592, roughness: 0.8 }));
+    const seatPlank = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.06, 1.05), new THREE.MeshStandardMaterial({ color: 0xcbb592, roughness: 0.8 }));
     seatPlank.position.set(t, 0.68, 0);
     g.add(seatPlank);
   }
-  // 돛대와 돛 (부르심: 바다로 나아가는 배)
-  const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 4.2, 10), new THREE.MeshStandardMaterial({ color: 0xd9cdb8, roughness: 0.6 }));
-  mast.position.set(0.25, 2.7, 0);
+  // 돛대와 돛 (부르심: 바다로 나아가는 배) - 바람을 받아 부푼 곡면 돛
+  const mastMat = new THREE.MeshStandardMaterial({ color: 0xe9e1d2, roughness: 0.5 });
+  const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.055, 5.0, 12), mastMat);
+  mast.position.set(0.25, 3.1, 0);
   g.add(mast);
-  const sailMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9, side: THREE.DoubleSide, emissive: 0xfff4e0, emissiveIntensity: 0.12 });
+  const sailMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.85, side: THREE.DoubleSide, emissive: 0xfff4e0, emissiveIntensity: 0.15 });
+  const billow = (shape, depth) => {
+    const geo = new THREE.ShapeGeometry(shape, 24);
+    const pos = geo.attributes.position;
+    geo.computeBoundingBox();
+    const bb = geo.boundingBox;
+    for (let i = 0; i < pos.count; i++) {
+      const u = (pos.getX(i) - bb.min.x) / (bb.max.x - bb.min.x);
+      const v = (pos.getY(i) - bb.min.y) / (bb.max.y - bb.min.y);
+      pos.setZ(i, depth * Math.sin(u * Math.PI) * (1 - v * 0.6));
+    }
+    geo.computeVertexNormals();
+    return geo;
+  };
   const main = new THREE.Shape();
-  main.moveTo(0.32, 1.0); main.lineTo(0.32, 4.6); main.quadraticCurveTo(1.3, 2.6, 2.0, 1.05); main.closePath();
+  main.moveTo(0.32, 1.05); main.lineTo(0.32, 5.4); main.quadraticCurveTo(1.6, 3.0, 2.2, 1.1); main.closePath();
   const jib = new THREE.Shape();
-  jib.moveTo(0.18, 4.3); jib.lineTo(0.18, 1.1); jib.quadraticCurveTo(-0.9, 1.6, -1.75, 0.95); jib.closePath();
-  for (const sh of [main, jib]) {
-    const m = new THREE.Mesh(new THREE.ShapeGeometry(sh, 16), sailMat);
-    m.rotation.y = sh === main ? 0.12 : -0.1;
-    g.add(m);
-  }
-  const boom = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1.75, 8), mast.material);
+  jib.moveTo(0.18, 5.0); jib.lineTo(0.18, 1.15); jib.quadraticCurveTo(-1.0, 1.7, -1.85, 0.95); jib.closePath();
+  g.add(new THREE.Mesh(billow(main, 0.45), sailMat));
+  const j = new THREE.Mesh(billow(jib, -0.35), sailMat);
+  g.add(j);
+  const boom = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.95, 8), mastMat);
   boom.rotation.z = Math.PI / 2;
-  boom.position.set(1.15, 1.0, 0);
+  boom.position.set(1.25, 1.05, 0);
   g.add(boom);
+  // 금빛 흘수선
+  const wl = new THREE.Mesh(new THREE.TorusGeometry(1, 0.025, 6, 64), new THREE.MeshStandardMaterial({ color: 0xe8c98a, metalness: 0.5, roughness: 0.35 }));
+  wl.rotation.x = Math.PI / 2;
+  wl.scale.set(2.02, 0.8, 1);
+  wl.position.set(0.1, 0.12, 0);
+  g.add(wl);
   return g;
 }
 
 // 둥근 화면의 세계 풍경 (바다 → 산 → 사막 → 밤 도시)
 function drawWorldScreen(g, t) {
   const W = 512;
-  const scenes = [ocean, mountain, desert, nightCity];
+  const scenes = [ocean, mountain, visionEye, desert, nightCity];
   const dur = 14;
-  const idx = Math.floor(t / dur) % scenes.length;
+  const idx = window.__screen ?? Math.floor(t / dur) % scenes.length;
   const ph = (t % dur) / dur;
   scenes[idx](g, W, t);
-  if (ph > 0.88) {
+  if (ph > 0.88 && window.__screen === undefined) {
     g.globalAlpha = (ph - 0.88) / 0.12;
     scenes[(idx + 1) % scenes.length](g, W, t);
     g.globalAlpha = 1;
@@ -833,6 +866,52 @@ function desert(g, W, t) {
     g.fillRect(x - 10, 340, 2, 10);
     g.fillRect(x + 8, 340, 2, 10);
   }
+}
+// 비전의 눈: 지구를 품은 눈 (하나님의 눈으로 세상을 봄)
+function visionEye(g, W, t) {
+  const bg = g.createRadialGradient(W / 2, W / 2, 20, W / 2, W / 2, W * 0.7);
+  bg.addColorStop(0, '#fff6e2');
+  bg.addColorStop(1, '#e9d3a8');
+  g.fillStyle = bg;
+  g.fillRect(0, 0, W, W);
+  const cx = W / 2, cy = W / 2;
+  // 눈의 윤곽
+  g.save();
+  g.beginPath();
+  g.moveTo(40, cy);
+  g.quadraticCurveTo(cx, cy - 210, W - 40, cy);
+  g.quadraticCurveTo(cx, cy + 210, 40, cy);
+  g.closePath();
+  g.fillStyle = '#fffdf8';
+  g.fill();
+  g.lineWidth = 6;
+  g.strokeStyle = '#b8894a';
+  g.stroke();
+  g.clip();
+  // 눈동자 = 천천히 도는 지구
+  const R = 92;
+  const sea = g.createRadialGradient(cx - 30, cy - 30, 10, cx, cy, R);
+  sea.addColorStop(0, '#7fc0e8');
+  sea.addColorStop(1, '#2f6fa8');
+  g.fillStyle = sea;
+  g.beginPath(); g.arc(cx, cy, R, 0, Math.PI * 2); g.fill();
+  g.save();
+  g.beginPath(); g.arc(cx, cy, R, 0, Math.PI * 2); g.clip();
+  g.fillStyle = '#8cc58a';
+  const sh = (t * 12) % (R * 4);
+  for (const [ox, oy, rx, ry] of [[-60, -30, 40, 26], [10, 20, 34, 44], [70, -40, 30, 20], [-20, 60, 26, 16], [110, 30, 28, 30]]) {
+    for (const rep of [0, -R * 4]) {
+      const x = cx + ((ox + sh + R * 2) % (R * 4)) - R * 2 + rep + R * 2 - R * 2;
+      g.beginPath(); g.ellipse(x, cy + oy, rx, ry, 0.3, 0, Math.PI * 2); g.fill();
+    }
+  }
+  g.restore();
+  g.lineWidth = 4;
+  g.strokeStyle = 'rgba(255,255,255,0.5)';
+  g.beginPath(); g.arc(cx, cy, R, 0, Math.PI * 2); g.stroke();
+  g.fillStyle = 'rgba(255,255,255,0.7)';
+  g.beginPath(); g.arc(cx - 34, cy - 38, 14, 0, Math.PI * 2); g.fill();
+  g.restore();
 }
 function nightCity(g, W, t) {
   const sky = g.createLinearGradient(0, 0, 0, W);

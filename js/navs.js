@@ -4,7 +4,7 @@
 //  - 일꾼 배가 순환: 순종 회랑 바닥의 다섯 표식(세계 → 초신자 → 제자 → 일꾼 → 파송)
 //  - 핵심가치: 가운데 위에 매달린 열 장의 빛 카드
 import * as THREE from 'three';
-import { Q, CEIL, WORD_HAND, CYCLE, deg } from './layout.js';
+import { Q, CEIL, WORD_HAND, CYCLE, HISTORY, deg } from './layout.js';
 
 const sculpt = new THREE.MeshStandardMaterial({ color: 0xfbfaf7, roughness: 0.95 });
 
@@ -17,6 +17,7 @@ export function buildNavigators(scene, anim, interactive) {
   prayerLights(scene, anim);
   cycleMarks(scene, anim);
   coreValues(scene, anim);
+  historyPanels(scene, anim);
 }
 
 // ---------- 말씀: 다섯 줄기 빛이 흐르는 곡면 벽 ----------
@@ -211,26 +212,104 @@ function drawSend(g) { // 파송: 바깥으로 향하는 화살과 길
   person(g, 84, 120, 0.7);
 }
 
-// ---------- 핵심가치: 매달린 열 장의 빛 카드 ----------
+// ---------- 핵심가치: 천창 빛기둥을 둘러싼 열 장의 빛 유리 ----------
+function roundedRect(w, h, r) {
+  const sh = new THREE.Shape();
+  sh.moveTo(-w / 2 + r, -h / 2);
+  sh.lineTo(w / 2 - r, -h / 2); sh.quadraticCurveTo(w / 2, -h / 2, w / 2, -h / 2 + r);
+  sh.lineTo(w / 2, h / 2 - r); sh.quadraticCurveTo(w / 2, h / 2, w / 2 - r, h / 2);
+  sh.lineTo(-w / 2 + r, h / 2); sh.quadraticCurveTo(-w / 2, h / 2, -w / 2, h / 2 - r);
+  sh.lineTo(-w / 2, -h / 2 + r); sh.quadraticCurveTo(-w / 2, -h / 2, -w / 2 + r, -h / 2);
+  return sh;
+}
 function coreValues(scene, anim) {
   const cards = [];
-  const cardMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffe9c4, emissiveIntensity: 0.35, roughness: 0.4, side: THREE.DoubleSide });
+  const shape = roundedRect(0.8, 1.25, 0.12);
+  const geo = new THREE.ExtrudeGeometry(shape, { depth: 0.03, bevelEnabled: true, bevelSize: 0.015, bevelThickness: 0.015, bevelSegments: 2 });
+  geo.translate(0, 0, -0.015);
+  const edgePts = shape.getPoints(24).map((p) => new THREE.Vector3(p.x, p.y, 0));
+  const edgeGeo = new THREE.BufferGeometry().setFromPoints(edgePts);
+  const strMat = new THREE.MeshBasicMaterial({ color: 0xd8d3ca });
   for (let k = 0; k < 10; k++) {
     const a = (k / 10) * Math.PI * 2 + 0.31;
-    const r = 7.6;
-    const y = 7.2 + (k % 2) * 0.6;
-    const card = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 1.3), cardMat.clone());
-    card.position.set(Math.cos(a) * r, y, Math.sin(a) * r);
-    const line = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, CEIL - y - 0.65, 4), new THREE.MeshBasicMaterial({ color: 0xcfc8bc }));
-    line.position.set(card.position.x, (CEIL + y + 0.65) / 2, card.position.z);
-    scene.add(card, line);
-    cards.push({ card, a, k });
+    const r = 6.6;
+    const y = 8.3 + Math.sin(k * 2.1) * 0.35;
+    const g = new THREE.Group();
+    const glass = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0xfffaf0, emissive: 0xffe2b0, emissiveIntensity: 0.35, roughness: 0.25, transparent: true, opacity: 0.78 }));
+    const edge = new THREE.LineLoop(edgeGeo, new THREE.LineBasicMaterial({ color: 0xe0b46c }));
+    edge.position.z = 0.035;
+    const edge2 = edge.clone();
+    edge2.position.z = -0.035;
+    g.add(glass, edge, edge2);
+    g.position.set(Math.cos(a) * r, y, Math.sin(a) * r);
+    const line = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, CEIL - y - 0.62, 4), strMat);
+    line.position.set(g.position.x, (CEIL + y + 0.62) / 2, g.position.z);
+    scene.add(g, line);
+    cards.push({ g, glass: glass.material, a, k });
   }
   anim.push((t) => {
     for (const c of cards) {
-      c.card.rotation.y = -c.a + Math.sin(t * 0.25 + c.k) * 0.5;
-      c.card.material.emissiveIntensity = 0.3 + 0.2 * Math.sin(t * 0.7 + c.k * 0.63);
+      c.g.rotation.y = -c.a + Math.PI / 2 + Math.sin(t * 0.2 + c.k) * 0.35;
+      c.glass.emissiveIntensity = 0.3 + 0.2 * Math.sin(t * 0.6 + c.k * 0.63);
     }
   });
 }
 
+// ---------- 역사: 1960년대부터 지금까지, 한 사람에서 시작된 배가 ----------
+// 글자·사진 없이 점(사람)과 선(이어줌)으로 세대가 늘어나는 모습만 그림
+function drawGeneration(g, gen) {
+  const W = 256, H = 448;
+  const bg = g.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#fffaf1');
+  bg.addColorStop(1, '#f3ebdd');
+  g.fillStyle = bg;
+  g.fillRect(0, 0, W, H);
+  g.strokeStyle = 'rgba(160,112,48,0.75)';
+  g.fillStyle = '#a8742f';
+  g.lineWidth = 3;
+  // 아래에서 위로 자라는 나무 모양의 배가: 한 세대마다 각 점이 둘을 세움
+  let level = [{ x: W / 2, y: H - 50 }];
+  g.beginPath(); g.arc(W / 2, H - 50, 13, 0, Math.PI * 2); g.fill();
+  for (let d = 1; d <= gen; d++) {
+    const y = H - 50 - d * ((H - 110) / 6);
+    const n = Math.min(level.length * 2, 32);
+    const next = [];
+    for (let i = 0; i < n; i++) next.push({ x: 24 + ((i + 0.5) * (W - 48)) / n, y });
+    next.forEach((p, i) => {
+      const par = level[Math.floor((i * level.length) / n)];
+      g.beginPath(); g.moveTo(par.x, par.y); g.quadraticCurveTo(par.x, (par.y + p.y) / 2, p.x, p.y); g.stroke();
+    });
+    const r = Math.max(4.5, 10 - d);
+    next.forEach((p) => { g.beginPath(); g.arc(p.x, p.y, r, 0, Math.PI * 2); g.fill(); });
+    level = next;
+  }
+}
+function historyPanels(scene, anim) {
+  const frames = [];
+  HISTORY.forEach((h, k) => {
+    const cv = document.createElement('canvas');
+    cv.width = 256; cv.height = 448;
+    drawGeneration(cv.getContext('2d'), k + 1);
+    const tex = new THREE.CanvasTexture(cv);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const g = new THREE.Group();
+    const panel = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 1.92), new THREE.MeshStandardMaterial({ map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.12, roughness: 0.6 }));
+    panel.position.set(0, 1.55, 0.03);
+    const back = new THREE.Mesh(new THREE.BoxGeometry(1.22, 2.05, 0.06), sculpt);
+    back.position.y = 1.55;
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.3), sculpt);
+    leg.position.y = 0.25;
+    const glow = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 0.5), new THREE.MeshBasicMaterial({ color: 0xffd58a, transparent: true, opacity: 0.2, depthWrite: false }));
+    glow.rotation.x = -Math.PI / 2;
+    glow.position.set(0, 0.27, 0.45);
+    g.add(back, panel, leg, glow);
+    g.position.set(h.x, 0.25, h.z);
+    g.lookAt(0, 0.25, 0);
+    g.traverse((c) => { if (c.isMesh && c !== glow) { c.castShadow = true; c.receiveShadow = true; } });
+    scene.add(g);
+    frames.push(panel.material);
+  });
+  anim.push((t) => {
+    frames.forEach((m, k) => { m.emissiveIntensity = 0.1 + 0.05 * Math.sin(t * 0.5 + k); });
+  });
+}
