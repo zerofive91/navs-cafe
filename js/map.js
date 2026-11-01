@@ -3,9 +3,9 @@
 // 지도를 누르면 그곳으로 걸어감
 import { TRAILS, PARK, R_HALL, R_WALK, R_PARK, R_GARDEN, BRIDGE, FLOWER_BEDS } from './layout.js';
 import { COURSE_META, foundCourses } from './courses.js';
-import { nearestFree } from './nav.js';
+import { nearestFree, findPath } from './nav.js';
 
-export function initMap({ me, people, walkTo, icon, placesEl, before }) {
+export function initMap({ me, people, walkTo, say, icon, placesEl, before }) {
   const btn = document.createElement('button');
   btn.className = 'place';
   btn.setAttribute('aria-label', 'map');
@@ -120,7 +120,19 @@ export function initMap({ me, people, walkTo, icon, placesEl, before }) {
     g.fillStyle = '#ff6a5a'; g.strokeStyle = '#fff'; g.lineWidth = 2; g.fill(); g.stroke();
     g.restore();
   }
-  const loop = (now) => { draw(now / 1000); raf = requestAnimationFrame(loop); };
+  // 갈 수 없는 곳을 눌렀을 때 그 자리에 잠깐 떴다 사라지는 ✕
+  const drawNope = (t) => {
+    if (!nope) return;
+    const a = 1 - (t - nope.t) / 1.6;
+    if (a <= 0) { nope = null; return; }
+    const X = sx(nope.x), Y = sy(nope.z), r = 9 + (1 - a) * 4;
+    g.save(); g.globalAlpha = a; g.lineCap = 'round';
+    g.strokeStyle = 'rgba(0,0,0,0.5)'; g.lineWidth = 6;
+    g.beginPath(); g.moveTo(X - r, Y - r); g.lineTo(X + r, Y + r); g.moveTo(X + r, Y - r); g.lineTo(X - r, Y + r); g.stroke();
+    g.strokeStyle = '#ff7a6a'; g.lineWidth = 3.5; g.stroke();
+    g.restore();
+  };
+  const loop = (now) => { draw(now / 1000); drawNope(now / 1000); raf = requestAnimationFrame(loop); };
 
   function open() {
     wrap.hidden = false; resize(); fit();
@@ -135,7 +147,7 @@ export function initMap({ me, people, walkTo, icon, placesEl, before }) {
 
   // 끌어서 옮기기, 두 손가락·휠로 확대, 짧게 누르면 그곳으로 걸어가기
   const pts = new Map();
-  let moved = 0, pinch = null;
+  let moved = 0, pinch = null, nope = null;
   cv.addEventListener('pointerdown', (e) => { e.stopPropagation(); cv.setPointerCapture(e.pointerId); pts.set(e.pointerId, { x: e.offsetX, y: e.offsetY }); moved = 0; if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), k: V.k }; } });
   cv.addEventListener('pointermove', (e) => {
     const p = pts.get(e.pointerId); if (!p) return;
@@ -149,8 +161,11 @@ export function initMap({ me, people, walkTo, icon, placesEl, before }) {
     if (!pts.has(e.pointerId)) return;
     pts.delete(e.pointerId); if (pts.size < 2) pinch = null;
     if (moved < 8 && pts.size === 0) {
-      const q = nearestFree({ x: wx(e.offsetX), z: wz(e.offsetY) });
-      if (q) { walkTo(me, q); shut(); }
+      const p = { x: wx(e.offsetX), z: wz(e.offsetY) };
+      const q = nearestFree(p);
+      const path = q ? findPath(me, q) : [];
+      if (q && (path.length || Math.hypot(q.x - me.x, q.z - me.z) < 1)) { walkTo(me, q, null, path); shut(); }
+      else { nope = { x: p.x, z: p.z, t: performance.now() / 1000 }; say?.('그곳은 걸어서 갈 수 없어요', 2); }
     }
   };
   cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', (e) => pts.delete(e.pointerId));
