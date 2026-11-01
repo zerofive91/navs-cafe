@@ -886,7 +886,7 @@ export function addCourses(ctx) {
     // 짐은 천로역정 길(과 시내산 샛길) 위에서만 짐: 출입구 아치를 지나 정원으로 나오거나 길에서 벗어나면 내려놓음
     if ((offT -= dt) < 0 && Math.hypot(me.x, me.z) < R_PARK + 1) {
       freed = false; if (burden) setBurden(false);
-      if (Math.hypot(me.x, me.z) < R_HALL && me.av.userData.outfit) wear(null); // 카페 안에 들어오면 원래 옷으로
+      if (me.av.userData.outfit) wear(null); // 코스에서 나오면 원래 옷으로
     }
     if (burden && offT < 0) {
       offT = 0.5;
