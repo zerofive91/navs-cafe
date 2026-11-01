@@ -280,11 +280,11 @@ const ACTIONS = {
   praise: () => { if (me.seat && me.seat.kind !== 'kneel') standUp(me); act('praise'); },
   vhand: () => act('vhand', 2.6),
   climb: () => {
-    const t = nearTree(me.x, me.z, 1.8);
+    const t = nearTree(me.x, me.z, 1.8, 3.6);
     if (!t) return;
     standUp(me); me.path = []; me.task = null;
     const a = Math.atan2(me.z - t.z, me.x - t.x);
-    me.climb = { t, y: 0, phase: 'up', x: t.x + Math.cos(a) * 0.38, z: t.z + Math.sin(a) * 0.38, top: Math.max(0.6, t.h * 1.15 * 0.3 - 1.35) }; // 손이 가장 낮은 가지에 닿는 높이
+    me.climb = { t, y: 0, phase: 'up', from: { x: me.x, z: me.z }, x: t.x + Math.cos(a) * 0.38, z: t.z + Math.sin(a) * 0.38, top: Math.max(0.6, t.h * 1.15 * 0.3 - 1.35) }; // 손이 가장 낮은 가지에 닿는 높이
     me.face = Math.atan2(t.x - me.x, t.z - me.z);
     me.jumps = 0; me.vy = 0;
   },
@@ -484,6 +484,9 @@ function stepGifts(dt) {
 // 나무에서 손을 놓으면 그 높이에서 떨어짐(점프 낙하와 같음)
 function dropFromTree() {
   if (!me.climb) return;
+  // 내려오면 오르기 전에 서 있던 길 쪽으로 (숲의 나무는 길 밖에 있어 줄기 옆에 내리면 갇힘)
+  const from = me.climb.from;
+  if (from && !isFree(me.x, me.z)) { me.x = from.x; me.z = from.z; }
   me.climb = null;
   me.action = null;
   me.jumps = 1; me.vy = 0.5;
@@ -514,7 +517,7 @@ function availableActions() {
   if (signs.nearBread()) list.push('loaves');
   if (signs.canFish()) list.push('fish');
   list.push(...park.available());
-  if (outdoors(me) && nearTree(me.x, me.z, 1.8)) list.push('climb');
+  if (outdoors(me) && nearTree(me.x, me.z, 1.8, 3.6)) list.push('climb');
   list.push(...walkToggle);
   if ((me.item === 'cup' || me.food) && !near(SPOTS.tray)) list.push('putdown');
   if ((me.item === 'cup' || me.food) && near(SPOTS.tray)) list.push('tray');
@@ -729,7 +732,9 @@ function stickUp(e) {
 stickEl.addEventListener('pointerup', stickUp);
 stickEl.addEventListener('pointercancel', stickUp);
 const KEYMAP = { ArrowUp: 'u', KeyW: 'u', ArrowDown: 'd', KeyS: 'd', ArrowLeft: 'l', KeyA: 'l', ArrowRight: 'r', KeyD: 'r' };
-// 컴퓨터 단축키: 방향키·WASD 걷기, 스페이스 점프, M 지도, Shift 걷기/달리기, C 앉기/일어서기, Z 눕기/일어서기, Enter 다음 말씀
+// 컴퓨터 단축키: 방향키·WASD 걷기, 스페이스 점프, M 지도, Shift 걷기/달리기, C 앉기/일어서기, Z 눕기/일어서기,
+// X 기도, V 말씀, E 그 자리에서만 할 수 있는 체험(나무 오르기·주문·낚시 등), Enter 다음 말씀
+const NOT_E = new Set(['walk', 'run', 'sit', 'stand', 'recline', 'jump', 'pray', 'read', 'praise', 'share', 'wave', 'sip', 'eat', 'putdown']);
 const lying = () => me.seat && (me.seat.kind === 'lie' || me.seat.kind === 'recline' || me.seat.kind === 'beanbag');
 const HOTKEYS = {
   KeyM: () => (map.el.hidden ? map.open() : map.shut()),
@@ -738,6 +743,9 @@ const HOTKEYS = {
   ShiftRight: () => pressIfAvailable('walk', 'run'),
   KeyC: () => pressIfAvailable('sit', 'stand'),
   KeyZ: () => (lying() ? pressIfAvailable('stand') : pressIfAvailable('recline')),
+  KeyX: () => (me.action === 'pray' ? ACTIONS.stand() : pressIfAvailable('pray')),
+  KeyV: () => (me.action === 'read' ? (me.seat ? ACTIONS.stand() : (me.action = null)) : pressIfAvailable('read')),
+  KeyE: () => { if (me.action !== 'menu') pressIfAvailable(...availableActions().filter((n) => !NOT_E.has(n))); },
   Enter: () => nextVerse(),
   NumpadEnter: () => nextVerse(),
 };
