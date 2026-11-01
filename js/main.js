@@ -747,8 +747,8 @@ const HOTKEYS = {
   KeyX: () => (me.action === 'pray' ? ACTIONS.stand() : pressIfAvailable('pray')),
   // 교제: 카운터 앞이면 주문, 아니면 교제의 자리(카페 카운터)로 걸어감
   KeyC: () => pressIfAvailable('order') || goPlace('order'),
-  // 증거: 가까이 사람이 있으면 빛을 건넴, 없으면 증거의 자리(배)로
-  KeyV: () => pressIfAvailable('share') || goPlace('boat'),
+  // 증거: 가까이 사람이 있으면 빛을 건넴, 없으면 전도를 격려하는 말씀 한 구절
+  KeyV: () => pressIfAvailable('share') || showNext('witness', 0.2),
   KeyB: () => toggle('praise'),
   KeyJ: () => pressIfAvailable('sit', 'stand'),
   KeyK: () => (lying() ? pressIfAvailable('stand') : pressIfAvailable('recline')),
