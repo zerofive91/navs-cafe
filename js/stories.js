@@ -1,6 +1,6 @@
 // 성경 이야기 체험: 여리고 성(히 11:30), 다윗과 골리앗(삼상 17:45), 요나와 큰 물고기(욘 2)
 import * as THREE from 'three';
-import { PARK, JERICHO, GOLIATH, JONAH_POND, obstacles } from './layout.js';
+import { PARK, JERICHO, GOLIATH, JONAH_POND, JONAH_SEA, obstacles } from './layout.js';
 import { showVerse, VERSES } from './verses.js';
 import { makeAvatar } from './avatar.js';
 
@@ -223,15 +223,69 @@ export function addStories(ctx) {
     const zn = PARK.jonah;
     const g = zoneGroup(scene, zn);
     const P = JONAH_POND;
-    // 못: 물빛 원판 + 둘레 돌
-    const water = new THREE.Mesh(new THREE.CircleGeometry(P.r, 40), M(0x3f7f99, 0.15, { transparent: true, opacity: 0.92 }));
-    water.rotation.x = -Math.PI / 2; water.position.set(P.x, G0 + 0.03, P.z); scene.add(water);
-    for (let k = 0; k < 22; k++) {
-      const a = (k / 22) * Math.PI * 2;
-      const st = new THREE.Mesh(new THREE.DodecahedronGeometry(0.28 + Math.random() * 0.12, 0), MAT.stone);
-      st.position.set(P.x + Math.cos(a) * P.r, G0 + 0.08, P.z + Math.sin(a) * P.r); st.scale.y = 0.55;
+    // 바다: 물결치는 넓은 물 + 모래밭 물가 + 바위 (요나가 다시스로 가는 배를 탄 욥바 바닷가)
+    const SEA = JONAH_SEA, Z = zn, seaY = G0 + 0.24;
+    const at3 = (u, v, y) => { const p = Z.at(u, v); return new THREE.Vector3(p.x, y, p.z); };
+    // 모래밭: 물가 안쪽으로 펼쳐진 넓은 모래
+    {
+      const sh = new THREE.Shape(), pts = [];
+      for (let v = SEA.v1 + 1; v >= SEA.v0 - 1; v -= 0.5) pts.push([SEA.shore(Math.max(SEA.v0, Math.min(SEA.v1, v))) - 0.2, v]);
+      pts.push([-6.4, SEA.v0 - 0.6], [-6.4, SEA.v1 + 0.6]);
+      pts.forEach(([u, v], i) => { const p = Z.at(u, v); i ? sh.lineTo(p.x, -p.z) : sh.moveTo(p.x, -p.z); });
+      const sand = new THREE.Mesh(new THREE.ShapeGeometry(sh), M(0xe6d3a3, 1));
+      sand.rotation.x = -Math.PI / 2; sand.position.y = G0 + 0.012; sand.receiveShadow = true; scene.add(sand);
+    }
+    // 바닷물: 그물을 물결 모양으로 움직임
+    const SU = 44, SV = 52;
+    const seaGeo = new THREE.PlaneGeometry(1, 1, SU, SV);
+    const sp = seaGeo.attributes.position, base = [];
+    for (let k = 0; k < sp.count; k++) {
+      const fu = sp.getX(k) + 0.5, fv = sp.getY(k) + 0.5;
+      const v = SEA.v0 - 0.3 + fv * (SEA.v1 - SEA.v0 + 0.6);
+      const u0 = SEA.shore(Math.max(SEA.v0, Math.min(SEA.v1, v))) - 0.35;
+      let u = u0 + fu * (SEA.u1 + 0.4 - u0);
+      // 먼 모서리는 둥글게
+      const cv = Math.abs(v) - (SEA.v1 - SEA.round), cu = u - (SEA.u1 - SEA.round);
+      if (cv > 0 && cu > 0) { const r = Math.hypot(cu, cv), R = SEA.round + 0.4; if (r > R) { u = SEA.u1 - SEA.round + cu * R / r; } }
+      const p = Z.at(u, v); base.push(p.x, p.z, u - u0);
+      sp.setXYZ(k, p.x, seaY, p.z);
+    }
+    seaGeo.computeVertexNormals();
+    const water = new THREE.Mesh(seaGeo, M(0x2a7fa3, 0.12, { transparent: true, opacity: 0.94, emissive: 0x0a3044, emissiveIntensity: 0.35, side: THREE.DoubleSide }));
+    water.receiveShadow = true; scene.add(water);
+    // 물가로 밀려오는 흰 물거품 줄
+    const foams = [];
+    for (let k = 0; k < 3; k++) {
+      const fg = new THREE.BufferGeometry(), fp = [];
+      for (let v = SEA.v0 + 0.5; v <= SEA.v1 - 0.5; v += 0.5) fp.push(0, 0, 0);
+      fg.setAttribute('position', new THREE.Float32BufferAttribute(fp, 3));
+      const fl = new THREE.Line(fg, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 }));
+      scene.add(fl); foams.push({ fl, ph: k / 3 });
+    }
+    // 물가 바위
+    for (let k = 0; k < 14; k++) {
+      const v = SEA.v0 + 0.6 + (k / 13) * (SEA.v1 - SEA.v0 - 1.2), u = SEA.shore(v) + (k % 3 === 0 ? 0.6 : -0.3);
+      if (k % 2) continue;
+      const st = new THREE.Mesh(new THREE.DodecahedronGeometry(0.35 + (k % 4) * 0.12, 0), MAT.stone);
+      st.position.copy(at3(u, v, G0 + 0.1)); st.scale.y = 0.6; st.rotation.y = k;
       scene.add(shadow(st));
     }
+    for (const [u, v, r] of [[11.4, -6.6, 1.2], [9.2, 7.0, 1.0], [13.4, 1.6, 0.9]]) { const rk = new THREE.Mesh(new THREE.DodecahedronGeometry(r, 0), MAT.stone); rk.position.copy(at3(u, v, G0 + 0.1)); rk.scale.y = 0.75; scene.add(shadow(rk)); }
+    steps.push((dt, t) => {
+      if (Math.hypot(me.x - zn.x, me.z - zn.z) > 60) return;
+      for (let k = 0; k < sp.count; k++) {
+        const x = base[k * 3], z = base[k * 3 + 1], d = base[k * 3 + 2];
+        const amp = Math.min(1, d / 3) * 0.16;
+        sp.setY(k, seaY + amp * (Math.sin(x * 0.9 + t * 1.6) * 0.6 + Math.sin(z * 1.3 - t * 1.1) * 0.4));
+      }
+      sp.needsUpdate = true;
+      for (const f of foams) {
+        const k = (t * 0.18 + f.ph) % 1, off = 2.4 * (1 - k); const a = f.fl.geometry.attributes.position;
+        let i = 0;
+        for (let v = SEA.v0 + 0.5; v <= SEA.v1 - 0.5; v += 0.5, i++) { const p = Z.at(SEA.shore(v) + off + 0.1 * Math.sin(v * 3 + t), v); a.setXYZ(i, p.x, seaY + 0.06, p.z); }
+        a.needsUpdate = true; f.fl.material.opacity = 0.75 * Math.sin(k * Math.PI);
+      }
+    });
     // 작은 배 (다시스로 가던 배)
     const boat = new THREE.Group();
     const hull = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.3, 2.0, 10, 1, false, 0, Math.PI), MAT.wood);
@@ -239,7 +293,7 @@ export function addStories(ctx) {
     hull.scale.set(1, 1, 0.8); hull.position.y = 0.32; boat.add(hull);
     const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.8, 6), MAT.woodDark); mast.position.y = 1.2; boat.add(mast);
     const sail = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 1.1), M(0xf2ead8, 0.8, { side: THREE.DoubleSide })); sail.position.set(0, 1.35, 0.02); sail.rotation.y = Math.PI / 2; boat.add(sail);
-    boat.position.set(P.x + 1.6, G0, P.z - 1.2); scene.add(shadow(boat));
+    boat.position.set(P.x + 1.6, seaY - 0.18, P.z - 1.2); scene.add(shadow(boat));
     // 큰 물고기: 몸통·꼬리·지느러미·벌어지는 아래턱
     const fish = new THREE.Group();
     const skin = M(0x4a6d86, 0.6), belly = M(0xc9d6dc, 0.7);
@@ -269,7 +323,7 @@ export function addStories(ctx) {
     avail.push(() => (dist(spot()) < 3.4 && T < 0 ? 'jonah' : null));
     tapTo([boat, water], spot, () => { if (T < 0) actions.jonah(); }, 3);
     steps.push((dt, t) => {
-      if (T < 0) { water.material.opacity = 0.9 + Math.sin(t) * 0.02; return; }
+      if (T < 0) return;
       T += dt;
       const toMe = Math.atan2(me.x - P.x, me.z - P.z);
       // 0-1.6: 물고기가 솟아오름, 입을 벌림

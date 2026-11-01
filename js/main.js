@@ -732,19 +732,27 @@ function stickUp(e) {
 stickEl.addEventListener('pointerup', stickUp);
 stickEl.addEventListener('pointercancel', stickUp);
 const KEYMAP = { ArrowUp: 'u', KeyW: 'u', ArrowDown: 'd', KeyS: 'd', ArrowLeft: 'l', KeyA: 'l', ArrowRight: 'r', KeyD: 'r' };
-// 컴퓨터 단축키: 방향키·WASD 걷기, 스페이스 점프, M 지도, Shift 걷기/달리기, C 앉기/일어서기, Z 눕기/일어서기,
-// X 기도, V 말씀, E 그 자리에서만 할 수 있는 체험(나무 오르기·주문·낚시 등), Enter 다음 말씀
+// 컴퓨터 단축키: 방향키·WASD 걷기, 스페이스 점프, M 지도, Shift 걷기/달리기, E 그 자리 체험(나무 오르기·주문·낚시 등), Enter 다음 말씀
+// Z 말씀, X 기도, C 교제, V 증거, B 찬양 (수레바퀴 순서) / J 앉기, K 눕기, L 먹고 마시기
 const NOT_E = new Set(['walk', 'run', 'sit', 'stand', 'recline', 'jump', 'pray', 'read', 'praise', 'share', 'wave', 'sip', 'eat', 'putdown']);
 const lying = () => me.seat && (me.seat.kind === 'lie' || me.seat.kind === 'recline' || me.seat.kind === 'beanbag');
+const goPlace = (name) => { const p = PLACES.find((q) => q[0] === name); if (p) walkTo(me, { x: p[1].x, z: p[1].z }, () => faceTo(me, p[2])); };
+const toggle = (name) => (me.action === name ? (me.seat ? ACTIONS.stand() : (me.action = null)) : pressIfAvailable(name));
 const HOTKEYS = {
   KeyM: () => (map.el.hidden ? map.open() : map.shut()),
   Escape: () => { if (!map.el.hidden) map.shut(); },
   ShiftLeft: () => pressIfAvailable('walk', 'run'),
   ShiftRight: () => pressIfAvailable('walk', 'run'),
-  KeyC: () => pressIfAvailable('sit', 'stand'),
-  KeyZ: () => (lying() ? pressIfAvailable('stand') : pressIfAvailable('recline')),
+  KeyZ: () => toggle('read'),
   KeyX: () => (me.action === 'pray' ? ACTIONS.stand() : pressIfAvailable('pray')),
-  KeyV: () => (me.action === 'read' ? (me.seat ? ACTIONS.stand() : (me.action = null)) : pressIfAvailable('read')),
+  // 교제: 카운터 앞이면 주문, 아니면 교제의 자리(카페 카운터)로 걸어감
+  KeyC: () => pressIfAvailable('order') || goPlace('order'),
+  // 증거: 가까이 사람이 있으면 빛을 건넴, 없으면 전도를 격려하는 말씀 한 구절
+  KeyV: () => pressIfAvailable('share') || showNext('witness', 0.2),
+  KeyB: () => toggle('praise'),
+  KeyJ: () => pressIfAvailable('sit', 'stand'),
+  KeyK: () => (lying() ? pressIfAvailable('stand') : pressIfAvailable('recline')),
+  KeyL: () => pressIfAvailable('eat', 'sip'),
   KeyE: () => { if (me.action !== 'menu') pressIfAvailable(...availableActions().filter((n) => !NOT_E.has(n))); },
   Enter: () => nextVerse(),
   NumpadEnter: () => nextVerse(),
@@ -778,9 +786,13 @@ function driveStick(dt) {
   const step = SPEED * (0.35 + 0.65 * mag) * (me.running ? runBoost(me) : 1) * (me.slow || 1) * dt;
   const nx = me.x + mx * step, nz = me.z + mz * step;
   const hop = me.hop || 0; // 점프 중이면 낮은 물건은 넘어감
-  if (isFree(nx, nz, hop)) { me.x = nx; me.z = nz; }
-  else if (isFree(nx, me.z, hop)) me.x = nx;
-  else if (isFree(me.x, nz, hop)) me.z = nz;
+  const base = floorY(me.x, me.z);
+  // 가파른 턱(성벽·계단 옆면)은 발이 그보다 높이 떠 있을 때만 올라섬
+  const ok = (x, z) => isFree(x, z, hop, base) && floorY(x, z) - base <= 0.45 + hop;
+  if (ok(nx, nz)) { me.x = nx; me.z = nz; }
+  else if (ok(nx, me.z)) me.x = nx;
+  else if (ok(me.x, nz)) me.z = nz;
+  stepHeight(me, base);
   me.face = Math.atan2(mx, mz);
   me.state = 'walk';
 }
@@ -849,6 +861,14 @@ placesEl.appendChild(musicBtn);
 const music = initMusic(musicBtn, ICONS);
 
 // ---------- 루프 ----------
+// 턱을 오르내릴 때: 단 위로 올라서면 점프 높이를 바닥으로 옮기고, 턱에서 내려서면 떨어짐
+function stepHeight(ch, before) {
+  const now = floorY(ch.x, ch.z), d = now - before;
+  if (Math.abs(d) < 0.25) return;
+  ch.y = now;
+  if (d > 0) ch.hop = Math.max(0, (ch.hop || 0) - d);
+  else { ch.hop = (ch.hop || 0) - d; if (!ch.jumps) { ch.jumps = 1; ch.vy = 0; } }
+}
 function stepChar(ch, dt) {
   if (ch.climb) {
     // 나무 타기: 줄기를 붙잡고 올라가 가지에 매달림
@@ -1068,6 +1088,17 @@ function frame(now) {
     dist = Math.max(4.5, dist);
     const horiz = Math.cos(el) * dist;
     const camPos = new THREE.Vector3(P.x + Math.sin(az) * horiz, Math.min(outdoors(me) ? 60 : CEIL - 0.8, P.y + Math.sin(el) * dist), P.z + Math.cos(az) * horiz);
+    // 언덕·성벽이 카메라와 캐릭터 사이를 가리면 카메라를 그만큼 위로 들어 올림 (땅 속으로 들어가지 않게)
+    if (outdoors(me)) {
+      let need = 0;
+      for (let k = 0.2; k <= 1.001; k += 0.2) {
+        const qx = P.x + (camPos.x - P.x) * k, qz = P.z + (camPos.z - P.z) * k;
+        const ground = floorY(qx, qz) + 0.9, lineY = P.y + (camPos.y - P.y) * k;
+        if (ground > lineY) need = Math.max(need, (ground - P.y) / k - (camPos.y - P.y));
+      }
+      view.lift = (view.lift || 0) + (need - (view.lift || 0)) * Math.min(1, rdt * (need > (view.lift || 0) ? 8 : 1.5));
+      camPos.y += view.lift;
+    } else view.lift = 0;
     camera.position.copy(camPos);
     camera.lookAt(P);
     // 화면에서 캐릭터 중심이 세로 -0.22(가운데보다 약간 아래)에 오도록 위로 살짝 기울임

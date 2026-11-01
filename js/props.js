@@ -110,7 +110,7 @@ export function loadProps({ scene, deco, interactive, anim, renderer, occluders 
   const many = instancer(scene);
   deco.trees.forEach((t, k) => {
     // 숲의 나무는 묶어서 한 번에 그림, 정원 안 나무는 카메라를 가리면 반투명해지도록 하나씩
-    if (Math.hypot(t.x, t.z) > R_GARDEN + 2) { many.add(N + TREES[k % TREES.length] + '.glb', { x: t.x, z: t.z, y: -0.5, rot: k * 1.7, height: t.h * 1.15 }); return; }
+    if (Math.hypot(t.x, t.z) > R_GARDEN + 2) { many.add(N + TREES[k % TREES.length] + '.glb', { x: t.x, z: t.z, y: floorY(t.x, t.z) - 0.15, rot: k * 1.7, height: t.h * 1.15 }); return; }
     place(scene, N + TREES[k % TREES.length] + '.glb', { x: t.x, z: t.z, y: -0.5, rot: k * 1.7, height: t.h * 1.15, shadow: false })
       .then((m) => { if (!m) return; t.parts.forEach((p) => { p.visible = false; }); m.traverse((c) => { if (c.isMesh) occluders.push(c); }); }); // 카메라를 가리면 반투명
   });

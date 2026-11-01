@@ -1,7 +1,7 @@
 // 3D 공간 만들기: 높은 층고의 흰색 모던 카페, 수레바퀴 바닥, 전시물
 import * as THREE from 'three';
 import {
-  GATE, R_HALL, R_RIM_IN, TREES, PARK, POOL, FLOWER_BEDS, R_WALK, R_HUB, SPOKE, CEIL, deg, polar, Q, PRAYER_POOL_R, WITNESS_POOL_R,
+  GATE, R_HALL, R_RIM_IN, TREES, terrainH, PARK, POOL, FLOWER_BEDS, R_WALK, R_HUB, SPOKE, CEIL, deg, polar, Q, PRAYER_POOL_R, WITNESS_POOL_R,
   columns, COUNTER, LONG_TABLE, BIBLE, planters, TRAY, stools, BOAT,
   BRIDGE,
 } from './layout.js';
@@ -140,10 +140,11 @@ export function buildWorld(scene) {
   const treeGeo = new THREE.IcosahedronGeometry(1, 1);
   for (const { x, z, h, dark } of TREES) {
     const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.35, h * 0.45, 6), mat.trunk);
-    trunk.position.set(x, h * 0.22, z);
+    const ty = terrainH(x, z);
+    trunk.position.set(x, ty + h * 0.22, z);
     const crown = new THREE.Mesh(treeGeo, dark ? mat.leaf : mat.leafDark);
     crown.scale.set(h * 0.38, h * 0.48, h * 0.38);
-    crown.position.set(x, h * 0.62, z);
+    crown.position.set(x, ty + h * 0.62, z);
     scene.add(shadowy(trunk, true, false), shadowy(crown, true, false));
     deco.trees.push({ x, z, h, parts: [trunk, crown] });
   }
