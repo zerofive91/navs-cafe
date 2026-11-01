@@ -147,10 +147,10 @@ export function loadProps({ scene, deco, interactive, anim, renderer, occluders 
       .then((m) => { if (m) b.seat.top = seatTop(m, b.seat); });
     place(scene, N + 'plant_bushSmall.glb', { x: b.x + Math.cos(deg(b.a + 3)) * 0.3, z: b.z + Math.sin(deg(b.a + 3)) * 0.3, y: -0.5, rot: b.a, height: 0.6, shadow: false });
   }
-  for (const l of GARDEN_LAMPS) place(scene, F + 'lampRoundFloor.glb', { x: l.x, z: l.z, y: -0.5, height: 1.6, tone: [0.4, 0.4] });
+  for (const l of GARDEN_LAMPS) many.add(F + 'lampRoundFloor.glb', { x: l.x, z: l.z, y: -0.5, height: 1.6 });
   // 정원 너머 풀밭: 꽃·풀·그루터기
   const MEADOW = [...FL, 'grass_large', 'grass_leafs', 'grass_large', 'plant_flatTall', 'rock_smallFlatB', 'stump_round', 'log'];
-  for (let k = 0; k < 320; k++) {
+  for (let k = 0; k < 200; k++) {
     const a = rnd() * Math.PI * 2;
     const r = gr(37.5) + rnd() * 12 * G;
     if (nearEntry(a)) continue;

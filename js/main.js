@@ -30,7 +30,7 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xcfe3ee);
-scene.fog = new THREE.Fog(0xcfe3ee, 85, 320);
+scene.fog = new THREE.Fog(0xcfe3ee, 45, 180);
 const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 
@@ -905,7 +905,8 @@ document.body.appendChild(restGlow);
 let restT = 0, restK = 0;
 // 넓은 정원: 멀리(안개 속) 있는 놀이·장식은 그리지 않음. 가운데에 붙은 큰 것(바닥·건물·길)은 그대로
 let cullT = 0;
-const CULL_D = 115;
+const CULL_D = 60;
+const cullBox = new THREE.Box3(), cullV = new THREE.Vector3();
 function farCull(dt) {
   if ((cullT -= dt) > 0) return;
   cullT = 0.4;
@@ -913,8 +914,19 @@ function farCull(dt) {
   for (const o of scene.children) {
     if (o.userData.noCull || o.isLight || o.isInstancedMesh) continue;
     const x = o.position.x, z = o.position.z;
-    if (x * x + z * z < (R_HALL + 3) * (R_HALL + 3)) continue;
-    const far = Math.hypot(x - cx, z - cz) > CULL_D;
+    let far;
+    if (x * x + z * z < (R_HALL + 3) * (R_HALL + 3)) {
+      // 카페 안의 작은 가구·소품은 정원 멀리서는 그리지 않음 (건물·바닥·기둥처럼 큰 것은 그대로)
+      if (o === me.av || o.userData.small === false) continue;
+      if (o.userData.small == null) {
+        const b = cullBox.setFromObject(o);
+        if (b.isEmpty()) continue;
+        const sz = b.getSize(cullV);
+        o.userData.small = Math.max(sz.x, sz.y, sz.z) < 4 && (x || z) !== 0;
+        if (!o.userData.small) continue;
+      }
+      far = Math.hypot(cx, cz) > R_HALL + 35;
+    } else far = Math.hypot(x - cx, z - cz) > CULL_D;
     if (far && o.visible) { o.visible = false; o.userData.culled = true; }
     else if (!far && o.userData.culled) { o.visible = true; o.userData.culled = false; }
   }

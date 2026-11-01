@@ -744,7 +744,7 @@ export function addCourses(ctx) {
   };
   const knocked = { T: -1 };
 
-  let cullT = 0;
+  let cullT = 0, offT = 0;
   steps.push((dt, t) => {
     if ((cullT -= dt) < 0) { cullT = 0.5; for (const f of far) f.o.visible = Math.hypot(me.x - f.x, me.z - f.z) < 75; bg.visible = Math.hypot(me.x - B.x, me.z - B.z) < 90; }
     for (const f of anims) f(dt, t);
@@ -795,7 +795,12 @@ export function addCourses(ctx) {
       me.slow = k;
     }
     // 길을 벗어나 건물 쪽으로 돌아가면 짐도 내려놓음
-    if (burden && Math.hypot(me.x, me.z) < R_PARK - 6) setBurden(false);
+    // 짐은 천로역정 길(과 시내산 샛길) 위에서만 짐: 길에서 벗어나면 내려놓음
+    if (burden && (offT -= dt) < 0) {
+      offT = 0.5;
+      const onPath = ['pilgrim', 'sinai'].some((id) => TRAILS[id].samples.some((q) => Math.abs(q.x - me.x) < 9 && Math.abs(q.z - me.z) < 9 && Math.hypot(q.x - me.x, q.z - me.z) < 9));
+      if (!onPath) setBurden(false);
+    }
     // 화면 막
     let dark = 0;
     for (const S of darkSt) dark = Math.max(dark, Math.min(1, (18 - Math.hypot(me.x - S.x, me.z - S.z)) / 10));
