@@ -118,6 +118,10 @@ const EXTRA = {
   strain: ['오호라 나는 곤고한 사람이로다 이 사망의 몸에서 누가 나를 건져내랴', '로마서 7:24'],
   free: ['그러므로 이제 그리스도 예수 안에 있는 자에게는 결코 정죄함이 없나니', '로마서 8:1'],
   fall: ['어떤 길은 사람의 보기에 바르나 필경은 사망의 길이니라', '잠언 14:12'],
+  // 짧은 다리 셋: 선행 · 종교 · 도덕 (BRIDGE.tries 순서)
+  fall0: ['대저 우리는 다 부정한 자 같아서 우리의 의는 다 더러운 옷 같으며', '이사야 64:6'],
+  fall1: ['경건의 모양은 있으나 경건의 능력은 부인하는 자니', '디모데후서 3:5'],
+  fall2: ['누구든지 온 율법을 지키다가 그 하나에 거치면 모두 범한 자가 되나니', '야고보서 2:10'],
   gifts: ['꿈에 헤롯에게로 돌아가지 말라 지시하심을 받아 다른 길로 고국에 돌아가니라', '마태복음 2:12'],
 };
 Object.assign(COURSES, NEW_COURSES);
@@ -828,6 +832,7 @@ export function addCourses(ctx) {
     shot(bg.localToWorld(bp(t.u, -B.gap + t.len)), { dist: 9, el: 0.75, side: 0.3, dur: 3.5, mid: 0.5 });
   };
   const knocked = { T: -1 };
+  let wantOpen = false; // '영접' 정거장에 오면 십자가 다리가 놓인 뒤 문이 저절로 열림
 
   let cullT = 0, offT = 0;
   steps.push((dt, t) => {
@@ -841,7 +846,7 @@ export function addCourses(ctx) {
         markFound(S.course.id, S.i);
         if (showVerse(S.key, { cooldown: 40, delay: 0.2, title: S.title, then: S.more.map((v, k) => S.key + '-m' + k), stay: () => Math.hypot(me.x - S.x, me.z - S.z) < 16 }) !== false || S.fx === 'burden' || S.fx === 'armor' || S.fx === 'unburden' || S.fx === 'crossfall' || S.fx === 'thunder' || S.fx === 'star') {
           if (S.fx && effects[S.fx]) effects[S.fx](S, S.course);
-          if (S.course.id === 'bridge' && S.i === 5) { knocked.T = 0; [0, 450, 900].forEach((dd) => setTimeout(() => hit('impactWood_light_000', 0.4, 0.75), 1500 + dd)); }
+          if (S.course.id === 'bridge' && S.i === 5) { knocked.T = 0; wantOpen = true; if (!cross.down && cross.T < 0) effects.crossfall(); [0, 450, 900].forEach((dd) => setTimeout(() => hit('impactWood_light_000', 0.4, 0.75), 1500 + dd)); }
         }
       }
       S.near = inside;
@@ -881,7 +886,7 @@ export function addCourses(ctx) {
     // 짐은 천로역정 길(과 시내산 샛길) 위에서만 짐: 출입구 아치를 지나 정원으로 나오거나 길에서 벗어나면 내려놓음
     if ((offT -= dt) < 0 && Math.hypot(me.x, me.z) < R_PARK + 1) {
       freed = false; if (burden) setBurden(false);
-      if (Math.hypot(me.x, me.z) < R_HALL && me.av.userData.outfit) wear(null); // 카페 안에 들어오면 원래 옷으로
+      if (me.av.userData.outfit) wear(null); // 코스에서 나오면 원래 옷으로
     }
     if (burden && offT < 0) {
       offT = 0.5;
@@ -919,6 +924,7 @@ export function addCourses(ctx) {
       cross.pivot.rotation.x = (Math.PI / 2) * k * k;
       if (k >= 1) { cross.T = -1; cross.down = true; hit('impactPlank_medium_000', 0.5, 0.5); for (let i = 0; i < 10; i++) { const p = bg.localToWorld(bp((Math.random() - 0.5) * 4, (Math.random() - 0.5) * 8, 0.3)); burst(p.x, p.y, p.z); } }
     }
+    if (wantOpen && cross.down && !B.open) { wantOpen = false; door.T = 0; B.open = true; refreshNav(B.x, B.z, 32); sfx('orb', 0.3, 1.1); hit('impactWood_light_000', 0.3, 1); }
     if (door.T >= 0) { door.T += dt; const k = Math.min(1, door.T / 1.6); door.leaf.rotation.y = -1.9 * ease(k); door.light.material.opacity = 0.8 * k; }
     // 노력의 다리 끝: 떨어졌다가 처음 자리로
     if (!fall && Math.abs(me.x - B.x) < 30 && Math.abs(me.z - B.z) < 30) {
@@ -931,8 +937,9 @@ export function addCourses(ctx) {
       if (fall.T > 1.5) {
         const p = B.at(fall.t.u * 0.6, -B.gap - 5.5);
         me.x = p.x; me.z = p.z; me.y = G0; me.av.position.set(p.x, G0, p.z); me.path = []; me.state = 'idle';
+        const ti = B.tries.indexOf(fall.t);
         me.slow = fall.slow || 0; fall = null;
-        showVerse('course-x-fall', { cooldown: 20, title: '사람의 다리로는' });
+        showVerse('course-x-fall' + ti, { cooldown: 0, title: ['선행', '종교', '도덕'][ti] + '의 다리로는 건널 수 없어요' });
       }
     }
   });

@@ -208,7 +208,14 @@ export function initMap({ me, people, walkTo, say, icon, placesEl, before }) {
     if (!pts.has(e.pointerId)) return;
     pts.delete(e.pointerId); if (pts.size < 2) pinch = null;
     if (moved < 8 && pts.size === 0) {
-      const p = { x: wx(e.offsetX), z: wz(e.offsetY) };
+      let p = { x: wx(e.offsetX), z: wz(e.offsetY) };
+      // 숲속 코스 입구 근처를 누르면 시작 문(아치) 바로 앞, 정원 쪽 길 위로
+      const snap = Math.max(7, 26 / V.k);
+      for (const tr of Object.values(TRAILS)) {
+        if (tr.from) continue;
+        const gate = tr.samples.find((q) => Math.hypot(q.x, q.z) > R_PARK + 2.2) || tr.samples[0];
+        if (Math.hypot(p.x - gate.x, p.z - gate.z) < snap) { p = tr.samples.find((q) => Math.hypot(q.x, q.z) > R_PARK + 0.6) || tr.samples[0]; break; }
+      }
       const q = nearestFree(p);
       const path = q ? findPath(me, q) : [];
       if (q && (path.length || Math.hypot(q.x - me.x, q.z - me.z) < 1)) { walkTo(me, q, null, path); shut(); }
@@ -222,5 +229,5 @@ export function initMap({ me, people, walkTo, say, icon, placesEl, before }) {
     V.k = Math.max(0.5, Math.min(14, V.k * Math.exp(-e.deltaY * 0.0015)));
     V.cx = x - (e.offsetX - W / 2) / V.k; V.cz = z - (e.offsetY - Hh / 2) / V.k;
   }, { passive: false });
-  return { open, shut, el: wrap };
+  return { open, shut, el: wrap, toScreen: (x, z) => ({ x: sx(x), y: sy(z) }) }; // toScreen: 시험용
 }
