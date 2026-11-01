@@ -409,3 +409,18 @@ html.rot #musicPanel { max-height: calc(100vw - 64px); }
 
 /* 쉼: 가만히 앉거나 누우면 가장자리가 따뜻하게 */
 #restGlow { position: fixed; inset: 0; pointer-events: none; z-index: 3; opacity: 0; background: radial-gradient(ellipse at center, rgba(255, 220, 170, 0) 45%, rgba(255, 196, 130, 0.35) 80%, rgba(160, 110, 70, 0.55) 100%); }
+
+/* 모임 번호: 같은 네 자리 번호를 넣은 사람끼리만 한 카페에 */
+#roomkey { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; background: rgba(40, 30, 15, 0.35); font-family: "Noto Serif KR", serif; }
+#roomkey .pad { width: min(300px, 86vw); padding: 20px 18px 16px; border-radius: 22px; background: rgba(255, 250, 238, 0.97); color: #6b4c32; box-shadow: 0 10px 40px rgba(40, 30, 15, 0.35); text-align: center; }
+#roomkey .hint { font-size: 14px; opacity: 0.8; margin-bottom: 12px; word-break: keep-all; }
+#roomkey .digits { display: flex; justify-content: center; gap: 10px; margin-bottom: 14px; }
+#roomkey .digits span { width: 46px; height: 56px; border-radius: 12px; background: #f1e6d2; display: grid; place-items: center; font: 600 30px/1 Georgia, serif; }
+#roomkey .keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+#roomkey button { border: 0; border-radius: 14px; height: 52px; background: #fff; color: #6b4c32; font: 600 22px/1 Georgia, serif; box-shadow: 0 2px 6px rgba(60, 40, 15, 0.15); cursor: pointer; }
+#roomkey button:active { transform: scale(0.95); }
+#roomkey button.small { font: 600 14px/1.2 "Noto Serif KR", serif; }
+#roomkey .row { display: flex; gap: 8px; margin-top: 10px; }
+#roomkey .row button { flex: 1; font: 600 15px/1 "Noto Serif KR", serif; }
+#roomkey .go { background: #8f6744; color: #fffaf0; }
+#roomkey .go[disabled] { opacity: 0.4; }

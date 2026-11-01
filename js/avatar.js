@@ -206,8 +206,68 @@ export function makeAvatar(look) {
   }
 
   root.traverse((c) => { if (c.isMesh) c.castShadow = true; });
-  root.userData = { body, legs, arms, head, eyes, cup, food, rod, rodTip, rackets, foods: {}, drinks: {}, book, can, drops, vfing, blinkAt: 2 };
+  root.userData = { body, legs, arms, head, eyes, cup, food, rod, rodTip, rackets, foods: {}, drinks: {}, book, can, drops, vfing, blinkAt: 2,
+    cloth: [torso, pocket, hood, ...arms.map((a) => a.children[0])], pantsM: legs.map((l) => l.children[0]), bag };
   return root;
+}
+
+// 옷 갈아입기: 전신갑주(엡 6:14-17, 한 조각씩 입을 수 있음) / 흰 옷(계 7:9, 하늘의 도성) / 원래 옷
+// pieces: belt 진리의 허리띠, breast 의의 흉배, shoes 평안의 복음의 신, shield 믿음의 방패, helmet 구원의 투구, sword 성령의 검
+export const ARMOR = ['belt', 'breast', 'shoes', 'shield', 'helmet', 'sword'];
+let gearMats = null;
+function gearMat() {
+  if (!gearMats) {
+    const M = (c, r, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: r, ...o });
+    gearMats = {
+      steel: M(0xc9ced8, 0.28, { metalness: 0.75 }), gold: M(0xe8c060, 0.3, { metalness: 0.6, emissive: 0x5a3c08, emissiveIntensity: 0.35 }),
+      leather: M(0x7a5236, 0.7), white: M(0xfffdf6, 0.45, { emissive: 0xfff2d0, emissiveIntensity: 0.55 }),
+      glow: new THREE.MeshBasicMaterial({ color: 0xfff2c8, transparent: true, opacity: 0.22, depthWrite: false, blending: THREE.AdditiveBlending }),
+      blade: M(0xe8f2ff, 0.15, { metalness: 0.8, emissive: 0x88b8ff, emissiveIntensity: 0.5 }),
+    };
+  }
+  return gearMats;
+}
+export function setOutfit(av, kind, pieces = ARMOR) {
+  const u = av.userData;
+  if (!u.cloth) return;
+  if (!u.orig) u.orig = new Map([...u.cloth, ...u.pantsM].map((m) => [m, m.material]));
+  if (u.gear) { u.gear.forEach((o) => o.parent && o.parent.remove(o)); }
+  u.gear = [];
+  for (const [m, mat] of u.orig) m.material = mat;
+  u.bag.visible = true;
+  u.outfit = kind || null;
+  if (!kind) return;
+  const G = gearMat(), add = (parent, o) => { o.castShadow = true; parent.add(o); u.gear.push(o); return o; };
+  const mesh = (geo, mat, x, y, z) => { const o = new THREE.Mesh(geo, mat); o.position.set(x, y, z); return o; };
+  if (kind === 'glory') {
+    for (const m of [...u.cloth, ...u.pantsM]) m.material = G.white;
+    u.bag.visible = false;
+    // 발끝까지 내려오는 흰 두루마기와 은은한 빛
+    add(u.body, mesh(new THREE.CylinderGeometry(0.2, 0.3, 0.42, 16, 1, true), G.white, 0, 0.3, 0));
+    add(u.body, mesh(new THREE.TorusGeometry(0.205, 0.018, 6, 20), G.gold, 0, 0.5, 0)).rotation.x = Math.PI / 2;
+    const halo = add(u.body, mesh(new THREE.SphereGeometry(0.75, 16, 12), G.glow, 0, 0.6, 0)); halo.castShadow = false;
+    add(u.head, mesh(new THREE.TorusGeometry(0.2, 0.025, 6, 22), G.gold, 0, 0.36, 0)).rotation.x = Math.PI / 2; // 면류관
+    return;
+  }
+  // 전신갑주
+  const has = (p) => pieces.includes(p);
+  if (has('breast')) { for (const m of u.cloth) m.material = G.steel; add(u.body, mesh(new THREE.BoxGeometry(0.06, 0.2, 0.02), G.gold, 0, 0.6, 0.178)); add(u.body, mesh(new THREE.BoxGeometry(0.16, 0.05, 0.02), G.gold, 0, 0.65, 0.178)); }
+  if (has('belt')) add(u.body, mesh(new THREE.TorusGeometry(0.2, 0.03, 6, 20), G.gold, 0, 0.42, 0)).rotation.x = Math.PI / 2;
+  if (has('shoes')) for (const l of u.legs) { add(l, mesh(new THREE.CylinderGeometry(0.085, 0.09, 0.1, 10), G.leather, 0, -0.22, 0)); }
+  if (has('helmet')) {
+    add(u.head, mesh(new THREE.SphereGeometry(0.33, 18, 10, 0, Math.PI * 2, 0, Math.PI * 0.42), G.steel, 0, 0.1, -0.03)).rotation.x = -0.15;
+    add(u.head, mesh(new THREE.BoxGeometry(0.05, 0.16, 0.4), G.gold, 0, 0.4, -0.05));
+  }
+  if (has('shield')) {
+    const sh = add(u.arms[0], mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.035, 20), G.steel, -0.07, -0.25, 0.02)); sh.rotation.z = Math.PI / 2;
+    add(sh, mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.04, 12), G.gold, 0, 0.012, 0));
+  }
+  if (has('sword')) {
+    const sw = add(u.arms[1], new THREE.Group()); sw.position.set(0, -0.4, 0.03); sw.rotation.x = 1.5;
+    sw.add(mesh(new THREE.BoxGeometry(0.035, 0.55, 0.012), G.blade, 0, 0.32, 0));
+    sw.add(mesh(new THREE.BoxGeometry(0.14, 0.025, 0.03), G.gold, 0, 0.04, 0));
+  }
+  u.bag.visible = !has('breast');
 }
 
 function shade(hex, k) {
@@ -321,6 +381,16 @@ export function poseAvatar(av, ch, t, dt) {
     case 'draw':
       armL = -1.1; armR = -1.1 + (ch.action === 'draw' ? Math.sin(t * 6) * 0.5 : 0); armLz = 0.15; armRz = -0.15; headX = 0.35;
       break;
+    case 'block':
+      // 방패를 앞으로 들어 막음
+      armL = -1.55; armLz = -0.45; armR = -0.4; headX = 0.1;
+      break;
+    case 'slash': {
+      // 검을 위에서 아래로 내리침
+      const k = Math.max(0, Math.min(1, 1 - (ch.slashT || 0) / 0.45));
+      armR = -2.9 + k * 2.2; armRz = -0.1; armL = -0.5; headX = 0.15;
+      break;
+    }
     case 'plant':
       armL = -1.3; armR = -1.3; armLz = 0.3; armRz = -0.3; headX = 0.5;
       break;
@@ -360,6 +430,7 @@ export function poseAvatar(av, ch, t, dt) {
   for (const [k, r] of Object.entries(u.rackets)) r.visible = ch.racket === k;
   if (ch.swingT > 0) ch.swingT -= dt;
   if (ch.kickT > 0) ch.kickT -= dt;
+  if (ch.slashT > 0) ch.slashT -= dt;
 
   // 물방울
   u.drops.forEach((d, k) => {

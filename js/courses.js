@@ -1,11 +1,13 @@
 // 숲속 코스 네 갈래: 천로역정 구원 코스, 생명의 다리(복음), 천국을 사모하는 길, 예수님을 만나는 길
 // 길을 따라 걸으며 정거장에 다가가면 장면과 함께 말씀이 뜨고, 길가 등불이 켜짐
 import * as THREE from 'three';
-import { TRAILS, R_PARK, BRIDGE, TERRAIN, terrainH, floorY, CITY, R_GARDEN } from './layout.js';
+import { TRAILS, R_PARK, BRIDGE, TERRAIN, terrainH, floorY, CITY, R_GARDEN, R_HALL } from './layout.js';
 import { refreshNav } from './nav.js';
 import { showVerse, VERSES } from './verses.js';
 import { place } from './props.js';
 import { fanfare } from './stories.js';
+import { setOutfit, ARMOR } from './avatar.js';
+import { NEW_COURSES, NEW_EXTRA, journeyScenes, journeyEffects, journeySetup, prepStation } from './journeys.js';
 
 // 각 정거장: [이름, 말씀, 장면, 들어설 때, 이어지는 말씀들]
 const COURSES = {
@@ -21,7 +23,7 @@ const COURSES = {
       ['십자가', ['그가 찔림은 우리의 허물을 인함이요 그가 상함은 우리의 죄악을 인함이라 그가 징계를 받음으로 우리가 평화를 누리고 그가 채찍에 맞음으로 우리가 나음을 입었도다', '이사야 53:5'], 'cross', 'unburden'],
       ['고난의 언덕', ['오직 여호와를 앙망하는 자는 새 힘을 얻으리니 독수리의 날개 치며 올라감 같을 것이요 달음박질하여도 곤비치 아니하겠고 걸어가도 피곤치 아니하리로다', '이사야 40:31'], 'hill'],
       ['아름다운 궁전', ['주께서 내 원수의 목전에서 내게 상을 베푸시고 기름으로 내 머리에 바르셨으니 내 잔이 넘치나이다', '시편 23:5'], 'palace'],
-      ['겸손의 골짜기', ['마귀의 궤계를 능히 대적하기 위하여 하나님의 전신갑주를 입으라', '에베소서 6:11'], 'armor'],
+      ['겸손의 골짜기', ['마귀의 궤계를 능히 대적하기 위하여 하나님의 전신갑주를 입으라', '에베소서 6:11'], 'armor', 'armor'],
       ['사망의 음침한 골짜기', ['내가 사망의 음침한 골짜기로 다닐찌라도 해를 두려워하지 않을 것은 주께서 나와 함께 하심이라 주의 지팡이와 막대기가 나를 안위하시나이다', '시편 23:4'], 'shadow'],
       ['허영의 시장', ['이 세상도, 그 정욕도 지나가되 오직 하나님의 뜻을 행하는 이는 영원히 거하느니라', '요한일서 2:17'], 'fair'],
       ['의심의 성', ['또 약속하신 이는 미쁘시니 우리가 믿는 도리의 소망을 움직이지 말고 굳게 잡아', '히브리서 10:23'], 'castle', 'key'],
@@ -118,6 +120,8 @@ const EXTRA = {
   fall: ['어떤 길은 사람의 보기에 바르나 필경은 사망의 길이니라', '잠언 14:12'],
   gifts: ['꿈에 헤롯에게로 돌아가지 말라 지시하심을 받아 다른 길로 고국에 돌아가니라', '마태복음 2:12'],
 };
+Object.assign(COURSES, NEW_COURSES);
+Object.assign(EXTRA, NEW_EXTRA);
 for (const [k, v] of Object.entries(EXTRA)) VERSES['course-x-' + k] = v;
 
 // 지도에 쓰는 코스 정보와, 이 기기에서 찾은 코스(지나온 정거장)
@@ -298,7 +302,7 @@ export function addCourses(ctx) {
       const ringK = mesh(new THREE.TorusGeometry(0.16, 0.045, 8, 16), C.gold); key.add(ringK);
       key.add(bx(0.06, 0.06, 0.6, C.gold, 0, 0, 0.42)); key.add(bx(0.06, 0.16, 0.06, C.gold, 0, -0.08, 0.66));
       key.add(fxSprite('light_01', 0xffe090, 1));
-      g.add(key); st.key = key;
+      g.add(key); st.keyObj = key;
       anims.push((dt, t) => { key.rotation.y = t * 1.2; key.position.y = 1.3 + Math.sin(t * 2) * 0.08; });
     },
     river(g) {
@@ -562,6 +566,9 @@ export function addCourses(ctx) {
       flowers(g, 0, 0, 3, 18, 0xffffff);
     },
   };
+  // 새 코스들의 장면 (js/journeys.js)
+  const J = { THREE, M, C, mesh, bx, glowAt, fig, flowers: (...a) => flowers(...a), camel, anims, fxSprite };
+  Object.assign(scenes, journeyScenes(J));
   // 꽃: 한 번에 그리는 인스턴스 (그리기 횟수를 줄임)
   const flowerGeo = new THREE.SphereGeometry(0.08, 6, 4);
   const flowerMat = M(0xffffff, 0.6);
@@ -580,7 +587,8 @@ export function addCourses(ctx) {
   // 짐 (천로역정): 등에 멘 가방이 커지고 걸음이 느려짐. 내 힘으로는 벗지 못하고, 십자가 앞에서 굴러 떨어짐
   const bag = me.av.userData.body.children.find((c) => c.geometry && c.geometry.type === 'BoxGeometry' && c.position.z < -0.1);
   const bag0 = bag ? { s: bag.scale.clone(), p: bag.position.clone() } : null;
-  let burden = false, roll = null, strainT = -1;
+  let burden = false, roll = null, strainT = -1, freed = false;
+  const wear = (kind, pieces) => { setOutfit(me.av, kind, pieces); me.av.userData.pieces = kind === 'armor' ? (pieces || ARMOR) : null; };
   const setBurden = (on) => {
     burden = on;
     me.slow = on ? 0.55 : 0;
@@ -606,7 +614,9 @@ export function addCourses(ctx) {
   let flashV = 0;
 
   const effects = {
-    burden() { if (!burden) { setBurden(true); hit('impactSoft_heavy_000', 0.35, 0.6); } },
+    // 십자가에서 이미 벗었으면 돌아오는 길에 다시 지지 않음 (출입구 아치를 지나 정원으로 나가면 처음부터)
+    burden() { if (!burden && !freed) { setBurden(true); hit('impactSoft_heavy_000', 0.35, 0.6); } },
+    armor() { if (me.av.userData.outfit !== 'glory') { wear('armor'); sfx('orb', 0.25, 0.9); hit('impactMetal_light_000', 0.3, 1); } },
     splash() { audio.splash(0.35); },
     knock() { [0, 350, 700].forEach((d) => setTimeout(() => hit('impactWood_light_000', 0.4, 0.8), d)); setTimeout(() => sfx('orb', 0.2), 1300); },
     unburden(st) {
@@ -614,7 +624,7 @@ export function addCourses(ctx) {
       const w = new THREE.Vector3(); bag.getWorldPosition(w);
       const box = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.75, 0.6), bag.material);
       box.position.copy(w); box.castShadow = true; scene.add(box);
-      bag.visible = false; setBurden(false);
+      bag.visible = false; setBurden(false); freed = true;
       const to = st.tomb.clone(); st.g.localToWorld(to);
       shot(to, { dist: 8, el: 0.35, side: 0.7, dur: 6, mid: 0.6 });
       roll = { box, from: w.clone(), to, T: 0 };
@@ -622,7 +632,7 @@ export function addCourses(ctx) {
       setTimeout(() => { if (bag) bag.visible = true; }, 3500);
       setTimeout(() => showVerse('course-x-free', { cooldown: 0, title: '짐이 벗어지다' }), 11000);
     },
-    key(st) { if (st.key) { burst(...st.key.getWorldPosition(new THREE.Vector3()).toArray()); hit('impactMetal_light_000', 0.3, 1.3); } },
+    key(st) { if (st.keyObj) { burst(...st.keyObj.getWorldPosition(new THREE.Vector3()).toArray()); hit('impactMetal_light_000', 0.3, 1.3); } },
     dove(st) { if (st.dove) st.dove.T = 0; },
     risen(st) { if (st.light) st.light.material.opacity = 1; hit('impactBell_heavy_000', 0.2, 1.2); },
     thunder(st) {
@@ -636,6 +646,7 @@ export function addCourses(ctx) {
     joy(st) { for (let i = 0; i < 8; i++) setTimeout(() => burst(st.show.x + (Math.random() - 0.5) * 3, st.g.position.y + 1.5 + Math.random() * 2, st.show.z + (Math.random() - 0.5) * 3), i * 150); },
     crossfall() { if (!cross.down && cross.T < 0) { cross.T = 0; shot(new THREE.Vector3(BRIDGE.x, G0, BRIDGE.z), { dist: 22, el: 0.5, side: 0.75, dur: 8, mid: 0.6 }); hit('impactWood_light_000', 0.3, 0.5); } },
     arrive(st, course) {
+      if (course.id === 'pilgrim') { wear('glory'); setBurden(false); freed = true; } // 하늘의 도성: 빛나는 흰 옷
       fanfare(audio, [523, 659, 784, 1047], 1.2, 0.2, 0.06);
       shot(st.g.position, { dist: 14, el: 0.3, side: 0.5, dur: 8, mid: 0.7, y: 2.5 });
       for (let i = 0; i < 14; i++) setTimeout(() => burst(st.x + (Math.random() - 0.5) * 6, st.g.position.y + 1 + Math.random() * 3, st.z + (Math.random() - 0.5) * 6), i * 120);
@@ -643,6 +654,8 @@ export function addCourses(ctx) {
     },
   };
 
+  Object.assign(J, { hit, sfx, burst, shot, me, wear, faceTo, act, flash: (v) => { flashV = v; }, fanfare, audio });
+  Object.assign(effects, journeyEffects(J));
   // 정거장 세우기
   const live = [];
   for (const [id, course] of Object.entries(COURSES)) {
@@ -661,7 +674,8 @@ export function addCourses(ctx) {
       g.rotation.y = Math.atan2(st.dir.x, st.dir.z) + (st.side < 0 ? Math.PI : 0);
       scene.add(g); cullable(g, base);
       const S = { ...st, g, name, key, fx, i, more: more || [] };
-      if (scenes[kind]) scenes[kind](g, S);
+      S.kindName = prepStation(kind, S);
+      if (scenes[S.kindName]) scenes[S.kindName](g, S);
       g.traverse((c) => { if (c.isMesh) { c.castShadow = !c.material.transparent; c.receiveShadow = true; } });
       mergeStatic(g);
       // 길가 등불: 지나가면 켜짐
@@ -720,6 +734,7 @@ export function addCourses(ctx) {
     mergeStatic(cg);
   }
   const darkSt = live.filter((S) => S.dark);
+  journeySetup(Object.assign(J, { live, actions, avail, steps, go, showVerse, TRAILS, gy, scene }));
 
   // ---------- 동방박사: 앞서 인도하는 별 ----------
   const MT = TRAILS.magi;
@@ -824,7 +839,7 @@ export function addCourses(ctx) {
       if (inside && !S.near) {
         S.lit(true);
         markFound(S.course.id, S.i);
-        if (showVerse(S.key, { cooldown: 40, delay: 0.2, title: S.title, then: S.more.map((v, k) => S.key + '-m' + k), stay: () => Math.hypot(me.x - S.x, me.z - S.z) < 16 }) !== false || S.fx === 'burden' || S.fx === 'unburden' || S.fx === 'crossfall' || S.fx === 'thunder' || S.fx === 'star') {
+        if (showVerse(S.key, { cooldown: 40, delay: 0.2, title: S.title, then: S.more.map((v, k) => S.key + '-m' + k), stay: () => Math.hypot(me.x - S.x, me.z - S.z) < 16 }) !== false || S.fx === 'burden' || S.fx === 'armor' || S.fx === 'unburden' || S.fx === 'crossfall' || S.fx === 'thunder' || S.fx === 'star') {
           if (S.fx && effects[S.fx]) effects[S.fx](S, S.course);
           if (S.course.id === 'bridge' && S.i === 5) { knocked.T = 0; [0, 450, 900].forEach((dd) => setTimeout(() => hit('impactWood_light_000', 0.4, 0.75), 1500 + dd)); }
         }
@@ -863,9 +878,12 @@ export function addCourses(ctx) {
       }
       me.slow = k;
     }
-    // 길을 벗어나 건물 쪽으로 돌아가면 짐도 내려놓음
-    // 짐은 천로역정 길(과 시내산 샛길) 위에서만 짐: 길에서 벗어나면 내려놓음
-    if (burden && (offT -= dt) < 0) {
+    // 짐은 천로역정 길(과 시내산 샛길) 위에서만 짐: 출입구 아치를 지나 정원으로 나오거나 길에서 벗어나면 내려놓음
+    if ((offT -= dt) < 0 && Math.hypot(me.x, me.z) < R_PARK + 1) {
+      freed = false; if (burden) setBurden(false);
+      if (Math.hypot(me.x, me.z) < R_HALL && me.av.userData.outfit) wear(null); // 카페 안에 들어오면 원래 옷으로
+    }
+    if (burden && offT < 0) {
       offT = 0.5;
       const onPath = ['pilgrim', 'sinai'].some((id) => TRAILS[id].samples.some((q) => Math.abs(q.x - me.x) < 9 && Math.abs(q.z - me.z) < 9 && Math.hypot(q.x - me.x, q.z - me.z) < 9));
       if (!onPath) setBurden(false);

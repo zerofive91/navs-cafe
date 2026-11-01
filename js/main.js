@@ -12,7 +12,7 @@ import { showVerse, showNext, nextVerse } from './verses.js';
 import { initPark } from './park.js';
 import { initMap } from './map.js';
 import { initScrolls } from './scrolls.js';
-import { initTogether, inviteCodeFromUrl, newInviteCode, inviteLink, RANDOM_CAP, INVITE_CAP } from './together.js';
+import { initTogether, inviteCodeFromUrl, RANDOM_CAP, INVITE_CAP } from './together.js';
 
 const canvas = document.getElementById('cafe');
 const bar = document.getElementById('actions');
@@ -765,11 +765,15 @@ window.addEventListener('keydown', (e) => {
 });
 window.addEventListener('keyup', (e) => { keys.delete(KEYMAP[e.code]); });
 let stickDriving = false;
+// 방향키는 캐릭터가 바라보는 쪽 기준: ↑ 앞으로, ↓ 뒤로, ←→ 몸을 돌림 (카메라는 천천히 등 뒤로 따라옴)
+const TURN = 2.6; // 초당 돌아가는 각도(라디안)
 function driveStick(dt) {
-  let jx = stick.x, jy = stick.y;
-  if (keys.size) { jx = (keys.has('r') ? 1 : 0) - (keys.has('l') ? 1 : 0); jy = (keys.has('d') ? 1 : 0) - (keys.has('u') ? 1 : 0); }
-  const mag = Math.min(1, Math.hypot(jx, jy));
-  if (mag < 0.15) {
+  const kb = keys.size > 0;
+  const turn = kb ? (keys.has('l') ? 1 : 0) - (keys.has('r') ? 1 : 0) : 0;
+  const fwd = kb ? (keys.has('u') ? 1 : 0) - (keys.has('d') ? 1 : 0) : 0;
+  const jx = stick.x, jy = stick.y;
+  const mag = kb ? Math.abs(fwd) : Math.min(1, Math.hypot(jx, jy));
+  if (mag < 0.15 && !turn) {
     if (stickDriving) { stickDriving = false; if (me.state === 'walk' && !me.path.length) me.state = 'idle'; }
     return;
   }
@@ -779,11 +783,25 @@ function driveStick(dt) {
     standUp(me); me.path = []; me.task = null; me.action = null;
     stickDriving = true; endShot();
   }
-  const fx = -Math.sin(view.az), fz = -Math.cos(view.az); // 화면 안쪽
-  const rx = Math.cos(view.az), rz = -Math.sin(view.az);  // 화면 오른쪽
-  const mx = (fx * -jy + rx * jx) / mag, mz = (fz * -jy + rz * jx) / mag;
-  me.running = !me.slow && runBoost(me) > 1 && mag > 0.6; // 무거운 짐을 지면 뛸 수 없음
-  const step = SPEED * (0.35 + 0.65 * mag) * (me.running ? runBoost(me) : 1) * (me.slow || 1) * dt;
+  let mx, mz;
+  if (kb) {
+    me.face += turn * TURN * dt;
+    // 카메라를 캐릭터 등 뒤로 (화면을 끌어 돌린 직후에는 잠시 그대로 둠)
+    if (!view.dragAt || performance.now() - view.dragAt > 1500) {
+      const want = me.face + Math.PI;
+      let d = ((want - view.az) % (Math.PI * 2) + Math.PI * 3) % (Math.PI * 2) - Math.PI;
+      view.az += d * Math.min(1, dt * (fwd ? 2.2 : 3.2));
+    }
+    if (!fwd) { if (me.state === 'walk') me.state = 'idle'; return; }
+    mx = Math.sin(me.face) * fwd; mz = Math.cos(me.face) * fwd;
+  } else {
+    const fx = -Math.sin(view.az), fz = -Math.cos(view.az); // 화면 안쪽
+    const rx = Math.cos(view.az), rz = -Math.sin(view.az);  // 화면 오른쪽
+    mx = (fx * -jy + rx * jx) / mag; mz = (fz * -jy + rz * jx) / mag;
+  }
+  const back = kb && fwd < 0;
+  me.running = !back && !me.slow && runBoost(me) > 1 && mag > 0.6; // 무거운 짐을 지면 뛸 수 없음
+  const step = SPEED * (0.35 + 0.65 * mag) * (back ? 0.55 : 1) * (me.running ? runBoost(me) : 1) * (me.slow || 1) * dt;
   const nx = me.x + mx * step, nz = me.z + mz * step;
   const hop = me.hop || 0; // 점프 중이면 낮은 물건은 넘어감
   const base = floorY(me.x, me.z);
@@ -793,7 +811,7 @@ function driveStick(dt) {
   else if (ok(nx, me.z)) me.x = nx;
   else if (ok(me.x, nz)) me.z = nz;
   stepHeight(me, base);
-  me.face = Math.atan2(mx, mz);
+  if (!kb) me.face = Math.atan2(mx, mz);
   me.state = 'walk';
 }
 
@@ -1008,6 +1026,25 @@ function verseHooks() {
   }
 }
 
+// 화면이 버벅이면 스스로 가볍게: 3초 평균이 30fps 아래면 한 단계씩
+// 1) 그림자를 두 장면에 한 번만 새로 그림 2) 화소 수 줄임 3) 그림자 지도 작게
+const quality = { acc: 0, n: 0, level: 0, prev: 0, frame: 0 };
+function adaptQuality(now) {
+  const d = quality.prev ? now - quality.prev : 0; quality.prev = now;
+  if (quality.level >= 2) { renderer.shadowMap.needsUpdate = (++quality.frame % 2) === 0; }
+  if (d <= 0 || d > 250 || document.hidden) return; // 탭을 다녀온 틈은 세지 않음
+  quality.acc += d; quality.n++;
+  if (quality.acc < 3000) return;
+  const avg = quality.acc / quality.n;
+  quality.acc = 0; quality.n = 0;
+  if (avg < 33 || quality.level >= 3) return;
+  quality.level++;
+  if (quality.level === 1) { renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1)); resize(); }
+  if (quality.level === 2) renderer.shadowMap.autoUpdate = false;
+  if (quality.level === 3) { sun.shadow.mapSize.set(1024, 1024); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } renderer.setPixelRatio(0.8); resize(); }
+  window.__cafe.quality = quality.level;
+}
+
 let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
@@ -1103,7 +1140,7 @@ function frame(now) {
     camera.lookAt(P);
     // 화면에서 캐릭터 중심이 세로 -0.22(가운데보다 약간 아래)에 오도록 위로 살짝 기울임
     camera.rotateX(Math.atan(0.22 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))));
-    if (++occFrame % 3 === 0) fadeOccluders(P, camPos);
+    if (++occFrame % 3 === 0) { fadeOccluders(P, camPos); deco.forestFade?.(P, camPos); }
   }
   if (window.__cafe.camOverride) { const o = window.__cafe.camOverride; camera.position.set(...o.pos); camera.lookAt(...o.look); } // 시험용 시점
   stepFades(dt);
@@ -1125,6 +1162,7 @@ function frame(now) {
   // 카페 안은 조금 더 차분하고 따뜻하게 (테마파크와 구분)
   { const inside = !outdoors(me); renderer.toneMappingExposure += ((inside ? 0.84 : 0.92) - renderer.toneMappingExposure) * Math.min(1, dt * 1.5); }
   refreshActions();
+  adaptQuality(now);
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }
@@ -1146,24 +1184,45 @@ peopleBtn.hidden = true;
 placesEl.insertBefore(peopleBtn, viewBtn);
 const map = initMap({ me, people: () => together.people.values(), walkTo, say: toast, icon: ICONS.map, placesEl, before: peopleBtn });
 
-async function shareInvite() {
-  const url = inviteLink(together.st.code);
-  try {
-    if (navigator.share && PHONE) { await navigator.share({ title: 'Wheel Life Cafe', url }); return; }
-  } catch (e) { if (e && e.name === 'AbortError') return; }
-  try { await navigator.clipboard.writeText(url); toast('초대 링크를 복사했어요. 함께할 사람에게 보내 주세요.'); }
-  catch (e) { window.prompt('초대 링크', url); }
+// 모임 번호 (링크를 주고받지 않고, 같은 네 자리 번호를 넣은 사람끼리만 모임)
+const ROOM_KEY = 'navs-cafe-room';
+function askRoomCode() {
+  return new Promise((resolve) => {
+    let v = '';
+    try { v = localStorage.getItem(ROOM_KEY) || ''; } catch (e) { /* 무시 */ }
+    const box = document.createElement('div');
+    box.id = 'roomkey';
+    box.innerHTML = `<div class="pad"><div class="hint">함께할 사람과 같은 네 자리 번호를 넣어 주세요</div><div class="digits"><span></span><span></span><span></span><span></span></div>
+      <div class="keys">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => `<button data-k="${n}">${n}</button>`).join('')}<button class="small" data-k="new">새 번호</button><button data-k="0">0</button><button data-k="del" aria-label="지우기">⌫</button></div>
+      <div class="row"><button data-k="back">돌아가기</button><button class="go" data-k="go">들어가기</button></div></div>`;
+    const show = () => { box.querySelectorAll('.digits span').forEach((e, i) => { e.textContent = v[i] || ''; }); box.querySelector('.go').disabled = v.length !== 4; };
+    const done = (code) => { box.remove(); window.removeEventListener('keydown', onKey, true); resolve(code); };
+    const press = (k) => {
+      if (k === 'del') v = v.slice(0, -1);
+      else if (k === 'new') v = String(1000 + Math.floor(Math.random() * 9000));
+      else if (k === 'back') return done(null);
+      else if (k === 'go') { if (v.length === 4) { try { localStorage.setItem(ROOM_KEY, v); } catch (e) { /* 무시 */ } return done(v); } return; }
+      else if (v.length < 4) v += k;
+      show();
+    };
+    const onKey = (e) => { e.stopPropagation(); if (/^Digit\d$|^Numpad\d$/.test(e.code)) press(e.code.slice(-1)); else if (e.code === 'Backspace') press('del'); else if (e.code === 'Enter' || e.code === 'NumpadEnter') press('go'); else if (e.code === 'Escape') press('back'); };
+    box.addEventListener('pointerdown', (e) => { e.stopPropagation(); const b = e.target.closest('button'); if (b) { e.preventDefault(); press(b.dataset.k); } });
+    window.addEventListener('keydown', onKey, true);
+    document.body.appendChild(box);
+    show();
+  });
 }
+function roomToast() { toast(`모임 번호 ${together.st.code} · ${together.st.count}/${INVITE_CAP}명. 같은 번호를 넣으면 이 카페로 와요.`, 4); }
 peopleBtn.addEventListener('pointerdown', (e) => {
   e.stopPropagation();
   const s = together.st;
-  if (s.mode === 'invite') shareInvite();
+  if (s.mode === 'invite') roomToast();
   else toast(s.cafe > 1 ? `${s.cafe}호점 · ${s.count}/${RANDOM_CAP}명` : `${s.count}/${RANDOM_CAP}명`, 2);
 });
 together.st.onChange = (s) => {
   peopleBtn.hidden = s.mode === 'solo';
   peopleBtn.innerHTML = (s.mode === 'invite' ? ICONS.invite : ICONS.people) + `<span>${s.count}</span>`;
-  peopleBtn.setAttribute('aria-label', s.mode === 'invite' ? '초대 링크 공유' : '함께 있는 사람');
+  peopleBtn.setAttribute('aria-label', s.mode === 'invite' ? '모임 번호' : '함께 있는 사람');
 };
 
 function goIn() {
@@ -1175,18 +1234,18 @@ function goIn() {
 async function choose(mode, btn) {
   music.resume();
   if (mode === 'solo') { together.start('solo'); return goIn(); }
-  for (const b of enter.querySelectorAll('.mode')) b.disabled = true;
-  let code = inviteCodeFromUrl();
+  let code = inviteCodeFromUrl(); // 예전 초대 링크(?c=)로 온 사람은 그 방으로
   if (mode === 'invite' && !code) {
-    code = newInviteCode();
-    history.replaceState(null, '', '?c=' + code);
+    code = await askRoomCode();
+    if (!code) return; // 돌아가기
   }
+  for (const b of enter.querySelectorAll('.mode')) b.disabled = true;
   const r = await together.start(mode, code);
   goIn();
-  if (r === 'full') toast(`이 초대 카페는 가득 찼어요(${INVITE_CAP}명). 혼자 둘러보는 중이에요.`, 5);
+  if (r === 'full') toast(`이 모임 카페는 가득 찼어요(${INVITE_CAP}명). 혼자 둘러보는 중이에요.`, 5);
   else if (r !== 'ok') toast('지금은 함께하기에 연결하지 못했어요. 혼자 둘러보는 중이에요.', 5);
   else if (mode === 'random' && together.st.cafe > 1) toast(`1호점이 가득 차서 ${together.st.cafe}호점으로 왔어요.`, 4);
-  else if (mode === 'invite' && !inviteCodeFromUrl.arrived) setTimeout(shareInvite, 600);
+  else if (mode === 'invite') setTimeout(roomToast, 800);
 }
 // 단추는 index.html에 미리 있음. 장면을 불러오기 전에 눌렀다면 지금 그 모드로 들어감
 for (const b of enter.querySelectorAll('.mode')) b.addEventListener('click', () => choose(b.dataset.mode, b));

@@ -51,12 +51,18 @@ export async function place(scene, path, { x, z, y = null, rot = 0, height, widt
   return pivot;
 }
 
+const ZERO = new THREE.Matrix4().makeScale(0, 0, 0);
 // 같은 모델을 여러 자리에: 모델마다 한 번에 그리는 인스턴스로 묶음 (꽃·풀·숲 나무처럼 많고 움직이지 않는 것)
 export function instancer(scene) {
   const jobs = new Map();
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), one = new THREE.Vector3();
+  const made = new Map(); // path -> [{ im, mats }]
   return {
-    add(path, opts) { if (!jobs.has(path)) jobs.set(path, []); jobs.get(path).push(opts); },
+    add(path, opts) { if (!jobs.has(path)) jobs.set(path, []); jobs.get(path).push(opts); return jobs.get(path).length - 1; },
+    // 한 그루만 잠시 감추기 (투명한 복제본을 대신 보여 줄 때)
+    hide(path, i, on) {
+      for (const { im, mats } of made.get(path) || []) { im.setMatrixAt(i, on ? ZERO : mats[i]); im.instanceMatrix.needsUpdate = true; }
+    },
     async flush() {
       await Promise.all([...jobs].map(async ([path, list]) => {
         const src = await load(path);
@@ -70,10 +76,13 @@ export function instancer(scene) {
           q.setFromAxisAngle(up, o.rot || 0);
           return new THREE.Matrix4().compose(new THREE.Vector3(o.x, o.y === undefined || o.y === null ? floorY(o.x, o.z) : o.y, o.z), q.clone(), one.set(sc, sc, sc)).multiply(base);
         });
+        const out = []; made.set(path, out);
         src.traverse((m) => {
           if (!m.isMesh) return;
           const im = new THREE.InstancedMesh(m.geometry, m.material, list.length);
-          place.forEach((P, i) => { m4.multiplyMatrices(P, m.matrixWorld); im.setMatrixAt(i, m4); });
+          const mats = place.map((P) => new THREE.Matrix4().multiplyMatrices(P, m.matrixWorld));
+          mats.forEach((M4, i) => im.setMatrixAt(i, M4));
+          out.push({ im, mats });
           im.castShadow = !!list[0].shadow; im.receiveShadow = true;
           im.computeBoundingSphere();
           scene.add(im);
@@ -110,7 +119,11 @@ export function loadProps({ scene, deco, interactive, anim, renderer, occluders 
   const many = instancer(scene);
   deco.trees.forEach((t, k) => {
     // 숲의 나무는 묶어서 한 번에 그림, 정원 안 나무는 카메라를 가리면 반투명해지도록 하나씩
-    if (Math.hypot(t.x, t.z) > R_GARDEN + 2) { many.add(N + TREES[k % TREES.length] + '.glb', { x: t.x, z: t.z, y: floorY(t.x, t.z) - 0.15, rot: k * 1.7, height: t.h * 1.15 }); return; }
+    if (Math.hypot(t.x, t.z) > R_GARDEN + 2) {
+      const o = { x: t.x, z: t.z, y: floorY(t.x, t.z) - 0.15, rot: k * 1.7, height: t.h * 1.15 }, path = N + TREES[k % TREES.length] + '.glb';
+      t.inst = { path, i: many.add(path, o), o };
+      return;
+    }
     place(scene, N + TREES[k % TREES.length] + '.glb', { x: t.x, z: t.z, y: -0.5, rot: k * 1.7, height: t.h * 1.15, shadow: false })
       .then((m) => { if (!m) return; t.parts.forEach((p) => { p.visible = false; }); m.traverse((c) => { if (c.isMesh) occluders.push(c); }); }); // 카메라를 가리면 반투명
   });
@@ -161,7 +174,47 @@ export function loadProps({ scene, deco, interactive, anim, renderer, occluders 
     const h = kind.startsWith('stump') || kind === 'log' ? 0.4 : kind.startsWith('rock') ? 0.25 : kind.startsWith('plant') ? 0.8 : 0.35 + rnd() * 0.25;
     many.add(N + kind + '.glb', { x, z, y: -0.5, rot: rnd() * 6, height: h });
   }
-  many.flush().then(() => deco.trees.forEach((t) => { if (Math.hypot(t.x, t.z) > R_GARDEN + 2) t.parts.forEach((p) => { p.visible = false; }); }));
+  many.flush().then(() => { deco.trees.forEach((t) => { if (Math.hypot(t.x, t.z) > R_GARDEN + 2) t.parts.forEach((p) => { p.visible = false; }); }); deco.forestReady = true; });
+
+  // 숲 나무가 카메라와 나 사이를 가리면: 그 한 그루만 묶음에서 빼고 반투명한 복제본을 대신 세움
+  const ghosts = new Map(); // tree -> { g, mats, want, op }
+  const forest = deco.trees.filter((t) => t.inst);
+  deco.forestFade = (P, cam) => {
+    if (!deco.forestReady) return;
+    const dx = cam.x - P.x, dz = cam.z - P.z, L2 = dx * dx + dz * dz || 1;
+    const hit = new Set();
+    for (const t of forest) {
+      if (Math.abs(t.x - P.x) > 22 || Math.abs(t.z - P.z) > 22) continue;
+      const k = ((t.x - P.x) * dx + (t.z - P.z) * dz) / L2;
+      if (k < -0.05 || k > 1.05) continue;
+      const ex = P.x + dx * k - t.x, ez = P.z + dz * k - t.z;
+      const R = 0.9 + t.h * 0.22; // 잎이 퍼진 반지름쯤
+      if (ex * ex + ez * ez < R * R) hit.add(t);
+    }
+    for (const t of hit) {
+      let G = ghosts.get(t);
+      if (!G) {
+        G = { g: null, mats: [], want: 0.28, op: 1, loading: true };
+        ghosts.set(t, G);
+        place(scene, t.inst.path, { ...t.inst.o, shadow: false }).then((m) => {
+          G.loading = false; if (!m) return;
+          m.traverse((c) => { if (c.isMesh) { c.material = c.material.clone(); c.material.transparent = true; G.mats.push(c.material); } });
+          G.g = m; if (G.want < 1) many.hide(t.inst.path, t.inst.i, true);
+        });
+      }
+      G.want = 0.28;
+      if (G.g && !G.g.visible) { G.g.visible = true; many.hide(t.inst.path, t.inst.i, true); }
+    }
+    for (const [t, G] of ghosts) if (!hit.has(t)) G.want = 1;
+  };
+  anim.push((t, s, dt) => {
+    for (const [tr, G] of ghosts) {
+      if (!G.g || !G.g.visible) continue;
+      G.op += (G.want - G.op) * Math.min(1, (dt || 0.016) * 8);
+      for (const m of G.mats) { m.opacity = G.op; m.depthWrite = G.op > 0.9; }
+      if (G.want === 1 && G.op > 0.97) { G.g.visible = false; G.op = 1; many.hide(tr.inst.path, tr.inst.i, false); }
+    }
+  });
 
   // ---------- 둘레 화분: 잎을 덤불 모델로 ----------
   deco.plantGroups.forEach(({ g, p }, k) => {

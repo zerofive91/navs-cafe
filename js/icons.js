@@ -4,6 +4,12 @@ const svg = (body) =>
 
 export const ICONS = {
   map: svg('<path d="M4 8l7-3 10 3 7-3v19l-7 3-10-3-7 3z"/><path d="M11 5v19M21 8v19"/><circle cx="16" cy="14" r="1.6"/>'),
+  gear: svg('<path d="M10 6h12l2 8-8 4-8-4z"/><path d="M8 14v8l8 5 8-5v-8"/><path d="M16 18v9"/>'),
+  block: svg('<path d="M16 4l10 4v8c0 6-4 10-10 12C10 26 6 22 6 16V8z"/><path d="M16 9v14M11 15h10"/>'),
+  slash: svg('<path d="M24 4l4 4-15 15-4-4z"/><path d="M9 19l-4 4 4 4 4-4M5 27l-2 2"/>'),
+  pick: svg('<circle cx="16" cy="20" r="7"/><path d="M16 13c0-4 2-7 6-8"/><path d="M16 12c-3-3-7-2-8 0 3 2 6 2 8 0z"/>'),
+  gather: svg('<path d="M5 18h22l-3 9H8z"/><circle cx="11" cy="12" r="1.6"/><circle cx="17" cy="8" r="1.6"/><circle cx="21" cy="13" r="1.6"/><circle cx="15" cy="14" r="1.6"/>'),
+  strike: svg('<path d="M8 28L22 6"/><path d="M20 22c0 3 2 5 4 5s4-2 4-5-4-8-4-8-4 5-4 8z"/>'),
   shrug: svg('<rect x="9" y="9" width="14" height="14" rx="3"/><path d="M12 9V6h8v3"/><path d="M16 26v3M11 27l-2 2M21 27l2 2"/>'),
   gift: svg('<rect x="5" y="13" width="22" height="14" rx="2"/><path d="M4 9h24v4H4zM16 9v18"/><path d="M16 9c-2-5-8-5-7-1s7 1 7 1 6 3 7-1-5-4-7 1"/>'),
   receive: svg('<path d="M8 28V6h16v22"/><path d="M4 28h24"/><circle cx="20" cy="17" r="1.2"/><path d="M14 13a3 3 0 0 1 6 0c0 3-3 4-3 6" opacity=".0"/><path d="M13 16c0-2 3-3 3 0 0-3 3-2 3 0s-3 4-3 4-3-2-3-4z"/>'),

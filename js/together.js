@@ -8,6 +8,8 @@
 // 위치는 매 프레임 보내지 않고, 걷는 동안에만 몇 초에 한 번, 동작이 바뀔 때만 보냄.
 // 받는 쪽은 마지막 위치와 속도로 부드럽게 이어서 움직여 보여 줌.
 
+import { setOutfit } from './avatar.js';
+
 const SUPABASE_URL = 'https://esbhbhjnpupcrjwbnwet.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_BJB1Jth8sAEJllf9nnvA3A_iHQB5-Sz'; // 공개용(publishable) 키
 export const RANDOM_CAP = 10;
@@ -61,33 +63,47 @@ export function initTogether({ scene, me, look, makeChar, poseAvatar, upgradeCup
     scene.remove(ch.av);
     people.delete(id);
   }
+  // 받은 위치를 그대로 따라가면 띄엄띄엄 끊겨 보이므로, 조금(보내는 주기만큼) 늦게 지나온 점들 사이를 이어서 보여 줌
   function applyState(id, m) {
     const ch = people.get(id) || addPerson(id, m.look);
-    const now = performance.now();
-    const prev = ch.net;
-    let vx = 0, vz = 0;
-    if (m.st === 'walk' && prev && prev.st === 'walk') {
-      const s = Math.max(0.2, (now - prev.at) / 1000);
-      vx = (m.x - prev.x) / s; vz = (m.z - prev.z) / s;
-      const sp = Math.hypot(vx, vz);
-      if (sp > 7) { vx *= 7 / sp; vz *= 7 / sp; } // 순간이동(장소 바로가기)은 그냥 따라감
-    }
-    ch.net = { ...m, at: now, vx, vz, period: m.p || 1 };
+    const now = Date.now();
+    const ts = m.ts || now;
+    ch.off = Math.min(ch.off === undefined ? Infinity : ch.off + 0.02, now - ts); // 서로 다른 시계의 차이 (가장 빨리 온 것 기준)
+    ch.buf = ch.buf || [];
+    if (ch.buf.length && ts <= ch.buf[ch.buf.length - 1].ts) ch.buf.length = 0; // 순서가 뒤바뀌면 새로 시작
+    ch.buf.push({ ts, x: m.x, z: m.z, y: m.y });
+    if (ch.buf.length > 10) ch.buf.shift();
+    ch.net = { ...m, period: m.p || 1 };
     if (!ch.av.visible) { ch.x = m.x; ch.z = m.z; ch.y = m.y; ch.av.rotation.y = m.f; ch.av.visible = true; }
+    if (m.o !== undefined && m.o !== ch.outfitKey) { ch.outfitKey = m.o; setOutfit(ch.av, m.o === 'glory' ? 'glory' : m.o ? 'armor' : null, m.o && m.o !== 'glory' ? m.o.split(',') : undefined); }
+  }
+  function sampleBuf(ch) {
+    const B = ch.buf, n = ch.net;
+    if (!B || !B.length) return null;
+    const delay = Math.min(1600, n.period * 1150 + 150);
+    const rt = Date.now() - (ch.off || 0) - delay;
+    if (rt <= B[0].ts) return B[0];
+    for (let i = 1; i < B.length; i++) if (rt <= B[i].ts) {
+      const a = B[i - 1], b = B[i], k = (rt - a.ts) / Math.max(1, b.ts - a.ts);
+      return { x: a.x + (b.x - a.x) * k, z: a.z + (b.z - a.z) * k, y: a.y + (b.y - a.y) * k, moving: true };
+    }
+    return B[B.length - 1];
   }
   function step(dt, t) {
     for (const ch of people.values()) {
       const n = ch.net;
       if (!n) continue;
-      // 예상 위치: 마지막으로 받은 위치 + 속도 × 지난 시간(보내는 주기 조금 넘게까지만)
-      const age = Math.min((performance.now() - n.at) / 1000, n.period * 1.3);
-      const tx = n.x + n.vx * age, tz = n.z + n.vz * age;
-      const k = 1 - Math.exp(-dt * 6);
-      const dx = tx - ch.x, dz = tz - ch.z;
-      if (Math.hypot(dx, dz) > 12) { ch.x = tx; ch.z = tz; } else { ch.x += dx * k; ch.z += dz * k; }
-      ch.y += (n.y - ch.y) * Math.min(1, dt * 10);
+      const q = sampleBuf(ch);
+      const k = 1 - Math.exp(-dt * 14);
+      const dx = q.x - ch.x, dz = q.z - ch.z;
+      if (Math.hypot(dx, dz) > 12) { ch.x = q.x; ch.z = q.z; } else { ch.x += dx * k; ch.z += dz * k; }
+      ch.y += (q.y - ch.y) * Math.min(1, dt * 12);
+      const sp = Math.hypot(dx, dz) / Math.max(dt, 1e-3);
+      if (q.moving && Math.hypot(dx, dz) > 0.01) n.f = Math.atan2(dx, dz); // 지나가는 방향을 바라봄
+      ch.walkHold = q.moving && sp > 0.15 ? 0.4 : (ch.walkHold || 0) - dt; // 잠깐 멈칫해도 걷는 모습 유지
+      ch.walkingNow = ch.walkHold > 0;
       ch.face = n.f;
-      ch.state = n.st;
+      ch.state = n.st === 'sit' ? 'sit' : ch.walkingNow || n.st === 'walk' && q.moving ? 'walk' : 'idle';
       ch.running = !!n.run;
       ch.action = n.a || null;
       ch.item = n.i || null;
@@ -115,10 +131,12 @@ export function initTogether({ scene, me, look, makeChar, poseAvatar, upgradeCup
       st: me.state === 'walk' ? 'walk' : me.state === 'sit' ? 'sit' : 'idle',
       run: me.running ? 1 : 0, a: me.action || 0, i: me.item || 0, d: me.drink || 0, fd: me.food || 0, b: me.bites || 0,
       r: me.racket || 0, sw: me.swim ? 1 : 0, s: me.state === 'sit' && me.seat ? me.seat.kind : 0,
+      o: outfitCode(), ts: Date.now(),
     };
   }
-  // 사람이 많을수록 천천히 보냄: 2명 0.8초, 10명 2.5초
-  const period = () => Math.max(0.8, 0.25 * st.count);
+  const outfitCode = () => { const u = me.av.userData; return u.outfit === 'glory' ? 'glory' : u.outfit ? (u.pieces || []).join(',') || 'armor' : ''; };
+  // 사람이 많을수록 천천히 보냄: 2명 0.5초, 4명 0.8초, 10명 2초
+  const period = () => Math.max(0.5, 0.2 * st.count);
   function send() {
     const m = snapshot();
     m.p = period();
@@ -128,7 +146,7 @@ export function initTogether({ scene, me, look, makeChar, poseAvatar, upgradeCup
     lastKey = key(m);
     dirty = false;
   }
-  const key = (m) => [m.st, m.run, m.a, m.i, m.d, m.fd, m.b, m.r, m.sw, m.s].join('|');
+  const key = (m) => [m.st, m.run, m.a, m.i, m.d, m.fd, m.b, m.r, m.sw, m.s, m.o].join('|');
   function sendStep(dt) {
     if (st.count < 2) return; // 혼자 있는 방에서는 보내지 않음
     sinceSend += dt;
