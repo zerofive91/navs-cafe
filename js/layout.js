@@ -246,7 +246,7 @@ const TRAIL_DEF = {
     st: [[0.05, 1], [0.13, -1], [0.21, 1], [0.29, -1], [0.37, 1], [0.45, -1], [0.53, 1], [0.61, -1], [0.69, 1], [0.77, -1], [0.85, 1], [0.92, -1], [1, 0]] },
   // 생명의 다리: 곧은 길 끝의 넓은 빈터를 가로지르는 낭떠러지 (정거장 위치는 아래 BRIDGE 기준으로 다시 잡음)
   bridge: { pts: [[56, 295], [66, 295], [76, 296], [88, 296], [100, 296], [108, 296], [113, 296]],
-    st: [[-27, 1], [-20, -1], [-15, 1], [-12, -1, 7.5], [-9.5, 0], [-6.4, 0], [13, 0]], byV: true },
+    st: [[0.14, 1], [0.32, -1], [0.5, 1], [-14, -1, 7.5], [-10, 0], [-6.4, 0], [13, 0]], byV: true }, // 앞의 셋은 길 위 비율(f), 나머지는 빈터 가운데에서 잰 거리(m)
 };
 // 생명의 다리 빈터 (가로 u, 길 방향 v). 가운데 |v| < CH.v 는 낭떠러지
 const BR_C = polar(gr(104), 296), BR_A = { x: Math.cos(deg(296)), z: Math.sin(deg(296)) };
@@ -301,7 +301,7 @@ for (const [id, d] of Object.entries(TRAIL_DEF)) {
   };
   const stations = d.st.map(([f0, side, off0]) => {
     // byV: 생명의 다리 빈터 가운데에서 잰 거리(m)로 자리를 잡음
-    const f = d.byV ? (Math.hypot(BRIDGE.x - S[0].x, BRIDGE.z - S[0].z) + f0) / L : f0;
+    const f = d.byV && Math.abs(f0) >= 1 ? (Math.hypot(BRIDGE.x - S[0].x, BRIDGE.z - S[0].z) + f0) / L : f0;
     const p = sample(f);
     const right = { x: -p.dir.z, z: p.dir.x };
     const off = side ? off0 || 3.2 : 0;
