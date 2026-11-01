@@ -335,6 +335,21 @@ export const TREES = [];
     TREES.push({ x, z, h, dark: rnd() < 0.5 });
   }
 }
+// 숲속 오솔길 바로 옆에 오를 수 있는 나무를 드문드문 (다른 숲 나무는 길에서 4m 넘게 떨어져 있어 손이 닿지 않음)
+for (const t of Object.values(TRAILS)) {
+  let side = 1, k = 0;
+  for (let f = 0.1; f < 0.92; f += 0.13, side = -side, k++) {
+    const p = t.sample(f);
+    const off = TRAIL_W + 1.5;
+    const x = p.x - p.dir.z * off * side, z = p.z + p.dir.x * off * side;
+    if (Math.hypot(x, z) < R_GARDEN + 8) continue;
+    if (t.stations.some((st) => Math.hypot(st.x - x, st.z - z) < 7 || Math.hypot(st.show.x - x, st.show.z - z) < 5)) continue;
+    if (trailSamples.some((q) => Math.hypot(q.x - x, q.z - z) < TRAIL_W + 1.1)) continue;
+    { const l = BRIDGE.local(x, z); if (Math.abs(l.u) < BRIDGE.U + 4 && Math.abs(l.v) < BRIDGE.V + 3) continue; }
+    if (TREES.some((o) => Math.hypot(o.x - x, o.z - z) < 3)) continue;
+    TREES.push({ x, z, h: 6 + ((k * 7) % 4), dark: k % 2 === 0 });
+  }
+}
 // 둥근 꽃밭 6곳, 산책길 바깥쪽 벤치 6개, 길가 등
 export const FLOWER_BEDS = [-150, -90, -30, 30, 150, 210].map((a) => ({ a, ...polar(gr(39.5), a), r: 2.3 }));
 export const GARDEN_BENCHES = [0, 60, 120, 180, 240, 300].map((a) => ({ a, ...polar(gr(36.2), a), approach: polar(gr(35.1), a) }));
@@ -480,11 +495,13 @@ export function isFree(x, z, hop = 0) {
   return true;
 }
 // 이 자리에서 가장 가까운 나무 (매달리기·오르기)
-export function nearTree(x, z, maxD = 1.5) {
-  let best = null, bd = maxD;
+// 숲의 나무는 오솔길에서 조금 떨어져 있어 forestD(더 먼 거리)까지 손이 닿는 것으로 봄
+export function nearTree(x, z, maxD = 1.5, forestD = 0) {
+  let best = null, bd = Infinity;
   for (const t of TREES) {
     const d = Math.hypot(t.x - x, t.z - z);
-    if (d < bd && Math.hypot(t.x, t.z) < R_GARDEN + 1) { bd = d; best = t; }
+    const lim = Math.hypot(t.x, t.z) < R_GARDEN + 1 ? maxD : forestD;
+    if (d < lim && d < bd) { bd = d; best = t; }
   }
   return best;
 }
