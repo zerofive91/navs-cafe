@@ -8,7 +8,7 @@ import { ICONS } from './icons.js';
 import { loadProps, upgradeCup, fxSprite } from './props.js';
 import { initSigns } from './signs.js';
 import { initMusic } from './music.js';
-import { showVerse, showNext } from './verses.js';
+import { showVerse, showNext, nextVerse } from './verses.js';
 import { initPark } from './park.js';
 import { initMap } from './map.js';
 import { initScrolls } from './scrolls.js';
@@ -528,6 +528,22 @@ function availableActions() {
   return list;
 }
 let shown = '';
+function pressAction(name, on) {
+  sfx(name === 'sip' || name === 'order' || name === 'eat' ? 'cup' : 'tap', 0.15);
+  if (VERSE_OF[name]) showNext(VERSE_OF[name], on ? 0.2 : 1.2);
+  if (on && VERSE_OF[name]) return; // 이미 하는 중이면 다음 구절만
+  if (on && name !== 'wave' && name !== 'share') { me.action = null; if (me.seat && me.seat.free) standUp(me); shown = ''; return; }
+  ACTIONS[name]();
+}
+// 단추 목록에 지금 있는 동작만 키보드로도 누를 수 있음
+function pressIfAvailable(...names) {
+  const list = availableActions();
+  const name = names.find((n) => list.includes(n));
+  if (!name) return false;
+  const on = me.action === name || (name === 'light' && me.action === 'gaze') || (name === 'boat' && me.seat && me.seat.kind === 'boat');
+  pressAction(name, on);
+  return true;
+}
 function refreshActions() {
   const list = availableActions();
   const key = list.join(',') + '|' + me.action;
@@ -541,14 +557,7 @@ function refreshActions() {
     b.className = 'act' + (on ? ' on' : '');
     b.setAttribute('aria-label', name);
     b.innerHTML = ICONS[name];
-    b.addEventListener('pointerdown', (e) => {
-      e.stopPropagation();
-      sfx(name === 'sip' || name === 'order' || name === 'eat' ? 'cup' : 'tap', 0.15);
-      if (VERSE_OF[name]) showNext(VERSE_OF[name], on ? 0.2 : 1.2);
-      if (on && VERSE_OF[name]) return; // 이미 하는 중이면 다음 구절만
-      if (on && name !== 'wave' && name !== 'share') { me.action = null; if (me.seat && me.seat.free) standUp(me); shown = ''; return; }
-      ACTIONS[name]();
-    });
+    b.addEventListener('pointerdown', (e) => { e.stopPropagation(); pressAction(name, on); });
     bar.appendChild(b);
   }
 }
@@ -720,7 +729,21 @@ function stickUp(e) {
 stickEl.addEventListener('pointerup', stickUp);
 stickEl.addEventListener('pointercancel', stickUp);
 const KEYMAP = { ArrowUp: 'u', KeyW: 'u', ArrowDown: 'd', KeyS: 'd', ArrowLeft: 'l', KeyA: 'l', ArrowRight: 'r', KeyD: 'r' };
+// 컴퓨터 단축키: 방향키·WASD 걷기, 스페이스 점프, M 지도, Shift 걷기/달리기, C 앉기/일어서기, Z 눕기/일어서기, Enter 다음 말씀
+const lying = () => me.seat && (me.seat.kind === 'lie' || me.seat.kind === 'recline' || me.seat.kind === 'beanbag');
+const HOTKEYS = {
+  KeyM: () => (map.el.hidden ? map.open() : map.shut()),
+  Escape: () => { if (!map.el.hidden) map.shut(); },
+  ShiftLeft: () => pressIfAvailable('walk', 'run'),
+  ShiftRight: () => pressIfAvailable('walk', 'run'),
+  KeyC: () => pressIfAvailable('sit', 'stand'),
+  KeyZ: () => (lying() ? pressIfAvailable('stand') : pressIfAvailable('recline')),
+  Enter: () => nextVerse(),
+  NumpadEnter: () => nextVerse(),
+};
 window.addEventListener('keydown', (e) => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (HOTKEYS[e.code]) { if (!e.repeat) HOTKEYS[e.code](); e.preventDefault(); return; }
   if (e.code === 'Space') { ACTIONS.jump(); e.preventDefault(); return; }
   if (KEYMAP[e.code]) { keys.add(KEYMAP[e.code]); e.preventDefault(); }
 });

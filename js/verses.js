@@ -110,6 +110,10 @@ export function showVerse(key, { delay = 0, cooldown = 90, title = '', then = nu
 function tapNext(ev) {
   ev.stopPropagation();
   ev.preventDefault();
+  nextVerse();
+}
+// 다음 구절로 (카드를 누르거나 Enter 키)
+export function nextVerse() {
   if (!queue || !queue.keys.length) return;
   const e = el();
   const k = queue.keys.shift();
