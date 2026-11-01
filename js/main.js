@@ -163,10 +163,10 @@ function standUp(ch) {
   }
   ch.state = 'idle';
 }
-function walkTo(ch, target, task = null) {
+function walkTo(ch, target, task = null, path = null) {
   standUp(ch);
   ch.action = null;
-  ch.path = findPath(ch, target);
+  ch.path = path || findPath(ch, target);
   ch.task = task;
   ch.state = ch.path.length ? 'walk' : 'idle';
   if (!ch.path.length && task) finishTask(ch);
@@ -1082,7 +1082,7 @@ const peopleBtn = document.createElement('button');
 peopleBtn.className = 'place people';
 peopleBtn.hidden = true;
 placesEl.insertBefore(peopleBtn, viewBtn);
-const map = initMap({ me, people: () => together.people.values(), walkTo, icon: ICONS.map, placesEl, before: peopleBtn });
+const map = initMap({ me, people: () => together.people.values(), walkTo, say: toast, icon: ICONS.map, placesEl, before: peopleBtn });
 
 async function shareInvite() {
   const url = inviteLink(together.st.code);

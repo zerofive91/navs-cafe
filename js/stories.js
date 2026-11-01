@@ -210,7 +210,7 @@ export function addStories(ctx) {
         const k = ease((fallen - 0.4) / 1.1);
         pivot.rotation.x = k * (Math.PI / 2 - 0.08); // 얼굴을 땅에 대고 엎드러짐 (삼상 17:49)
         if (fallen > 1.5 && fallen - dt <= 1.5) { hit('impactPlank_medium_000', 0.5, 0.45); hit('impactSoft_heavy_000', 0.5, 0.6); for (let i = 0; i < 6; i++) burst(gp.x + (Math.random() - 0.5) * 2, 0.2, gp.z + (Math.random() - 0.5) * 2); }
-        if (fallen > 2 && fallen - dt <= 2) { showVerse('david', { cooldown: 0, delay: 0.3 }); setTimeout(() => showVerse('david2', { cooldown: 0 }), 11000); }
+        if (fallen > 2 && fallen - dt <= 2) { showVerse('david', { cooldown: 0, delay: 0.3, then: ['david2'] }); }
         // 1분 뒤 다시 일어남
         if (fallen > 60) { const r = ease((fallen - 60) / 2); pivot.rotation.x = (1 - r) * (Math.PI / 2 - 0.08); }
         if (fallen > 62) fallen = -1;
