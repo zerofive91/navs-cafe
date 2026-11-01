@@ -33,8 +33,8 @@ export function initMap({ me, people, walkTo, icon, placesEl, before }) {
   };
   const resize = () => {
     dpr = Math.min(2, window.devicePixelRatio || 1);
-    const r = wrap.getBoundingClientRect();
-    W = r.width; Hh = r.height;
+    // 화면 눕히기(body를 90도 돌림)에서도 맞도록 돌리기 전 크기를 씀
+    W = wrap.clientWidth; Hh = wrap.clientHeight;
     cv.width = W * dpr; cv.height = Hh * dpr;
     cv.style.width = W + 'px'; cv.style.height = Hh + 'px';
   };
