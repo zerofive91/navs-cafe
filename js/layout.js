@@ -38,7 +38,10 @@ export function floorY(x, z) {
   if (r >= R_HALL) {
     if (r < R_HALL + 0.6) return 0; // 기단 위
     const d = poolDepth(x, z);
-    return d ? -0.5 - d : -0.5; // 잔디, 수영장 안은 물속 바닥
+    if (d) return -0.5 - d; // 수영장 안은 물속 바닥
+    const y = -0.5 + (r > R_GARDEN ? terrainH(x, z) : 0); // 잔디, 숲속은 높낮이 지형
+    if (PLATFORMS.length && r > R_GARDEN) { const p = platformTop(x, z); if (p > y) return p; } // 성벽·계단 위
+    return y;
   }
   const w = onWater(x, z);
   if (w) return w.y; // 물 위를 걸음
@@ -168,6 +171,17 @@ export const GOLIATH = PARK.david.at(3.6, 1.2);
 block(GOLIATH.x, GOLIATH.z, 0.9);
 export const JONAH_POND = { ...PARK.jonah.at(1.6, 0.4), r: 3.6 };
 block(JONAH_POND.x, JONAH_POND.z, JONAH_POND.r - 0.2);
+// 요나의 바다: 구역 오른쪽으로 넓게 펼쳐진 바다 (물가 모래밭에서 바라봄). 구역 좌표 u(둘레 방향)·v(바깥 방향)
+export const JONAH_SEA = {
+  u0: -1.3, u1: 13, v0: -8, v1: 8, round: 4,
+  shore(v) { return this.u0 + 0.6 * Math.sin(v * 0.9) + 0.35 * Math.sin(v * 2.3 + 1); }, // 물결진 물가선
+  inside(x, z, pad = 0) {
+    const { u, v } = PARK.jonah.local(x, z);
+    if (u < this.shore(v) - pad || u > this.u1 + pad || v < this.v0 - pad || v > this.v1 + pad) return false;
+    const cu = Math.max(0, u - (this.u1 - this.round)), cv = Math.max(0, Math.abs(v) - (this.v1 - this.round));
+    return Math.hypot(cu, cv) < this.round + pad;
+  },
+};
 // 수영장 물: 가장자리 1m는 완만한 경사, 가운데 깊이 0.75m
 export const POOL = { w: 12, d: 5.4, depth: 0.75, water: -0.5 - 0.2 };
 export function poolDepth(x, z) {
@@ -298,7 +312,7 @@ const trailMask = new Uint8Array(TM.n * TM.n);
   for (const t of Object.values(TRAILS)) {
     for (const q of t.samples) mark(q.x, q.z, TRAIL_W);
     for (const s of t.stations) if (s.side) mark(s.x + s.right.x * s.side * 1.4, s.z + s.right.z * s.side * 1.4, 2);
-    mark(t.end.x, t.end.z, 7);
+    mark(t.end.x, t.end.z, t === TRAILS.pilgrim ? 10.6 : 7); // 천로역정 끝은 성벽 위까지
   }
 }
 function onTrail(x, z) {
@@ -311,6 +325,182 @@ for (const t of Object.values(TRAILS)) {
 }
 export const WALK_MAX = Math.max(...Object.values(TRAILS).map((t) => Math.hypot(t.end.x, t.end.z) + 8));
 
+// ---------- 높낮이 지형 (숲속 코스) ----------
+// 코스마다 길을 따라 오르내리는 높이(프로필)를 정하고, 길 둘레는 그 높이에서 산비탈처럼 흘러내림.
+// 길(걸을 수 있는 곳) 위는 프로필 높이로 평평하게 다져 정거장·등불이 그 위에 섬.
+// 1m 칸 높이표를 한 번 만들어 두고 두 칸 사이는 이어서 읽음.
+const sstep = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+const keys = (K) => (f) => { // [[f, h], ...] 사이를 부드럽게
+  if (f <= K[0][0]) return K[0][1];
+  for (let i = 1; i < K.length; i++) if (f <= K[i][0]) return K[i - 1][1] + (K[i][1] - K[i - 1][1]) * sstep(K[i - 1][0], K[i][0], f);
+  return K[K.length - 1][1];
+};
+// 천로역정: 늪 → 십자가 언덕 → 고난의 언덕(가파름) → 아름다운 궁전 → 겸손·사망의 골짜기 → 허영의 시장 → 의심의 성 → 기쁨의 산 → 죽음의 강 → 시온산 꼭대기 하늘의 도성
+const PILGRIM_H = keys([[0, 0], [0.09, 0], [0.155, 0.6], [0.27, 1.6], [0.31, 3.2], [0.355, 3.4], [0.425, 10.5], [0.47, 11], [0.53, 4.5], [0.6, 2.4], [0.66, 4.5], [0.73, 6.5], [0.79, 15], [0.83, 15.5], [0.885, 8.5], [0.905, 8.5], [1, 22]]);
+export const TERRAIN_PROFILE = {
+  pilgrim: PILGRIM_H,
+  sinai: keys([[0, PILGRIM_H(0.155)], [0.5, 1.6], [1, 3.4]]),
+  heaven: keys([[0, 0], [0.2, 0.4], [0.6, 3], [1, 7]]),          // 본향을 향해 천천히 오르는 길
+  jesus: keys([[0, 0], [0.22, 0.3], [0.3, 3.2], [0.36, 3.2], [0.44, 0.6], [0.68, 1], [0.73, 4], [0.78, 4], [0.86, 1.2], [1, 1.5]]), // 산 위의 가르침, 골고다 언덕
+  magi: keys([[0, 0], [0.5, 0.6], [1, 1.2]]),
+  gospel: keys([[0, 0], [0.5, 1], [1, 2]]),
+};
+// 길 위 점들을 둘레 칸에 찍어 가장 가까운 점까지의 거리²와 그 점의 f를 남김
+function stamp(tr, dist, fat, i0, j0, i1, j1, W, pad, half, cell) {
+  const S = tr.samples, L = tr.len, n = S.length;
+  for (let k = 0; k < n; k += 3) {
+    const qx = S[k].x, qz = S[k].z, f = S[k].s / L;
+    const ci = Math.round((qx + half) / cell), cj = Math.round((qz + half) / cell);
+    const ja = cj - pad > j0 ? cj - pad : j0, jb = cj + pad < j1 ? cj + pad : j1;
+    const ia = ci - pad > i0 ? ci - pad : i0, ib = ci + pad < i1 ? ci + pad : i1;
+    for (let j = ja; j <= jb; j++) {
+      const dz = j * cell - half - qz, dz2 = dz * dz;
+      let o = (j - j0) * W + (ia - i0);
+      for (let i = ia; i <= ib; i++, o++) {
+        const dx = i * cell - half - qx, d2 = dx * dx + dz2;
+        if (d2 < dist[o]) { dist[o] = d2; fat[o] = f; }
+      }
+    }
+  }
+}
+export const TERRAIN = { cell: 1, mesh: 4, half: TM.half, n: 0, h: null, sand: null, peak: 0 }; // mesh: 땅 그물 칸(m). 가볍게 4m
+{
+  const T = TERRAIN, N = (T.n = Math.ceil((T.half * 2) / T.cell) + 1);
+  const H = (T.h = new Float32Array(N * N));
+  const sand = (T.sand = new Uint8Array(N * N));
+  const flat = new Float32Array(N * N).fill(-1); // 길 위: 이 높이로 다짐 (-1 = 길 아님)
+  const idx = (x, z) => [Math.round((x + T.half) / T.cell), Math.round((z + T.half) / T.cell)];
+  const wx = (i) => -T.half + i * T.cell;
+  const REACH_ = 34;
+  for (const [id, tr] of Object.entries(TRAILS)) {
+    const prof = TERRAIN_PROFILE[id] || (() => 0);
+    const REACH = TERRAIN_PROFILE[id] ? REACH_ : 4; // 높낮이 없는 길은 길 위만 평지로 다짐
+    // 이 길에서 가장 가까운 점까지의 거리와 그 점의 길 위 위치(f)
+    let i0 = N, i1 = 0, j0 = N, j1 = 0;
+    for (const q of tr.samples) { const [i, j] = idx(q.x, q.z); i0 = Math.min(i0, i); i1 = Math.max(i1, i); j0 = Math.min(j0, j); j1 = Math.max(j1, j); }
+    const pad = Math.ceil(REACH / T.cell);
+    i0 = Math.max(0, i0 - pad); j0 = Math.max(0, j0 - pad); i1 = Math.min(N - 1, i1 + pad); j1 = Math.min(N - 1, j1 + pad);
+    const W = i1 - i0 + 1, Hh = j1 - j0 + 1;
+    const dist = new Float32Array(W * Hh).fill(1e9), fat = new Float32Array(W * Hh);
+    const ns = tr.samples.length;
+    stamp(tr, dist, fat, i0, j0, i1, j1, W, pad, T.half, T.cell);
+    for (let o = 0; o < dist.length; o++) dist[o] = Math.sqrt(dist[o]);
+    const endR = tr.from ? 5 : 11.5;
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+      const o = (j - j0) * W + (i - i0), g = j * N + i;
+      const x = wx(i), z = wx(j);
+      let d = dist[o], f = fat[o];
+      if (d > REACH + 12) continue;
+      if (Math.hypot(x - tr.end.x, z - tr.end.z) < endR) { d = 0; f = 1; } // 끝 빈터는 평평하게
+      if (d < 6) for (const st of tr.stations) if (st.side && Math.hypot(x - st.show.x, z - st.show.z) < 3.4) d = Math.min(d, 1);
+      if (d > REACH) continue;
+      const base = prof(f);
+      if (d < 3.8) { flat[g] = flat[g] < 0 ? base : Math.min(flat[g], base); continue; } // 4m 그물에서도 길이 기울지 않게 넉넉히
+      const k = 1 - sstep(3.8, REACH, d);
+      let h = base * (0.35 + 0.65 * k) * k;
+      if (id === 'pilgrim') {
+        // 사망의 음침한 골짜기: 길 양옆이 높은 벼랑
+        h += 9 * sstep(0.53, 0.56, f) * (1 - sstep(0.61, 0.64, f)) * sstep(3, 7, d) * (1 - sstep(16, 26, d));
+        // 기쁨의 산: 길 옆으로 봉우리
+        h += 8 * sstep(0.75, 0.79, f) * (1 - sstep(0.84, 0.87, f)) * sstep(4, 12, d) * (1 - sstep(18, 30, d));
+        // 고난의 언덕: 길보다 조금 더 솟은 비탈
+        h += 3 * sstep(0.37, 0.41, f) * (1 - sstep(0.46, 0.5, f)) * k;
+      }
+      if (id === 'sinai') h = Math.max(h, 0);
+      if (id === 'magi') {
+        // 사막의 모래언덕
+        const dune = 0.9 + 0.9 * Math.sin(x * 0.11 + Math.sin(z * 0.05) * 2) * Math.cos(z * 0.09 - x * 0.03);
+        h += dune * sstep(3, 9, d) * (1 - sstep(24, REACH, d)) * 1.6;
+        if (d < 26) sand[g] = 1;
+      }
+      H[g] = Math.max(H[g], h);
+    }
+    if (id === 'magi') for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) if (dist[(j - j0) * W + (i - i0)] < 4) sand[j * N + i] = 1;
+  }
+  // 시내산: 샛길 끝을 굽어보는 가파른 봉우리 (오를 수 없음)
+  {
+    const t = TRAILS.sinai, e = t.end, d0 = t.samples[t.samples.length - 6];
+    const dl = Math.hypot(e.x - d0.x, e.z - d0.z) || 1, c = { x: e.x + (e.x - d0.x) / dl * 15, z: e.z + (e.z - d0.z) / dl * 15 };
+    T.sinai = c;
+    const [ci, cj] = idx(c.x, c.z), R = 17;
+    for (let j = cj - R; j <= cj + R; j++) for (let i = ci - R; i <= ci + R; i++) {
+      if (i < 0 || j < 0 || i >= N || j >= N) continue;
+      const d = Math.hypot(wx(i) - c.x, wx(j) - c.z);
+      if (d < R) H[j * N + i] = Math.max(H[j * N + i], 24 * Math.pow(1 - d / R, 1.3) + 3);
+    }
+  }
+  // 길 위 다지기, 정원·생명의 다리 빈터 둘레는 평지로
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    const g = j * N + i;
+    if (flat[g] >= 0) H[g] = flat[g];
+    if (H[g] === 0) continue;
+    const x = wx(i), z = wx(j);
+    const r = Math.hypot(x, z);
+    let k = sstep(R_GARDEN + 2, R_GARDEN + 12, r);
+    const l = BRIDGE.local(x, z);
+    const bd = Math.max(Math.abs(l.u) - BRIDGE.U, Math.abs(l.v) - BRIDGE.V);
+    k *= sstep(1, 10, bd);
+    H[g] *= k;
+    if (H[g] > T.peak) T.peak = H[g];
+  }
+}
+export function onSand(x, z) {
+  const T = TERRAIN, i = Math.round((x + T.half) / T.cell), j = Math.round((z + T.half) / T.cell);
+  return i >= 0 && j >= 0 && i < T.n && j < T.n && T.sand[j * T.n + i] === 1;
+}
+// 이 자리 땅의 솟은 높이 (평지 0)
+export function terrainH(x, z) {
+  // 땅 그물(4m 격자, 칸마다 삼각형 둘)과 똑같이 읽어 발이 땅에 꼭 붙게 함
+  const T = TERRAIN, S = T.mesh, u = (x + T.half) / (T.cell * S), v = (z + T.half) / (T.cell * S);
+  const a = Math.floor(u), b = Math.floor(v);
+  const N = T.n, M = Math.floor((N - 1) / S);
+  if (a < 0 || b < 0 || a >= M || b >= M) return 0;
+  const fu = u - a, fv = v - b, H = T.h, at = (p, q) => H[q * S * N + p * S];
+  const h00 = at(a, b), h10 = at(a + 1, b), h01 = at(a, b + 1), h11 = at(a + 1, b + 1);
+  return fu + fv <= 1 ? h00 + (h10 - h00) * fu + (h01 - h00) * fv : h11 + (h01 - h11) * (1 - fu) + (h10 - h11) * (1 - fv);
+}
+
+// ---------- 올라설 수 있는 단 (성벽·계단) ----------
+// sector: 가운데(cx, cz)에서 반지름 r0~r1, 각도 a0~a1 (라디안, atan2(z, x))인 부채꼴. top: 윗면 높이(절대)
+export const PLATFORMS = [];
+const angIn = (a, a0, a1) => { const t = ((a - a0) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI); return t <= ((a1 - a0) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI); };
+export function platformTop(x, z) {
+  let top = -Infinity;
+  for (const p of PLATFORMS) {
+    const dx = x - p.cx, dz = z - p.cz;
+    if (Math.abs(dx) > p.r1 || Math.abs(dz) > p.r1) continue;
+    const r = Math.hypot(dx, dz);
+    if (r < p.r0 || r > p.r1) continue;
+    if (p.full || angIn(Math.atan2(dz, dx), p.a0, p.a1)) top = Math.max(top, p.top);
+  }
+  return top;
+}
+// 하늘의 도성: 천로역정 끝 꼭대기를 두른 성벽. 성문으로 들어가 안쪽 계단으로 성벽 위에 오를 수 있음
+export const CITY = (() => {
+  const t = TRAILS.pilgrim, e = t.end;
+  const base = -0.5 + PILGRIM_H(1);
+  const inA = Math.atan2(-e.dir.z, -e.dir.x); // 들어오는 쪽
+  const C = { x: e.x, z: e.z, base, r0: 8.4, r1: 10.4, wall: 3.1, gate: 0.24, inA, steps: [] };
+  C.top = base + C.wall;
+  // 성벽 위 (성문 자리는 비움)
+  PLATFORMS.push({ kind: 'wall', cx: C.x, cz: C.z, r0: C.r0, r1: C.r1, a0: inA + C.gate, a1: inA - C.gate + 2 * Math.PI, top: C.top });
+  // 안쪽 계단: 성문 오른쪽에서 벽을 따라 올라감
+  const n = 10, rs0 = 7.0, rs1 = C.r0 + 0.02, da = 0.105;
+  for (let k = 0; k < n; k++) {
+    const a0 = inA + C.gate + 0.12 + k * da;
+    const st = { kind: 'step', cx: C.x, cz: C.z, r0: rs0, r1: rs1, a0, a1: a0 + da, top: base + (k + 1) * (C.wall / n) };
+    PLATFORMS.push(st); C.steps.push(st);
+  }
+  C.stairEnd = inA + C.gate + 0.12 + n * da;
+  // 성벽 위 난간(바깥 가장자리)과 안쪽 가장자리: 계단 꼭대기만 열려 있음
+  for (let a = inA + C.gate + 0.02; a < inA - C.gate + 2 * Math.PI - 0.01; a += 0.07) {
+    obstacles.push({ x: C.x + Math.cos(a) * (C.r1 - 0.08), z: C.z + Math.sin(a) * (C.r1 - 0.08), r: 0.15, h: C.top + 1.0, abs: true });
+    if (a > C.stairEnd - da && a < C.stairEnd + 0.05) continue;
+    obstacles.push({ x: C.x + Math.cos(a) * (C.r0 + 0.05), z: C.z + Math.sin(a) * (C.r0 + 0.05), r: 0.15, h: C.top + 0.8, abs: true, wallIn: true });
+  }
+  return C;
+})();
+
 // 숲 나무: 테마파크 바깥의 숲과, 정원 안 구역 사이에 드문드문 (정원 안쪽에 있는 나무는 피해 다님)
 export const TREES = [];
 {
@@ -322,6 +512,7 @@ export const TREES = [];
     const h = 5 + rnd() * 7;
     if (Math.abs(a - Math.PI / 2) < 0.06) continue; // 입구 앞 길
     if (nearTrail(Math.cos(a) * r, Math.sin(a) * r, 4)) continue; // 숲속 코스
+    if (onSand(Math.cos(a) * r, Math.sin(a) * r)) continue; // 동방박사의 사막에는 나무 없음
     { const l = BRIDGE.local(Math.cos(a) * r, Math.sin(a) * r); if (Math.abs(l.u) < BRIDGE.U + 4 && Math.abs(l.v) < BRIDGE.V + 3) continue; }
     TREES.push({ x: Math.cos(a) * r, z: Math.sin(a) * r, h, dark: rnd() < 0.5 });
   }
@@ -331,7 +522,7 @@ export const TREES = [];
     const r = gr(39) + rnd() * 34 * G;
     const h = 4 + rnd() * 5;
     const x = Math.cos(a) * r, z = Math.sin(a) * r;
-    if (!parkClear(x, z, 4.5) || Math.hypot(x, z) > R_GARDEN - 1) continue;
+    if (!parkClear(x, z, 4.5) || Math.hypot(x, z) > R_GARDEN - 1 || JONAH_SEA.inside(x, z, 3)) continue;
     TREES.push({ x, z, h, dark: rnd() < 0.5 });
   }
 }
@@ -475,12 +666,14 @@ export const SPOTS = {
 
 // 사람이 설 수 있는 곳인지
 export const BODY = 0.35;
-export function isFree(x, z, hop = 0) {
+// baseY: 지금 딛고 선 바닥 높이(알면). 성벽 난간처럼 높이가 절대값(abs)인 장애물은 발 높이로 넘을지 정함
+export function isFree(x, z, hop = 0, baseY = null) {
   const r = Math.hypot(x, z);
   if (r > R_GARDEN) {
     const bf = bridgeFree(x, z);
     if (bf === 0 || (bf < 0 && !onTrail(x, z))) return false;
   }
+  if (Math.abs(r - PARK.jonah.r) < 12 && JONAH_SEA.inside(x, z, BODY)) return false; // 요나의 바다
   if (r > R_HALL - 0.7 && r < R_HALL + 1.1) {
     // 유리벽은 입구로만 드나듦
     if (!(z > 0 && Math.abs(x) < 1.15)) return false;
@@ -489,7 +682,7 @@ export function isFree(x, z, hop = 0) {
   if (!buckets) buildBuckets();
   const list = buckets.get(bkey(Math.floor(x / BK), Math.floor(z / BK)));
   if (list) for (const o of list) {
-    if (hop > o.h) continue; // 그 위로 뛰어 넘는 중
+    if (o.abs ? baseY !== null && baseY + hop > o.h : hop > o.h) continue; // 그 위로 뛰어 넘는 중
     if (Math.hypot(x - o.x, z - o.z) < o.r + BODY) return false;
   }
   return true;

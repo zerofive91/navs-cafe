@@ -1,7 +1,7 @@
 // 숲속 코스 네 갈래: 천로역정 구원 코스, 생명의 다리(복음), 천국을 사모하는 길, 예수님을 만나는 길
 // 길을 따라 걸으며 정거장에 다가가면 장면과 함께 말씀이 뜨고, 길가 등불이 켜짐
 import * as THREE from 'three';
-import { TRAILS, R_PARK, BRIDGE } from './layout.js';
+import { TRAILS, R_PARK, BRIDGE, TERRAIN, terrainH, floorY, CITY, R_GARDEN } from './layout.js';
 import { refreshNav } from './nav.js';
 import { showVerse, VERSES } from './verses.js';
 import { place } from './props.js';
@@ -121,6 +121,7 @@ const EXTRA = {
 for (const [k, v] of Object.entries(EXTRA)) VERSES['course-x-' + k] = v;
 
 // 지도에 쓰는 코스 정보와, 이 기기에서 찾은 코스(지나온 정거장)
+export const COURSE_STATIONS = Object.fromEntries(Object.entries(COURSES).map(([id, c]) => [id, c.st.map((x) => x[0])]));
 export const COURSE_META = Object.fromEntries(Object.entries(COURSES).map(([id, c]) => [id, { name: c.name, color: c.color }]));
 const FOUND_KEY = 'navs-cafe-found';
 export function foundCourses() {
@@ -156,6 +157,44 @@ export function addCourses(ctx) {
   const far = []; // 멀리 있으면 그리지 않는 것들 (숲속이라 나무에 가려 보이지도 않음)
   const cullable = (o, p) => { far.push({ o, x: p.x, z: p.z }); return o; };
 
+  // ---------- 높낮이 지형: 4m 격자의 가벼운 땅 (솟은 곳·모래만 그림, 나머지는 평평한 잔디가 그대로 보임) ----------
+  {
+    const T = TERRAIN, step = T.mesh, N = T.n, half = T.half;
+    const hAt = (i, j) => T.h[Math.min(N - 1, j) * N + Math.min(N - 1, i)];
+    const sandAt = (i, j) => T.sand[Math.min(N - 1, j) * N + Math.min(N - 1, i)];
+    const M2 = Math.floor((N - 1) / step) + 1;
+    const vid = new Int32Array(M2 * M2).fill(-1);
+    const pos = [], col = [], idx = [];
+    const cG = new THREE.Color(0x9cbf84), cG2 = new THREE.Color(0x7fa56c), cRock = new THREE.Color(0x8d857a), cSnow = new THREE.Color(0xe8e4dc), cSand = new THREE.Color(0xe2c98f), tmp = new THREE.Color();
+    const vert = (a, b) => {
+      const k = b * M2 + a; if (vid[k] >= 0) return vid[k];
+      const i = a * step, j = b * step, h = hAt(i, j);
+      const x = -half + i * T.cell, z = -half + j * T.cell;
+      const sl = Math.max(Math.abs(hAt(i + step, j) - hAt(Math.max(0, i - step), j)), Math.abs(hAt(i, j + step) - hAt(i, Math.max(0, j - step)))) / (2 * step);
+      const sd = sandAt(i, j);
+      pos.push(x, -0.5 + h + (sd ? 0.03 : 0) - (h < 0.05 && !sd ? 0.08 : 0), z);
+      if (sd) tmp.copy(cSand).lerp(cSand.clone().offsetHSL(0, 0, -0.06), Math.min(1, h / 3));
+      else { tmp.copy(cG).lerp(cG2, Math.min(1, h / 10)); tmp.lerp(cRock, Math.min(1, Math.max(0, sl - 0.45) * 1.6)); if (h > 19) tmp.lerp(cSnow, Math.min(1, (h - 19) / 6)); }
+      col.push(tmp.r, tmp.g, tmp.b);
+      return (vid[k] = pos.length / 3 - 1);
+    };
+    for (let b = 0; b < M2 - 1; b++) for (let a = 0; a < M2 - 1; a++) {
+      const i = a * step, j = b * step;
+      const hs = [hAt(i, j), hAt(i + step, j), hAt(i, j + step), hAt(i + step, j + step)];
+      const sd = sandAt(i, j) || sandAt(i + step, j + step);
+      if (Math.max(...hs) < 0.04 && !sd) continue;
+      const v00 = vert(a, b), v10 = vert(a + 1, b), v01 = vert(a, b + 1), v11 = vert(a + 1, b + 1);
+      idx.push(v00, v01, v10, v10, v01, v11);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    geo.setIndex(idx); geo.computeVertexNormals();
+    const land = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 }));
+    land.receiveShadow = true; scene.add(land);
+  }
+  const gy = (x, z) => floorY(x, z) + 0.5 + G0; // 그 자리 땅 높이 (평지 = G0)
+
   // 길 바닥: 둘레길 바깥부터 숲 끝까지 띠 모양
   for (const tr of Object.values(TRAILS)) {
     const S = tr.samples.filter((q) => Math.hypot(q.x, q.z) > R_PARK + 1.3);
@@ -164,7 +203,7 @@ export function addCourses(ctx) {
       const n = S[Math.min(i + 1, S.length - 1)], p = S[Math.max(i - 1, 0)];
       const dx = n.x - p.x, dz = n.z - p.z, l = Math.hypot(dx, dz) || 1;
       const rx = -dz / l * 1.25, rz = dx / l * 1.25;
-      pos.push(q.x + rx, G0 + 0.016, q.z + rz, q.x - rx, G0 + 0.016, q.z - rz);
+      pos.push(q.x + rx, gy(q.x + rx, q.z + rz) + 0.07, q.z + rz, q.x - rx, gy(q.x - rx, q.z - rz) + 0.07, q.z - rz);
       if (i) { const a = (i - 1) * 2; idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); }
     });
     const geo = new THREE.BufferGeometry();
@@ -175,7 +214,7 @@ export function addCourses(ctx) {
     scene.add(strip);
     // 끝 빈터
     const cl = new THREE.Mesh(new THREE.CircleGeometry(7, 40), C.path);
-    cl.rotation.x = -Math.PI / 2; cl.position.set(tr.end.x, G0 + 0.015, tr.end.z); cl.receiveShadow = true;
+    cl.rotation.x = -Math.PI / 2; cl.position.set(tr.end.x, gy(tr.end.x, tr.end.z) + 0.065, tr.end.z); cl.receiveShadow = true;
     scene.add(cl);
   }
 
@@ -594,12 +633,12 @@ export function addCourses(ctx) {
       if (burden && bag) bag.scale.multiplyScalar(1.12); // 율법 앞에서 짐은 더 무거워짐
     },
     star() { star.on = true; sfx('orb', 0.2, 1.4); },
-    joy(st) { for (let i = 0; i < 8; i++) setTimeout(() => burst(st.show.x + (Math.random() - 0.5) * 3, 1 + Math.random() * 2, st.show.z + (Math.random() - 0.5) * 3), i * 150); },
+    joy(st) { for (let i = 0; i < 8; i++) setTimeout(() => burst(st.show.x + (Math.random() - 0.5) * 3, st.g.position.y + 1.5 + Math.random() * 2, st.show.z + (Math.random() - 0.5) * 3), i * 150); },
     crossfall() { if (!cross.down && cross.T < 0) { cross.T = 0; shot(new THREE.Vector3(BRIDGE.x, G0, BRIDGE.z), { dist: 22, el: 0.5, side: 0.75, dur: 8, mid: 0.6 }); hit('impactWood_light_000', 0.3, 0.5); } },
     arrive(st, course) {
       fanfare(audio, [523, 659, 784, 1047], 1.2, 0.2, 0.06);
       shot(st.g.position, { dist: 14, el: 0.3, side: 0.5, dur: 8, mid: 0.7, y: 2.5 });
-      for (let i = 0; i < 14; i++) setTimeout(() => burst(st.x + (Math.random() - 0.5) * 6, 0.5 + Math.random() * 3, st.z + (Math.random() - 0.5) * 6), i * 120);
+      for (let i = 0; i < 14; i++) setTimeout(() => burst(st.x + (Math.random() - 0.5) * 6, st.g.position.y + 1 + Math.random() * 3, st.z + (Math.random() - 0.5) * 6), i * 120);
       if (course.after) setTimeout(() => showVerse('course-' + course.id + '-after', { cooldown: 0, title: course.name }), 12000);
     },
   };
@@ -617,7 +656,7 @@ export function addCourses(ctx) {
       (more || []).forEach((v, k) => { VERSES[key + '-m' + k] = v; });
       const g = new THREE.Group();
       const base = st.side ? st.show : (i === tr.stations.length - 1 ? { x: st.x + st.dir.x * 5, z: st.z + st.dir.z * 5 } : st);
-      g.position.set(base.x, G0, base.z);
+      g.position.set(base.x, gy(base.x, base.z), base.z);
       // +z = 길 앞, side 정거장은 +x가 길 쪽을 보도록
       g.rotation.y = Math.atan2(st.dir.x, st.dir.z) + (st.side < 0 ? Math.PI : 0);
       scene.add(g); cullable(g, base);
@@ -627,9 +666,9 @@ export function addCourses(ctx) {
       mergeStatic(g);
       // 길가 등불: 지나가면 켜짐
       const lp = st.side ? { x: st.x - st.right.x * st.side * 1.8, z: st.z - st.right.z * st.side * 1.8 } : { x: st.x + st.right.x * 1.8, z: st.z + st.right.z * 1.8 };
-      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 1.3, 6), MAT.woodDark); post.position.set(lp.x, G0 + 0.65, lp.z); scene.add(post);
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 1.3, 6), MAT.woodDark); post.position.set(lp.x, gy(lp.x, lp.z) + 0.65, lp.z); scene.add(post);
       const bulbM = M(0x8a8070, 0.5, { emissive: course.color, emissiveIntensity: 0 });
-      const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), bulbM); bulb.position.set(lp.x, G0 + 1.38, lp.z); scene.add(bulb);
+      const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), bulbM); bulb.position.set(lp.x, gy(lp.x, lp.z) + 1.38, lp.z); scene.add(bulb);
       const halo = fxSprite('light_01', course.color, 0.9 + i * 0.05); halo.position.copy(bulb.position); halo.material.opacity = 0; scene.add(halo);
       cullable(post, lp); cullable(bulb, lp); cullable(halo, lp);
       S.lit = (on) => { bulbM.emissiveIntensity = on ? 1.3 : 0; halo.material.opacity = on ? 0.75 : 0; };
@@ -642,12 +681,43 @@ export function addCourses(ctx) {
     const p0 = tr.samples.find((q) => Math.hypot(q.x, q.z) > R_PARK + 2.2) || tr.samples[0];
     const p1 = tr.samples[tr.samples.indexOf(p0) + 2] || p0;
     const ang = Math.atan2(p1.x - p0.x, p1.z - p0.z);
-    const arch = new THREE.Group(); arch.position.set(p0.x, G0, p0.z); arch.rotation.y = ang; scene.add(arch);
+    const arch = new THREE.Group(); arch.position.set(p0.x, gy(p0.x, p0.z), p0.z); arch.rotation.y = ang; scene.add(arch);
     for (const s of [-1, 1]) arch.add(bx(0.2, 2.8, 0.2, C.woodDark, s * 1.45, 1.4, 0));
     arch.add(bx(3.3, 0.22, 0.26, C.woodDark, 0, 2.85, 0));
     const lamp = mesh(new THREE.SphereGeometry(0.2, 12, 10), M(0xffffff, 0.4, { emissive: course.color, emissiveIntensity: 1.2 }), 0, 2.45, 0); arch.add(lamp);
     const lg = fxSprite('light_01', course.color, 1.8); lg.position.set(0, 2.45, 0); lg.material.opacity = 0.8; arch.add(lg);
     shadow(arch);
+  }
+
+  // ---------- 하늘의 도성: 시온산 꼭대기를 두른 성벽 (계단으로 올라가 걸을 수 있음) ----------
+  {
+    const Cc = CITY, cg = new THREE.Group(); cg.position.set(Cc.x, 0, Cc.z); scene.add(cg);
+    const stone = M(0xf4efe4, 0.55, { emissive: 0x3a3020, emissiveIntensity: 0.15 }), trim = C.gold;
+    const seg = (r0, r1, a0, a1, y0, y1, mat) => { // 부채꼴 한 토막을 상자로
+      const am = (a0 + a1) / 2, rm = (r0 + r1) / 2, w = (a1 - a0) * r1 + 0.04;
+      const b = bx(w, y1 - y0, r1 - r0, mat, Math.cos(am) * rm, (y0 + y1) / 2, Math.sin(am) * rm);
+      b.rotation.y = -am + Math.PI / 2; cg.add(b); return b;
+    };
+    const a0 = Cc.inA + Cc.gate, a1 = Cc.inA - Cc.gate + Math.PI * 2, n = Math.ceil((a1 - a0) / 0.1), da = (a1 - a0) / n;
+    for (let k = 0; k < n; k++) {
+      const s0 = a0 + k * da;
+      seg(Cc.r0, Cc.r1, s0, s0 + da, Cc.base - 2.5, Cc.top, stone);
+      if (k % 2 === 0) seg(Cc.r1 - 0.3, Cc.r1, s0, s0 + da * 0.9, Cc.top, Cc.top + 0.75, stone); // 바깥 성가퀴
+    }
+    for (let k = 0; k < n; k += 1) seg(Cc.r1 - 0.02, Cc.r1 + 0.04, a0 + k * da, a0 + (k + 1) * da, Cc.top - 0.35, Cc.top - 0.2, trim);
+    // 안쪽 낮은 난간 (계단 꼭대기만 트임)
+    for (let k = 0; k < n; k++) { const s0 = a0 + k * da; if (s0 + da > Cc.stairEnd - 0.12 && s0 < Cc.stairEnd + 0.05) continue; seg(Cc.r0, Cc.r0 + 0.18, s0, s0 + da, Cc.top, Cc.top + 0.55, stone); }
+    // 계단
+    for (const st of Cc.steps) seg(st.r0, st.r1 - 0.02, st.a0, st.a1, Cc.base - 0.6, st.top, stone);
+    // 성문 양옆 탑과 빛
+    for (const sd of [-1, 1]) {
+      const a = Cc.inA + sd * (Cc.gate + 0.05), r = (Cc.r0 + Cc.r1) / 2;
+      const tw = mesh(new THREE.CylinderGeometry(1.05, 1.15, Cc.wall + 3, 14), stone, Math.cos(a) * r, Cc.base + (Cc.wall + 3) / 2 - 0.5, Math.sin(a) * r); cg.add(tw);
+      const roof = mesh(new THREE.ConeGeometry(1.3, 1.8, 14), trim, Math.cos(a) * r, Cc.base + Cc.wall + 3.3, Math.sin(a) * r); cg.add(roof);
+    }
+    glowAt(cg, 0xfff2c8, 26, 0, Cc.base + 6, 0, 0.5);
+    cg.traverse((c) => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
+    mergeStatic(cg);
   }
   const darkSt = live.filter((S) => S.dark);
 
@@ -776,7 +846,7 @@ export function addCourses(ctx) {
       roll.T += dt;
       const k = Math.min(1, roll.T / 2.2);
       roll.box.position.lerpVectors(roll.from, roll.to, ease(k));
-      roll.box.position.y = Math.max(G0 + 0.3, roll.from.y * (1 - k * 3));
+      roll.box.position.y = Math.max(gy(roll.box.position.x, roll.box.position.z) + 0.3, roll.from.y - (roll.from.y - roll.to.y) * k * 3);
       roll.box.rotation.x += dt * 6;
       if (k >= 1) { scene.remove(roll.box); roll = null; sfx('orb', 0.25, 1.2); }
     }

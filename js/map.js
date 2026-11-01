@@ -1,8 +1,8 @@
 // 전체 지도: 카페·정원·숲속 코스와 내 위치(화살표), 함께 있는 사람들
 // 찾은 코스는 길과 정거장(지나온 곳은 채운 점)까지 보이고, 아직 못 찾은 코스는 입구만 반짝임
 // 지도를 누르면 그곳으로 걸어감
-import { TRAILS, PARK, R_HALL, R_WALK, R_PARK, R_GARDEN, BRIDGE, FLOWER_BEDS } from './layout.js';
-import { COURSE_META, foundCourses } from './courses.js';
+import { TRAILS, PARK, R_HALL, R_WALK, R_PARK, R_GARDEN, BRIDGE, FLOWER_BEDS, TERRAIN, JONAH_SEA, CITY, Q, GATE } from './layout.js';
+import { COURSE_META, COURSE_STATIONS as STN, foundCourses } from './courses.js';
 import { nearestFree, findPath } from './nav.js';
 
 export function initMap({ me, people, walkTo, say, icon, placesEl, before }) {
@@ -52,6 +52,30 @@ export function initMap({ me, people, walkTo, say, icon, placesEl, before }) {
     g.strokeStyle = color; g.lineWidth = w; g.setLineDash(dash || []); g.lineCap = 'round'; g.lineJoin = 'round'; g.stroke(); g.setLineDash([]);
   };
 
+  // 땅 높낮이 그림: 높을수록 밝은 갈색·흰색, 해가 왼쪽 위에서 비추는 음영, 모래는 노랗게 (한 번만 그려 둠)
+  const relief = (() => {
+    const T = TERRAIN, S = 2, M = Math.floor((T.n - 1) / S) + 1;
+    const c = document.createElement('canvas'); c.width = M; c.height = M;
+    const cx = c.getContext('2d'), img = cx.createImageData(M, M), d = img.data;
+    const h = (a, b) => T.h[Math.min(T.n - 1, b * S) * T.n + Math.min(T.n - 1, a * S)];
+    for (let b = 0; b < M; b++) for (let a = 0; a < M; a++) {
+      const H = h(a, b), sand = T.sand[Math.min(T.n - 1, b * S) * T.n + Math.min(T.n - 1, a * S)], o = (b * M + a) * 4;
+      if (H < 0.05 && !sand) { d[o + 3] = 0; continue; }
+      const shade = Math.max(-1, Math.min(1, ((h(a - 1, b - 1) || 0) - (h(a + 1, b + 1) || 0)) * 0.35));
+      let r, gg, bl;
+      if (sand) { r = 226; gg = 201; bl = 143; }
+      else { const k = Math.min(1, H / 22); r = 70 + 120 * k; gg = 110 + 70 * k; bl = 72 + 110 * k; }
+      d[o] = r + shade * 40; d[o + 1] = gg + shade * 40; d[o + 2] = bl + shade * 40; d[o + 3] = sand ? 220 : Math.min(235, 60 + H * 40);
+    }
+    cx.putImageData(img, 0, 0);
+    return { c, x0: -T.half, size: (M - 1) * S * T.cell };
+  })();
+  const KOR = { sower: '씨 뿌리는 밭', mustard: '겨자씨', vine: '포도나무', fold: '잃은 양', well: '우물', pool: '수영장', camp: '캠핑', bbq: '바비큐', ark: '노아의 방주', soccer: '축구장', basket: '농구장', tennis: '테니스장', badminton: '배드민턴장', pingpong: '탁구', meadow: '푸른 초장', jericho: '여리고 성', david: '다윗과 골리앗', jonah: '요나의 바다', market: '간식 가게' };
+  const label = (text, x, z, { size = 12, color = '#fff6e0', weight = 600, dy = 0 } = {}) => {
+    g.font = `${weight} ${size}px system-ui, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.lineWidth = 3; g.strokeStyle = /^#[0-6]/.test(color) ? 'rgba(255,250,235,0.7)' : 'rgba(0,0,0,0.6)'; g.strokeText(text, sx(x), sy(z) + dy);
+    g.fillStyle = color; g.fillText(text, sx(x), sy(z) + dy);
+  };
   function draw(t) {
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.fillStyle = '#1d2a22'; g.fillRect(0, 0, W, Hh);
@@ -61,6 +85,16 @@ export function initMap({ me, people, walkTo, say, icon, placesEl, before }) {
     circle(0, 0, R_GARDEN, '#3f6b45');
     circle(0, 0, R_PARK, null, 'rgba(230,220,190,0.55)', Math.max(1.5, 2.2 * V.k));
     circle(0, 0, R_WALK, null, 'rgba(230,220,190,0.45)', Math.max(1, 1.8 * V.k));
+    // 숲속 높낮이 (산·골짜기·사막)
+    g.imageSmoothingEnabled = true;
+    g.drawImage(relief.c, sx(relief.x0), sy(relief.x0), relief.size * V.k, relief.size * V.k);
+    // 요나의 바다
+    {
+      const Z = PARK.jonah, S = JONAH_SEA; g.beginPath();
+      for (let v = S.v0; v <= S.v1; v += 0.5) { const p = Z.at(S.shore(v), v); v === S.v0 ? g.moveTo(sx(p.x), sy(p.z)) : g.lineTo(sx(p.x), sy(p.z)); }
+      for (const [u, v] of [[S.u1 - 1, S.v1], [S.u1, S.v1 - 1], [S.u1, S.v0 + 1], [S.u1 - 1, S.v0]]) { const p = Z.at(u, v); g.lineTo(sx(p.x), sy(p.z)); }
+      g.closePath(); g.fillStyle = '#3a8fb5'; g.fill();
+    }
     // 입구 길
     line([{ x: 0, z: R_HALL }, { x: 0, z: R_GARDEN }], 'rgba(220,215,200,0.6)', Math.max(1.5, 3 * V.k));
     // 꽃밭
@@ -76,6 +110,15 @@ export function initMap({ me, people, walkTo, say, icon, placesEl, before }) {
     circle(0, 0, R_HALL, '#d9c7a2', 'rgba(255,255,255,0.8)', 1.5);
     circle(0, 0, R_HALL * 0.8, '#8fc4d8');
     circle(0, 0, 5, '#fff6dc');
+    // 이름: 정원 구역, 카페 네 구역 (가까이 볼수록 더 많이)
+    const fz = Math.max(10, Math.min(14, 2.6 * V.k + 6));
+    if (V.k > 1.1) for (const [id, zn] of Object.entries(PARK)) label(KOR[id] || id, zn.x, zn.z, { size: fz - 1, color: '#fff1cf' });
+    if (V.k > 1.6) {
+      for (const [id, nm] of [['prayer', '기도'], ['fellow', '교제'], ['witness', '증거'], ['word', '말씀']]) label(nm, Q[id].x, Q[id].z, { size: fz, color: '#3a2a18', weight: 700 });
+      label('그리스도', 0, 0, { size: fz - 1, color: '#6b4a1a', weight: 700 });
+      label('좁은 문', 0, GATE.r, { size: fz - 1, dy: -10 });
+    }
+    label('Wheel Life Cafe', 0, -R_HALL - 4, { size: Math.max(11, fz), color: '#fff6dc', weight: 700 });
     // 숲속 코스
     for (const [id, tr] of Object.entries(TRAILS)) {
       const meta = COURSE_META[id]; if (!meta) continue;
@@ -88,6 +131,7 @@ export function initMap({ me, people, walkTo, say, icon, placesEl, before }) {
         const a = 0.45 + 0.35 * Math.sin(t * 3 + id.length);
         circle(p.x, p.z, 2.2, `rgba(255,240,200,${a})`, null, 1, 7);
         circle(p.x, p.z, 1.2, col, null, 1, 3.5);
+        label(meta.name, p.x, p.z, { size: 11, color: col, dy: -14 });
         continue;
       }
       line(tr.samples, 'rgba(0,0,0,0.35)', Math.max(3, 3.4 * V.k));
@@ -103,6 +147,7 @@ export function initMap({ me, people, walkTo, say, icon, placesEl, before }) {
         const r = end ? 2.6 : 1.5;
         circle(st.x, st.z, r + 0.6, 'rgba(0,0,0,0.4)', null, 1, end ? 6 : 4.5);
         circle(st.x, st.z, r, done ? col : '#1d2a22', col, 1.5, end ? 4.5 : 3);
+        if (V.k > 2.2 && done && STN[id]) label(STN[id][i], st.x, st.z, { size: 11, color: '#fff6e0', weight: 500, dy: -12 });
       });
       // 이름 (지나온 길의 끝에)
       const e = tr.end, ly = Math.max(16, sy(e.z) - 4 * V.k - 6), fs = Math.max(11, Math.min(15, 4 * V.k));
@@ -110,6 +155,8 @@ export function initMap({ me, people, walkTo, say, icon, placesEl, before }) {
       g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,0.6)'; g.strokeText(meta.name, sx(e.x), ly);
       g.fillStyle = col; g.fillText(meta.name, sx(e.x), ly);
     }
+    if (found.pilgrim) { circle(CITY.x, CITY.z, (CITY.r0 + CITY.r1) / 2, null, '#f6f0e2', Math.max(2, 1.2 * V.k)); if (V.k > 1.4) label('시온산', CITY.x, CITY.z, { size: 11, color: '#fff', dy: 16 }); }
+    if (found.sinai && TERRAIN.sinai) label('시내산', TERRAIN.sinai.x, TERRAIN.sinai.z, { size: 11, color: '#e8d8c0' });
     // 함께 있는 사람들
     for (const p of people()) circle(p.x, p.z, 1.1, '#ffd36b', '#4a3a10', 1, 4);
     // 나: 바라보는 쪽으로 화살표 + 숨 쉬는 빛
