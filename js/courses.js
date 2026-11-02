@@ -8,6 +8,7 @@ import { place } from './props.js';
 import { fanfare } from './stories.js';
 import { setOutfit, ARMOR } from './avatar.js';
 import { NEW_COURSES, NEW_EXTRA, journeyScenes, journeyEffects, journeySetup, prepStation } from './journeys.js';
+import { CHRIST_COURSES, christScenes, christEffects } from './christ.js';
 
 // 각 정거장: [이름, 말씀, 장면, 들어설 때, 이어지는 말씀들]
 const COURSES = {
@@ -118,13 +119,13 @@ const EXTRA = {
   strain: ['오호라 나는 곤고한 사람이로다 이 사망의 몸에서 누가 나를 건져내랴', '로마서 7:24'],
   free: ['그러므로 이제 그리스도 예수 안에 있는 자에게는 결코 정죄함이 없나니', '로마서 8:1'],
   fall: ['어떤 길은 사람의 보기에 바르나 필경은 사망의 길이니라', '잠언 14:12'],
-  // 짧은 다리 셋: 선행 · 종교 · 도덕 (BRIDGE.tries 순서)
+  // 짧은 다리 셋: 선행 · 종교 · 철학 (BRIDGE.tries 순서)
   fall0: ['대저 우리는 다 부정한 자 같아서 우리의 의는 다 더러운 옷 같으며', '이사야 64:6'],
-  fall1: ['경건의 모양은 있으나 경건의 능력은 부인하는 자니', '디모데후서 3:5'],
-  fall2: ['누구든지 온 율법을 지키다가 그 하나에 거치면 모두 범한 자가 되나니', '야고보서 2:10'],
+  fall1: ['어떤 길은 사람의 보기에 바르나 필경은 사망의 길이니라', '잠언 14:12'],
+  fall2: ['하나님의 지혜에 있어서는 이 세상이 자기 지혜로 하나님을 알지 못하는고로', '고린도전서 1:21'],
   gifts: ['꿈에 헤롯에게로 돌아가지 말라 지시하심을 받아 다른 길로 고국에 돌아가니라', '마태복음 2:12'],
 };
-Object.assign(COURSES, NEW_COURSES);
+Object.assign(COURSES, NEW_COURSES, CHRIST_COURSES);
 Object.assign(EXTRA, NEW_EXTRA);
 for (const [k, v] of Object.entries(EXTRA)) VERSES['course-x-' + k] = v;
 
@@ -552,7 +553,7 @@ export function addCourses(ctx) {
     },
     // ----- 생명의 다리 -----
     effort(g) {
-      // 사람이 쌓은 것들: 돈, 촛불(종교), 책(도덕) — 모두 건너기에는 모자람
+      // 사람이 쌓은 것들: 돈, 촛불(종교), 책(철학) — 모두 건너기에는 모자람
       g.add(bx(0.5, 0.7, 0.5, C.stone, 0, 0.35, -1.6)); for (let k = 0; k < 5; k++) g.add(mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.04, 12), C.gold, 0, 0.72 + k * 0.045, -1.6));
       g.add(bx(0.5, 0.7, 0.5, C.stone, 0, 0.35, 0)); g.add(mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.3, 8), C.white, 0, 0.85, 0)); glowAt(g, 0xffc060, 0.5, 0, 1.08, 0, 0.9);
       g.add(bx(0.5, 0.7, 0.5, C.stone, 0, 0.35, 1.6)); g.add(bx(0.32, 0.1, 0.42, C.red, 0, 0.75, 1.6));
@@ -572,7 +573,7 @@ export function addCourses(ctx) {
   };
   // 새 코스들의 장면 (js/journeys.js)
   const J = { THREE, M, C, mesh, bx, glowAt, fig, flowers: (...a) => flowers(...a), camel, anims, fxSprite };
-  Object.assign(scenes, journeyScenes(J));
+  Object.assign(scenes, journeyScenes(J), christScenes(J));
   // 꽃: 한 번에 그리는 인스턴스 (그리기 횟수를 줄임)
   const flowerGeo = new THREE.SphereGeometry(0.08, 6, 4);
   const flowerMat = M(0xffffff, 0.6);
@@ -659,7 +660,7 @@ export function addCourses(ctx) {
   };
 
   Object.assign(J, { hit, sfx, burst, shot, me, wear, faceTo, act, flash: (v) => { flashV = v; }, fanfare, audio });
-  Object.assign(effects, journeyEffects(J));
+  Object.assign(effects, journeyEffects(J), christEffects(J));
   // 정거장 세우기
   const live = [];
   for (const [id, course] of Object.entries(COURSES)) {
@@ -939,7 +940,7 @@ export function addCourses(ctx) {
         me.x = p.x; me.z = p.z; me.y = G0; me.av.position.set(p.x, G0, p.z); me.path = []; me.state = 'idle';
         const ti = B.tries.indexOf(fall.t);
         me.slow = fall.slow || 0; fall = null;
-        showVerse('course-x-fall' + ti, { cooldown: 0, title: ['선행', '종교', '도덕'][ti] + '의 다리로는 건널 수 없어요' });
+        showVerse('course-x-fall' + ti, { cooldown: 0, title: ['선행', '종교', '철학'][ti] + '의 다리로는 건널 수 없어요' });
       }
     }
   });

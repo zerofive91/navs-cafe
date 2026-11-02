@@ -427,10 +427,16 @@ html.rot #musicPanel { max-height: calc(100vw - 64px); }
 /* 지도: 코스 시작점 고르기 */
 #map .courses { position: absolute; left: 0; right: 0; bottom: max(10px, env(safe-area-inset-bottom)); display: flex; gap: 8px; align-items: center; overflow-x: auto; padding: 6px 14px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
 #map .courses::-webkit-scrollbar { display: none; }
-#map .courses span { flex: none; color: #fff6dc; font-size: 12px; opacity: 0.75; }
+#map .courses span { flex: none; color: #ffe2a8; font-size: 12px; font-weight: 700; opacity: 0.85; margin-left: 6px; }
 #map .courses button { flex: none; border: 2px solid var(--c, #fff); border-radius: 18px; padding: 7px 12px; background: rgba(20, 28, 22, 0.85); color: #fff6e0; font: 600 13px system-ui, sans-serif; cursor: pointer; white-space: nowrap; }
 #map .courses button::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--c, #fff); margin-right: 6px; vertical-align: 1px; }
 #map .courses button:active { transform: scale(0.95); }
 /* 그 자리에서만 할 수 있는 체험: 금빛 테두리가 숨 쉬듯 반짝임 */
 .act.place { box-shadow: 0 0 0 3px #ffd77a, 0 0 14px 4px rgba(255, 210, 110, 0.75); animation: actGlow 1.6s ease-in-out infinite; }
 @keyframes actGlow { 50% { box-shadow: 0 0 0 3px #ffe7a8, 0 0 22px 8px rgba(255, 220, 130, 0.95); } }
+/* 정원에서는 카페 바로가기를 접음 */
+#places .place.fold { display: none; }
+#places.out .place.fold { display: grid; }
+#places.out .place.cafe { display: none; }
+#places.out.open .place.cafe { display: grid; }
+#places.out.open .place.fold { background: #fffaf0; color: #6b4f3a; }
