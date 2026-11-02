@@ -122,5 +122,12 @@ export function initStory(K) {
     finishChapter();
   }
   update();
-  return { step, luke, active: () => shown, CH, update };
+  // 왼쪽 부탁 창에 보일 지금 장
+  function info() {
+    const k = n();
+    if (!started() || k >= CH.length) return null;
+    const c = CH[k], p = c.at();
+    return { k: k + 1, total: CH.length, title: c.t, where: c.where, verse: VERSES[c.v], target: { x: p.x, z: p.z } };
+  }
+  return { step, luke, active: () => shown, CH, update, info };
 }
