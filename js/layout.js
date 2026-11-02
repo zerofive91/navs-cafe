@@ -162,6 +162,8 @@ export const PARK = {
   jericho: zone('jericho', gr(46), 76, 12, 12), // 여리고 성 (수 6, 히 11:30)
   david: zone('david', gr(46), 104, 12, 11),    // 다윗과 골리앗 (삼상 17)
   jonah: zone('jonah', gr(46), 164, 12, 11),    // 요나와 큰 물고기 (욘 1-2)
+  // 영적 전쟁 훈련소 (2026-11): 전신갑주 길 입구 곁. 믿음의 선진들이 겪은 시험을 말씀으로 이기는 연습 (누구나)
+  warfare: zone('warfare', gr(64), 173, 20, 12),
 };
 // 수레바퀴 다섯 훈련장의 자리 (u: 둘레 방향, v: 바깥 방향. 카페 쪽이 -v)
 export const TRAIN = (() => {
@@ -179,7 +181,13 @@ export const TRAIN = (() => {
     },
   };
 })();
+// 영적 전쟁 훈련소: 바울과 네 시험돌(유혹·미혹·두려움·교만). 실전 연습은 가운데에서
+export const WARFARE = (() => {
+  const Z = PARK.warfare;
+  return { zone: Z, npc: Z.at(0, -4.2), center: Z.at(0, 0.6), stones: [-7, -2.4, 2.4, 7].map((u) => ({ ...Z.at(u, 2.6), stand: Z.at(u, 0.5) })) };
+})();
 export const TRAIN_BLOCKS = [
+  ...WARFARE.stones.map((p) => ({ x: p.x, z: p.z, r: 0.75, h: 1.1 })),
   ...TRAIN.word.pillars.map((p) => ({ x: p.x, z: p.z, r: 0.4 })),
   ...TRAIN.pray.altars.map((p) => ({ x: p.x, z: p.z, r: 0.55, h: 0.95 })),
   { ...TRAIN.fellow.table, r: 1.0, h: 0.85 },
