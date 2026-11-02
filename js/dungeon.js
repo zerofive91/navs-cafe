@@ -256,8 +256,30 @@ export function initDungeon(K) {
     }
   }
 
+  // ---------- 길 끝에서 입구로 돌아가기 ----------
+  const ends = Object.values(TRAILS).map((tr) => ({ id: tr.id, p: tr.end, said: false }));
+  const nearEnd = () => ends.find((e) => Math.hypot(me.x - e.p.x, me.z - e.p.z) < 9);
+  function goBack() {
+    const e = nearEnd(); if (!e) return;
+    const g = gateOf(TRAILS[rootOf(e.id)]), k = (R_PARK - 1.5) / Math.hypot(g.x, g.z);
+    veil.style.opacity = '0.9'; sfx('orb', 0.2, 0.9);
+    setTimeout(() => {
+      me.x = g.x * k; me.z = g.z * k; me.path = []; me.state = 'idle'; me.task = null; me.action = null; me.face = Math.atan2(-g.x, -g.z);
+      veil.style.opacity = '0';
+      toast(`${courseName(rootOf(e.id))} 입구로 돌아왔어요`, 3);
+    }, 700);
+  }
+  function endHint() {
+    const e = nearEnd(); if (!e || e.said) return;
+    e.said = true;
+    setTimeout(() => toast('길 끝까지 왔어요! E(또는 반짝이는 단추)로 입구로 돌아갈 수 있어요', 5), 4000);
+  }
+
   return {
-    step, active: () => !!cur, open, shades, byCourse,
+    actions: { goback: goBack },
+    available: () => (nearEnd() && !cur ? [['place', 'goback']] : []),
+    step: (dt, t) => { step(dt, t); endHint(); },
+    active: () => !!cur, open, shades, byCourse,
     onPress(name) { if (cur && name === 'pray') hint(); },
   };
 }

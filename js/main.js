@@ -20,6 +20,7 @@ import { initCharacter, HOODIES, HAIRS, BAGS } from './character.js';
 import { initTutorial, nameTag } from './tutorial.js';
 import { initTraining } from './training.js';
 import { initDungeon } from './dungeon.js';
+import { initQuests } from './quests.js';
 import { COURSE_META } from './courses.js';
 
 const canvas = document.getElementById('cafe');
@@ -139,7 +140,7 @@ function makeChar(look, x, z) {
 }
 
 const myLook = loadLook();
-let tut = null, character = null, training = null, dungeon = null; // 안내와 캐릭터 창은 맨 아래에서 만듦
+let tut = null, character = null, training = null, dungeon = null, quests = null; // 안내와 캐릭터 창은 맨 아래에서 만듦
 const profile = loadProfile(); // 닉네임·걸음·받은 것·안내 기록 (이 기기 안에만)
 if (profile.name) myLook.name = profile.name;
 const me = makeChar(myLook, SPAWN.x, SPAWN.z);
@@ -547,6 +548,9 @@ function availableActions() {
     if (Math.hypot(me.x - SPOTS.order.x, me.z - SPOTS.order.z) < SPOTS.order.r) { place(...(me.item ? [] : DRINKS), ...(me.food ? [] : FOODS)); return list; }
     me.action = null;
   }
+  // 부탁·훈련의 그 자리 단추가 먼저 (E가 이것부터 누름)
+  if (me.state !== 'walk') { for (const v of quests?.available() || []) place(v[1]); for (const v of training?.available() || []) place(v[1]); }
+  for (const v of dungeon?.available() || []) place(v[1]); // 길 끝: 입구로 돌아가기
   if (signs.canCalm()) place('calm'); // 풍랑 속: 손을 들어 잠잠케
   if (me.state === 'walk') { if (me.slow) place(...park.available()); else list.push('jump'); list.push(...walkToggle); return list; } // 걷는 중에는 점프(와 걷기·달리기)만
   const near = (s) => Math.hypot(me.x - s.x, me.z - s.z) < s.r;
@@ -560,7 +564,6 @@ function availableActions() {
   if (signs.nearBread()) place('loaves');
   if (signs.canFish()) place('fish');
   place(...park.available());
-  for (const v of training?.available() || []) place(v[1]); // 훈련장: 보따리 들기
   if (outdoors(me) && nearTree(me.x, me.z, 1.8, 3.6)) list.push('climb');
   for (const v of leisure.available()) { if (Array.isArray(v)) place(v[1]); else list.push(v); } // 연·꽃·물수제비·별·씨앗
   list.push(...walkToggle);
@@ -884,7 +887,9 @@ function driveStick(dt) {
   const hop = me.hop || 0; // 점프 중이면 낮은 물건은 넘어감
   const base = floorY(me.x, me.z);
   // 가파른 턱(성벽·계단 옆면)은 발이 그보다 높이 떠 있을 때만 올라섬
-  const ok = (x, z) => isFree(x, z, hop, base) && floorY(x, z) - base <= 0.45 + hop;
+  // 카페 기단(잔디보다 0.5m 높음)은 입구로 걸어 올라설 수 있게 조금 더 높이 디딤
+  const rise = (x, z) => (Math.abs(Math.hypot(x, z) - R_HALL - 0.6) < 0.8 ? 0.6 : 0.45);
+  const ok = (x, z) => isFree(x, z, hop, base) && floorY(x, z) - base <= rise(x, z) + hop;
   if (ok(nx, nz)) { me.x = nx; me.z = nz; }
   else if (ok(nx, me.z)) me.x = nx;
   else if (ok(me.x, nz)) me.z = nz;
@@ -1179,6 +1184,7 @@ function frame(now) {
   tut.step(dt);
   training.step(dt, t);
   dungeon.step(dt, t);
+  quests.step(dt, t);
   for (const n of npcs) { stepChar(n, dt); poseAvatar(n.av, n, t, dt); }
   training.pin();
   together.step(dt, t);
@@ -1398,16 +1404,23 @@ character = initCharacter({
 });
 training = initTraining({
   scene, me, makeChar, npcs, profile, save: saveMe, toast, sfx, burst, fxSprite,
-  busy: () => !!tut?.active() || !!character?.isOpen() || !!dungeon?.active(),
+  busy: () => !!tut?.active() || !!character?.isOpen() || !!dungeon?.active() || !!quests?.active(),
   onChange: () => character.showChip(),
 });
 Object.assign(ACTIONS, training.actions);
 dungeon = initDungeon({
   scene, me, profile, save: saveMe, toast, sfx, burst, fxSprite,
-  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active(),
+  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!quests?.active(),
   onChange: () => character.showChip(),
   courseName: (id) => (COURSE_META[id] ? COURSE_META[id].name : id),
 });
+Object.assign(ACTIONS, dungeon.actions);
+quests = initQuests({
+  scene, me, makeChar, npcs, profile, save: saveMe, toast, sfx, burst, fxSprite, lying, nearestFree,
+  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!dungeon?.active(),
+  onChange: () => character.showChip(),
+});
+Object.assign(ACTIONS, quests.actions);
 requestAnimationFrame(frame);
 if (window.__pick) choose(window.__pick);
 // 첫 화면이 뜬 뒤 소품 모델을 천천히 불러와 바꿔 끼움
@@ -1417,4 +1430,4 @@ setTimeout(() => {
   for (const n of npcs) if (n.av) upgradeCup(n.av);
 }, 300);
 
-window.__cafe = { profile, tut, character, training, dungeon, camera, shot, together, me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs, placed, park, scrolls, renderer, map };
+window.__cafe = { profile, tut, character, training, dungeon, quests, camera, shot, together, me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs, placed, park, scrolls, renderer, map };

@@ -560,3 +560,9 @@ html.rot .npcb { bottom: auto; top: 52px; width: min(60vh, 480px); }
 .npcb.trial .row button { color: #c8b8e0; }
 body.trialing #verse { visibility: hidden; } /* 고르는 동안은 시험 창만 */
 #map .courses button small { color: #e8b84a; font-size: 0.85em; }
+
+/* 정원의 부탁: 지금 하는 부탁 */
+#questChip { position: fixed; left: calc(12px + env(safe-area-inset-left)); top: calc(54px + env(safe-area-inset-top)); z-index: 6; max-width: min(360px, 60vw); padding: 7px 12px; border-radius: 14px; background: rgba(255, 246, 220, 0.9); color: #6b4c32; box-shadow: 0 2px 10px rgba(60, 40, 20, 0.14); font: 600 12.5px/1.45 "Noto Serif KR", serif; word-break: keep-all; pointer-events: none; }
+#questChip::before { content: "📜 "; }
+#questChip[hidden] { display: none; }
+@media (max-width: 760px), (max-height: 500px) { #questChip { top: auto; bottom: calc(186px + env(safe-area-inset-bottom)); max-width: calc(100vw - 110px); } }

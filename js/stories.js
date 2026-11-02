@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { PARK, JERICHO, GOLIATH, JONAH_POND, JONAH_SEA, obstacles } from './layout.js';
 import { showVerse, VERSES } from './verses.js';
 import { makeAvatar } from './avatar.js';
+import { emit } from './bus.js';
 
 Object.assign(VERSES, {
   jericho: ['믿음으로 칠 일 동안 여리고를 두루 다니매 성이 무너졌으며', '히브리서 11:30'],
@@ -108,7 +109,7 @@ export function addStories(ctx) {
         }
         if (fallT < 1.6 && Math.random() < dt * 14) { hit('impactPlank_medium_000', 0.25, 0.5 + Math.random() * 0.4); }
         if (fallT > 0.2 && fallT - dt <= 0.2) for (let i = 0; i < 10; i++) { const a = Math.random() * Math.PI * 2; burst(C.x + Math.cos(a) * C.R, 0.3 + Math.random(), C.z + Math.sin(a) * C.R); }
-        if (fallT > 1.4 && fallT - dt <= 1.4) { blocks.forEach((o) => { o.r = -9; }); showVerse('jericho', { cooldown: 0, delay: 0.6 }); }
+        if (fallT > 1.4 && fallT - dt <= 1.4) { blocks.forEach((o) => { o.r = -9; }); showVerse('jericho', { cooldown: 0, delay: 0.6 }); emit('jerichoFall'); }
         // 2분 뒤 다시 세워짐
         if (fallT > 120) {
           fallT = -1; laps = 0; acc = 0; lit(0);
@@ -210,7 +211,7 @@ export function addStories(ctx) {
         const k = ease((fallen - 0.4) / 1.1);
         pivot.rotation.x = k * (Math.PI / 2 - 0.08); // 얼굴을 땅에 대고 엎드러짐 (삼상 17:49)
         if (fallen > 1.5 && fallen - dt <= 1.5) { hit('impactPlank_medium_000', 0.5, 0.45); hit('impactSoft_heavy_000', 0.5, 0.6); for (let i = 0; i < 6; i++) burst(gp.x + (Math.random() - 0.5) * 2, 0.2, gp.z + (Math.random() - 0.5) * 2); }
-        if (fallen > 2 && fallen - dt <= 2) { showVerse('david', { cooldown: 0, delay: 0.3, then: ['david2'] }); }
+        if (fallen > 2 && fallen - dt <= 2) { showVerse('david', { cooldown: 0, delay: 0.3, then: ['david2'] }); emit('goliathFall'); }
         // 1분 뒤 다시 일어남
         if (fallen > 60) { const r = ease((fallen - 60) / 2); pivot.rotation.x = (1 - r) * (Math.PI / 2 - 0.08); }
         if (fallen > 62) fallen = -1;
