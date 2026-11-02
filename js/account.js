@@ -3,6 +3,9 @@
 // 서버: Supabase 함수 account_signup / account_login / account_load / account_save / account_logout
 //   (supabase/accounts.sql). 표는 직접 읽을 수 없고 함수로만, 비밀번호는 bcrypt로만 저장
 // 기기 안에는 아이디와 들어올 때 받은 토큰만 둠 (비밀번호는 두지 않음)
+// 한 계정은 한 번에 한 기기에서만: 카페에 들어갈 때 계정 채널(Realtime Presence)에 이름을 올리고,
+//   나중에 들어온 기기가 있으면 먼저 있던 기기는 멈춤(저장도 멈춤). '여기서 이어 하기'를 누르면 다시 가져옴
+import { loadLib } from './together.js';
 const SUPABASE_URL = 'https://esbhbhjnpupcrjwbnwet.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_BJB1Jth8sAEJllf9nnvA3A_iHQB5-Sz'; // 공개용(publishable) 키
 const ACC = 'navs-cafe-account';
@@ -41,15 +44,22 @@ function mergeProfile(a, b) {
   const obj = (x, y) => ({ ...(x || {}), ...(y || {}) });
   const stats = { ...(a.stats || {}) };
   for (const [k, v] of Object.entries(b.stats || {})) stats[k] = Math.max(stats[k] | 0, v | 0);
-  return {
+  const m = {
     ...a, ...b,
     name: b.name || a.name,
     steps: Math.max(a.steps | 0, b.steps | 0),
     items: [...new Set([...(b.items || []), ...(a.items || [])])],
     stats,
+    gear: { owned: [...new Set([...(a.gear?.owned || []), ...(b.gear?.owned || [])])], worn: b.gear?.worn || a.gear?.worn || [] },
+    pets: Object.fromEntries([...new Set([...Object.keys(a.pets || {}), ...Object.keys(b.pets || {})])].map((k) => [k, Math.max(a.pets?.[k] | 0, b.pets?.[k] | 0)])),
+    story: Math.max(a.story | 0, b.story | 0),
     tut: obj(a.tut, b.tut), train: obj(a.train, b.train), quests: obj(a.quests, b.quests), dungeon: obj(a.dungeon, b.dungeon),
     since: [a.since, b.since].filter(Boolean).sort()[0] || null,
+    // 지갑과 소모품은 더하거나 큰 쪽을 고르면 쓴 돈이 되살아나므로, 마지막으로 바뀐 쪽을 그대로 씀
+    ...((b.walletAt | 0) >= (a.walletAt | 0) ? { coins: b.coins ?? a.coins ?? null, bag: b.bag || {}, sold: b.sold || [], walletAt: b.walletAt | 0 } : { coins: a.coins ?? null, bag: a.bag || {}, sold: a.sold || [], walletAt: a.walletAt | 0 }),
   };
+  m.items = m.items.filter((id) => !m.sold.includes(id)); // 판 물품은 다른 기기 기록에서 되살아나지 않음
+  return m;
 }
 function merge(local, server) {
   if (!server || !server.profile) return local;
@@ -60,9 +70,9 @@ function merge(local, server) {
   return { v: 1, profile: mergeProfile(local.profile, server.profile), look: server.look || local.look, found, seeds };
 }
 
-export function initAccount({ apply, toast }) {
+export function initAccount({ apply, toast, kicked }) {
   let acc = read(ACC); // { id, token }
-  let pushT = null, busy = false;
+  let pushT = null, busy = false, away = false; // away: 다른 기기로 넘어감
 
   // 서버 것과 합쳐 이 기기에 쓰고, 지금 장면에도 바로 반영
   function take(server) {
@@ -73,11 +83,11 @@ export function initAccount({ apply, toast }) {
   }
   async function push(keepalive = false) {
     clearTimeout(pushT); pushT = null;
-    if (!acc) return;
+    if (!acc || away) return;
     const r = await rpc('account_save', { p_id: acc.id, p_token: acc.token, p_data: snapshot() }, keepalive);
     if (r.error === 'token') { acc = null; write(ACC, null); toast?.('계정에서 나와졌어요. 다시 들어와 주세요.', 5); render(); }
   }
-  const schedule = () => { if (acc) { clearTimeout(pushT); pushT = setTimeout(push, 2500); } };
+  const schedule = () => { if (acc && !away) { clearTimeout(pushT); pushT = setTimeout(push, 2500); } };
   addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && pushT) push(true); });
   addEventListener('pagehide', () => { if (pushT) push(true); });
 
@@ -89,6 +99,32 @@ export function initAccount({ apply, toast }) {
     if (r.error) return;
     take(r.data); schedule();
   })();
+
+  // ---------- 한 번에 한 기기 ----------
+  const devId = Math.random().toString(36).slice(2, 10);
+  let rt = null, chan = null, entered = false; // entered: 카페에 들어간 뒤
+  async function leaveChan() { if (chan) { const c = chan; chan = null; try { await rt.removeChannel(c); } catch (e) { /* 무시 */ } } }
+  async function claim() {
+    entered = true;
+    if (!acc) return;
+    try {
+      const lib = await loadLib();
+      rt = rt || lib.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false }, realtime: { params: { eventsPerSecond: 2 } } });
+    } catch (e) { return; } // 연결 못 하면 그냥 둠
+    await leaveChan();
+    const at = Date.now(), id = acc.id;
+    const ch = rt.channel('wlc-acct-' + id, { config: { presence: { key: devId } } });
+    chan = ch;
+    ch.on('presence', { event: 'sync' }, () => {
+      if (chan !== ch || away) return;
+      const newer = Object.entries(ch.presenceState()).some(([k, v]) => k !== devId && v[0] && v[0].at > at);
+      if (!newer) return;
+      away = true; clearTimeout(pushT); pushT = null;
+      leaveChan();
+      kicked?.();
+    });
+    ch.subscribe((status) => { if (status === 'SUBSCRIBED') ch.track({ at }); });
+  }
 
   // ---------- 창 ----------
   const box = document.createElement('div');
@@ -125,6 +161,7 @@ export function initAccount({ apply, toast }) {
     if (what === 'out') {
       if (pushT) await push();
       if (acc) rpc('account_logout', { p_id: acc.id, p_token: acc.token });
+      leaveChan();
       acc = null; write(ACC, null); render('나왔어요. 이 기기의 기록은 그대로 남아 있어요.'); return;
     }
     const id = val('id').toLowerCase(), pass = val('pass');
@@ -138,6 +175,7 @@ export function initAccount({ apply, toast }) {
     if (r.error) { render(MSG[r.error] || MSG.net); const i = box.querySelector('input[name="id"]'); if (i) i.value = id; return; }
     acc = { id, token: r.token }; write(ACC, acc);
     if (what === 'in') { take(r.data); push(); }
+    if (entered) claim(); // 카페 안에서 들어왔으면 이 기기가 이 계정을 맡음
     render(what === 'new' ? '계정을 만들었어요! 이제 다른 기기에서도 이 아이디로 들어오면 이어 해요.' : '들어왔어요. 이 계정의 캐릭터로 이어 해요.');
   }
   function open() { render(); box.hidden = false; setTimeout(() => box.querySelector('input')?.focus(), 50); }
@@ -154,5 +192,5 @@ export function initAccount({ apply, toast }) {
   }
   render();
 
-  return { ready, open, schedule, get id() { return acc ? acc.id : null; } };
+  return { ready, open, schedule, claim, get away() { return away; }, get id() { return acc ? acc.id : null; } };
 }

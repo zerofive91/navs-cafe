@@ -11,7 +11,7 @@ const showVerse = (k) => sv(k, { cooldown: 5 });
 
 const ease = (u) => u * u * (3 - 2 * u);
 
-export function initSigns({ scene, me, npcs, interactive, act, sfx, fxSprite, burst, sun, walkTo, faceTo }) {
+export function initSigns({ scene, me, npcs, interactive, act, sfx, fxSprite, burst, sun, walkTo, faceTo, onShekel }) {
   const now = () => performance.now() / 1000;
 
   // ---------- 1. 물 위를 걸으심 ----------
@@ -248,6 +248,7 @@ export function initSigns({ scene, me, npcs, interactive, act, sfx, fxSprite, bu
         scene.add(fishing.coin);
         sfx('share', 0.2);
         showVerse('shekel');
+        onShekel?.(); // 하루 한 번 지갑에 한 세겔
       }
     } else if (fishing.phase === 'coin') {
       const u = Math.min(1, fishing.t / 3);

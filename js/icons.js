@@ -115,6 +115,8 @@ export const ICONS = {
   stars: svg('<path d="M10 4l1.5 3.5L15 8l-3 2.5 1 3.5-3-2-3 2 1-3.5L5 8l3.5-.5z"/><path d="M23 10l.8 1.8 1.9.3-1.4 1.3.4 2-1.7-1-1.7 1 .4-2-1.4-1.3 1.9-.3z"/><path d="M4 25l6-2 8 1 10-4"/><circle cx="8" cy="20" r="2"/>'),
   seed: svg('<path d="M5 26h22"/><path d="M8 26c1-3 4-4 8-4s7 1 8 4"/><path d="M16 22v-8"/><path d="M16 16c-4 0-6-3-6-6 3 0 6 2 6 6zM16 14c3 0 5-2 5-5-3 0-5 2-5 5z"/>'),
   photo: svg('<rect x="4" y="9" width="24" height="17" rx="3"/><path d="M11 9l2-4h6l2 4"/><circle cx="16" cy="17.5" r="5"/><circle cx="24" cy="13" r=".8" fill="currentColor"/>'),
+  shop: svg('<path d="M10 11c0-3 2.7-5 6-5s6 2 6 5"/><path d="M7 11h18l-2 15H9z"/><circle cx="16" cy="18.5" r="3"/><path d="M16 17v3"/>'), // 돈주머니 (루디아의 가게)
+  care: svg('<path d="M16 27s-9-5.5-9-12a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 6.5-9 12-9 12z"/><path d="M12 15c1.5-1 3-1 4 .5 1-1.5 2.5-1.5 4-.5"/>'), // 돌보기 (마음)
   door: svg('<path d="M9 28V8a7 7 0 0 1 14 0v20M5 28h22"/><circle cx="19" cy="18" r="1" fill="currentColor"/>'),
   cafe: svg('<path d="M4 27h24"/><path d="M7 27V16a9 9 0 0 1 18 0v11"/><path d="M16 7V4"/><path d="M13.5 27v-6a2.5 2.5 0 0 1 5 0v6"/>'), // 둥근 지붕의 카페
   people: svg('<circle cx="12" cy="11" r="3.6"/><circle cx="22" cy="12.5" r="3"/><path d="M5 26v-2a7 7 0 0 1 14 0v2"/><path d="M19.5 26v-2a6 6 0 0 1 8-5.6"/>'),

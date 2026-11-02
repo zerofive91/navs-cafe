@@ -593,7 +593,7 @@ export function addCourses(ctx) {
   const bag = me.av.userData.body.children.find((c) => c.geometry && c.geometry.type === 'BoxGeometry' && c.position.z < -0.1);
   const bag0 = bag ? { s: bag.scale.clone(), p: bag.position.clone() } : null;
   let burden = false, roll = null, strainT = -1, freed = false;
-  const wear = (kind, pieces) => { setOutfit(me.av, kind, pieces); me.av.userData.pieces = kind === 'armor' ? (pieces || ARMOR) : null; };
+  const wear = (kind, pieces) => { setOutfit(me.av, kind, pieces); me.av.userData.pieces = kind === 'armor' ? (pieces || ARMOR) : null; me.av.userData.courseOutfit = !!kind; }; // courseOutfit: 코스가 입힌 옷 (내 장비와 구분)
   const setBurden = (on) => {
     burden = on;
     me.slow = on ? 0.55 : 0;
@@ -888,7 +888,7 @@ export function addCourses(ctx) {
     // 짐은 천로역정 길(과 시내산 샛길) 위에서만 짐: 출입구 아치를 지나 정원으로 나오거나 길에서 벗어나면 내려놓음
     if ((offT -= dt) < 0 && Math.hypot(me.x, me.z) < R_PARK + 1) {
       freed = false; if (burden) setBurden(false);
-      if (me.av.userData.outfit) wear(null); // 코스에서 나오면 원래 옷으로
+      if (me.av.userData.courseOutfit) wear(null); // 코스에서 나오면 원래 옷으로 (내가 갖춘 장비는 gear.js가 다시 입힘)
     }
     if (burden && offT < 0) {
       offT = 0.5;

@@ -3,11 +3,11 @@
 //   목자(잃은 양) · 사마리아 여인(우물) · 여호수아(여리고) · 다윗(매끄러운 돌) · 룻과 나오미(이삭)
 //   엘리야(로뎀나무) · 노아(비둘기) / 카페 안: 베드로(증거의 물)
 import * as THREE from 'three';
-import { PARK, floorY, isFree, polar, Q as WHEEL, WITNESS_POOL_R } from './layout.js';
+import { PARK, floorY, isFree, polar, Q as WHEEL, WITNESS_POOL_R, SYCAMORE } from './layout.js';
 import { VERSES, showVerse } from './verses.js';
 import { nameTag } from './tutorial.js';
 import { on } from './bus.js';
-import { addStat, addSteps, giveItem, ITEMS, STATS } from './profile.js';
+import { addStat, addSteps, giveItem, earn, spend, useGood, ITEMS, STATS } from './profile.js';
 
 const STEP_REWARD = 20, STAT_REWARD = 10;
 const V = (k, text, ref) => { VERSES[k] = [text, ref]; return k; };
@@ -22,6 +22,9 @@ Object.assign(ITEMS, {
   ear: { name: '듣는 귀', // 예전 사무엘 부탁의 물품 (받은 사람 기록 보존용)
     verse: ['사무엘이 가로되 말씀하옵소서 주의 종이 듣겠나이다', '사무엘상 3:10'] },
   net: { name: '가득 찬 그물', verse: ['가득히 찬 큰 고기가 일백 쉰 세 마리라 이같이 많으나 그물이 찢어지지 아니하였더라', '요한복음 21:11'] },
+  purse: { name: '나눔의 돈주머니', verse: ['주여 보시옵소서 내 소유의 절반을 가난한 자들에게 주겠사오며', '누가복음 19:8'] },
+  wine: { name: '기름과 포도주', verse: ['가까이 가서 기름과 포도주를 그 상처에 붓고 싸매고 자기 짐승에 태워 주막으로 데리고 가서 돌보아 주고', '누가복음 10:34'] },
+  twelve: { name: '남은 조각 열두 바구니', verse: ['저희가 배부른 후에 예수께서 제자들에게 이르시되 남은 조각을 거두고 버리는 것이 없게 하라 하시므로', '요한복음 6:12'] },
   olive: { name: '감람 새 잎사귀', verse: ['저녁때에 비둘기가 그에게로 돌아왔는데 그 입에 감람 새 잎사귀가 있는지라', '창세기 8:11'] },
 });
 
@@ -130,6 +133,29 @@ export function initQuests(K) {
   const landed = () => { if (flight && flight.back) { flight = null; return true; } return false; };
 
   const toHub = (c, d) => { const l = Math.hypot(c.x, c.z) || 1; return { x: c.x - (c.x / l) * d, z: c.z - (c.z / l) * d }; };
+  // ---------- 10. 삭개오: 뽕나무에 올라가 (눅 19:4) ----------
+  const zacc = npc('삭개오', { hoodie: 0x9a6a3a, hair: 0x3b2a22 }, P.zacc.at(-4, -3.5), P.zacc);
+  zacc.av.scale.setScalar(0.85); // 키가 작은 삭개오
+  // ---------- 11. 선한 사마리아인: 강도 만난 나그네 (눅 10:30-35) ----------
+  const samaritan = npc('사마리아인', { hoodie: 0x5a7a8a, hair: 0x2b211c }, P.road.at(-8.5, -3), P.road);
+  const wounded = npc('다친 나그네', { hoodie: 0xa89880, hair: 0x4a3a2a }, P.road.at(1.5, 0.5), P.road);
+  wounded.mark.visible = false;
+  const lieDown = () => { wounded.state = 'sit'; wounded.seat = { kind: 'floor', free: true }; wounded.action = null; };
+  lieDown();
+  // ---------- 12. 안드레와 아이: 보리떡 다섯과 물고기 둘 (요 6:9) ----------
+  const andrew = npc('안드레', { hoodie: 0x6a8a5a, hair: 0x4a3a2a }, P.bethsaida.at(-10.5, -4), P.bethsaida);
+  const boy = npc('아이', { hoodie: 0xd8b060, hair: 0x3b2a22 }, P.bethsaida.at(-8.4, -4.6), P.bethsaida);
+  boy.mark.visible = false; boy.av.scale.setScalar(0.72);
+  const crowd = [];
+  for (let k = 0; k < 5; k++) {
+    const p = freeAt(P.bethsaida.at(-4 + k * 3.6, k % 2 ? 3.5 : 0.5));
+    const blanket = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, 0.03, 18), M([0xd8c8a0, 0xc8a878, 0xb8c8a0, 0xd8b8a8, 0xc0b8d0][k], 0.95));
+    put(blanket, p, 0.02);
+    for (let j = 0; j < 2; j++) { const a = j * 3.1 + k; const f = makeChar({ hoodie: [0x8a7a6a, 0x9a6a5a, 0x6a7a8a][j], hair: 0x3b2a22, bag: 0x8a7a6a, style: j % 2, pants: 0x5a5048 }, p.x + Math.cos(a) * 0.75, p.z + Math.sin(a) * 0.75); f.state = 'sit'; f.seat = { kind: 'floor', free: true }; f.face = Math.atan2(-Math.cos(a), -Math.sin(a)); f.home = { x: f.x, z: f.z }; f.face0 = f.face; npcs.push(f); }
+    const glow = fxSprite('light_01', 0xfff0c0, 1.2); glow.position.set(p.x, G(p) + 0.6, p.z); glow.visible = false; scene.add(glow);
+    crowd.push({ s: glow, glow, p, got: false });
+  }
+
   // ---------- 카페 안 8. 베드로: 배 오른편에 그물을 (요 21:6) ----------
   const WI = WHEEL.witness;
   const peter = npc('베드로', { hoodie: 0x5a7a9a, hair: 0x4a3a2a }, toHub(WI, WITNESS_POOL_R + 1.3), WI);
@@ -219,6 +245,44 @@ export function initQuests(K) {
       ],
       done: '감람 새 잎사귀예요! 땅에 물이 줄었군요. 기다리는 것도 믿음이에요. 이 잎사귀를 가져가요.',
     },
+    {
+      id: 'zacc', who: zacc, name: '삭개오', title: '뽕나무에 올라가', stat: 'obey', item: 'purse',
+      ask: '예수님이 이 길로 지나가신대요. 그런데 저는 키가 작아서 사람들에 가려 보이지가 않아요. 저기 큰 뽕나무에 같이 올라가 볼래요?',
+      verse: V('q-zacc', '앞으로 달려가 보기 위하여 뽕나무에 올라가니 이는 예수께서 그리로 지나가시게 됨이러라', '누가복음 19:4'),
+      steps: [
+        { hint: '길가의 큰 뽕나무에 올라가요 (나무 곁에서 오르기).', until: () => !!me.climb && Math.hypot(me.x - SYCAMORE.x, me.z - SYCAMORE.z) < 2.5 && me.climb.phase === 'hang' },
+        { hint: '내려와서 삭개오와 함께 가난한 이웃에게 나눠요 (1 데나리온, E 또는 반짝이는 단추).', place: 'q_give', at: () => zacc, r: 2.6,
+          act: () => { if (!spend(profile, 1)) { toast('지갑이 비었어요. 훈련장이나 다른 부탁을 마치면 돈을 받아요', 4); return false; } sfx('share', 0.2); showVerse(V('q-zacc2', '삭개오가 서서 주께 여짜오되 주여 보시옵소서 내 소유의 절반을 가난한 자들에게 주겠사오며 만일 뉘 것을 토색한 일이 있으면 사배나 갚겠나이다', '누가복음 19:8'), { cooldown: 0 }); } },
+      ],
+      done: '오늘 구원이 이 집에 이르렀대요! 움켜쥐던 손을 펴니 마음이 이렇게 가벼울 줄 몰랐어요. 이 돈주머니를 가져가요.',
+    },
+    {
+      id: 'samaritan', who: samaritan, name: '사마리아인', title: '강도 만난 이웃', stat: 'fellow', item: 'wine', back: false,
+      ask: '여리고로 내려가는 길에 강도 만난 사람이 쓰러져 있어요. 다들 피해 지나갔대요. 우리가 가서 돌봐 줄래요? 상처에 부을 기름이 있어야 해요.',
+      verse: V('q-sam', '어떤 사마리아인은 여행하는 중 거기 이르러 그를 보고 불쌍히 여겨', '누가복음 10:33'),
+      steps: [
+        { hint: '쓰러진 나그네의 상처에 기름을 붓고 싸매요 (등잔 기름 1, E 또는 반짝이는 단추).', place: 'q_give', at: () => wounded, r: 2.4,
+          act: () => { if (!useGood(profile, 'oil')) { toast('기름이 없어요. 정원 동쪽 루디아의 가게에서 등잔 기름(2 데나리온)을 사 오세요', 4.5); return false; } sfx('cup', 0.2, 1.1); burst(wounded.x, G(wounded) + 0.8, wounded.z); wounded.seat = null; wounded.state = 'idle'; } },
+        { hint: '나그네와 함께 주막(정원 동쪽 가게)까지 걸어가요.', until: () => {
+          const d = Math.hypot(me.x - wounded.x, me.z - wounded.z);
+          if (d > 2.2 && wounded.state !== 'walk') { const a = Math.atan2(wounded.x - me.x, wounded.z - me.z); const p = nearestFree({ x: me.x + Math.sin(a) * 1.4, z: me.z + Math.cos(a) * 1.4 }); if (p) { wounded.path = [p]; wounded.state = 'walk'; } }
+          wounded.home = { x: wounded.x, z: wounded.z };
+          return Math.hypot(wounded.x - P.market.x, wounded.z - P.market.z) < 8;
+        } },
+      ],
+      done: '주막에 잘 데려왔어요. 자비를 베푼 자가 이웃이래요. 가서 너도 이와 같이 하라 (눅 10:37). 이 기름과 포도주를 가져가요.',
+      reset: () => { const h = P.road.at(1.5, 0.5); wounded.x = h.x; wounded.z = h.z; wounded.home = { ...h }; wounded.path = []; lieDown(); },
+    },
+    {
+      id: 'loaves', who: andrew, name: '안드레', title: '보리떡 다섯과 물고기 둘', stat: 'witness', item: 'twelve',
+      ask: '들녘에 오천 명이 모였는데 먹을 것이 없어요. 여기 한 아이가 보리떡 다섯과 물고기 둘을 가졌다는데... 이것이 이 많은 사람에게 얼마나 되겠어요? 그래도 아이에게 가 볼래요?',
+      verse: V('q-loaves', '여기 한 아이가 있어 보리떡 다섯 개와 물고기 두 마리를 가졌나이다 그러나 그것이 이 많은 사람에게 얼마나 되겠삽나이까', '요한복음 6:9'),
+      steps: [
+        { hint: '아이에게서 보리떡과 물고기가 든 바구니를 받아요 (E 또는 반짝이는 단추).', place: 'q_pick', at: () => boy, r: 2.4, act: () => { sfx('cup', 0.2); showVerse(V('q-loaves2', '예수께서 떡을 가져 축사하신 후에 앉은 자들에게 나눠 주시고 고기도 그렇게 저희의 원대로 주시다', '요한복음 6:11'), { cooldown: 0 }); } },
+        { hint: (r) => `풀밭에 앉은 무리에게 나눠 주어요 (E) ${r.n || 0}/5`, collect: crowd, place: 'q_give' },
+      ],
+      done: '모두 배불리 먹고도 남은 조각이 열두 바구니예요! 작은 것을 드리니 주께서 넉넉히 하셨어요. 이 바구니를 가져가요.',
+    },
   ];
   Q.push(
     {
@@ -272,6 +336,7 @@ export function initQuests(K) {
   }
   function begin(q) {
     run = { q, i: 0, n: 0, flags: {} };
+    q.reset?.(); // 다시 할 때 처음 자리로 (다친 나그네)
     hide(); closedFor = q;
     startStep();
     sfx('tap', 0.2, 1.2);
@@ -293,13 +358,13 @@ export function initQuests(K) {
     const q = run.q; run = null; updateChip();
     sfx('orb', 0.25, 1.1); burst(me.x, me.y + 1.2, me.z);
     thanks = q;
-    if (profile.quests[q.id] === 'done') { addSteps(profile, 2); save(); onChange?.(); show(q, `${q.done.split('.')[0]}. 또 도와줘서 고마워요! (걸음 +2)`, '', { next: '감사해요' }); return; }
+    if (profile.quests[q.id] === 'done') { addSteps(profile, 2); earn(profile, 1); save(); onChange?.(); show(q, `${q.done.split('.')[0]}. 또 도와줘서 고마워요! (걸음 +2, 1 데나리온)`, '', { next: '감사해요' }); return; }
     profile.quests[q.id] = 'done';
-    addStat(profile, q.stat, STAT_REWARD); giveItem(profile, q.item);
+    addStat(profile, q.stat, STAT_REWARD); giveItem(profile, q.item); earn(profile, 3);
     const up = addSteps(profile, STEP_REWARD);
     save(); onChange?.();
     const st = STATS.find((x) => x.id === q.stat);
-    show(q, `${q.done} (${st.name} +${STAT_REWARD}, 걸음 +${STEP_REWARD}, ${ITEMS[q.item].name})`, '', { next: '감사해요' });
+    show(q, `${q.done} (${st.name} +${STAT_REWARD}, 걸음 +${STEP_REWARD}, ${ITEMS[q.item].name}, 3 데나리온)`, '', { next: '감사해요' });
     if (up) setTimeout(() => toast(`${profile.name || '나'}님이 ${up.name}${josa(up.name)} 자랐어요!`, 5), 2500);
   }
   const josa = (w) => { const c = w.charCodeAt(w.length - 1) - 0xac00; return c >= 0 && c < 11172 && c % 28 && c % 28 !== 8 ? '으로' : '로'; };
@@ -327,7 +392,7 @@ export function initQuests(K) {
   };
 
   // ---------- 매 프레임 ----------
-  const people = Q.map((q) => q.who).concat([naomi]);
+  const people = Q.map((q) => q.who).concat([naomi, boy]);
   const actions2 = { q_net: doPlace }; Object.assign(actions, actions2);
   function step(dt, t) {
     for (const n of people) {
@@ -344,6 +409,7 @@ export function initQuests(K) {
     const s = curStep();
     for (const c of brook) c.glow.visible = !!(s && s.collect === brook && !c.got);
     for (const c of ears) c.glow.visible = !!(s && s.collect === ears && !c.got);
+    for (const c of crowd) c.glow.visible = !!(s && s.collect === crowd && !c.got);
     ringL.visible = ringR.visible = !!(run && run.q.id === 'peter');
     // 비둘기: 방주에서 날아갔다가 돌아옴
     if (flight) {

@@ -1,6 +1,8 @@
 // 나의 캐릭터 만들기(닉네임·옷·머리) 창과 '나' 카드
 // 만드는 동안 카메라가 캐릭터 앞으로 와서 바뀐 모습이 바로 보임
-import { stageOf, STAGES, ITEMS, STATS } from './profile.js';
+import { stageOf, STAGES, ITEMS, STATS, GOODS, fmtMoney } from './profile.js';
+import { GEAR } from './gear.js';
+import { PETS } from './pets.js';
 
 export const HOODIES = [0x8fb7e0, 0xf2a7a0, 0xa7d3a6, 0xf4d27a, 0xb9a6e0, 0xf5f0e6, 0x6f8fb0, 0xd98f6a];
 export const HAIRS = [0x3b2a22, 0x5a3b2a, 0x22201f, 0x7a5634, 0xa8784a];
@@ -95,6 +97,12 @@ export function initCharacter({ me, look, profile, save, rebuild, view, toast, o
       <p class="steps">걸음 ${profile.steps}${next ? ` / ${next.need}` : ''}${profile.quests && Object.keys(profile.quests).length ? ` · 부탁 ${Object.keys(profile.quests).length}` : ''}${profile.dungeon && Object.keys(profile.dungeon).length ? ` · 이긴 숲길 ${Object.keys(profile.dungeon).length}` : ''}</p>
       <p class="lb">수레바퀴</p>
       <div class="stats">${STATS.map((x) => { const v = (profile.stats && profile.stats[x.id]) || 0; return `<div><span>${x.name}</span><div class="sb"><i style="width:${Math.min(100, v)}%;background:${x.color}"></i></div><b>${v}</b>${profile.train && profile.train[x.id] ? '<em>훈련 마침</em>' : ''}</div>`; }).join('')}</div>
+      <p class="lb">장비 <span class="hint">하나님의 전신갑주 (엡 6:13)</span></p>
+      <div class="items gear">${Object.entries(GEAR).map(([id, g]) => { const own = profile.gear?.owned?.includes(id), on = own && profile.gear.worn.includes(id); return `<button data-gear="${id}" class="${on ? 'on' : own ? '' : 'locked'}" title="${own ? g.does : g.how + ' 받아요'}">${g.name}${on ? ' ✓' : own ? '' : ' 🔒'}</button>`; }).join('')}</div>
+      ${Object.keys(profile.pets || {}).length ? `<p class="lb">돌본 동물</p><div class="items pets">${Object.entries(PETS).filter(([id]) => profile.pets[id]).map(([id, pt]) => { const tame = profile.pets[id] >= 3, on = profile.pet === id; return `<button data-pet="${id}" class="${on ? 'on' : tame ? '' : 'locked'}">${pt.name}${tame ? (on ? ' · 함께' : ' · 데리고 다니기') : ` ${profile.pets[id]}/3`}</button>`; }).join('')}</div>` : ''}
+      <p class="lb">지갑</p>
+      <p class="purse">${fmtMoney(profile.coins)}${Object.keys(profile.bag || {}).length ? '' : ' <span>· 정원 동쪽 루디아의 가게에서 쓸 수 있어요</span>'}</p>
+      ${Object.keys(profile.bag || {}).length ? `<div class="items goods">${Object.entries(profile.bag).map(([id, n]) => `<button data-use="${id}">${GOODS[id] ? GOODS[id].name : id} ${n}${id === 'spice' ? ' · 피우기' : ''}</button>`).join('')}</div>` : ''}
       <p class="lb">받은 것</p>
       <div class="items">${profile.items.length ? profile.items.map((id) => `<button data-item="${id}">${ITEMS[id] ? ITEMS[id].name : id}</button>`).join('') : '<span class="none">아직 없어요</span>'}</div>
       <div class="row"><button data-do="look">모습 바꾸기</button><button data-do="cafe">카페 안내 다시</button><button data-do="garden">정원 안내 다시</button><button data-do="account">계정 · 다른 기기에서 이어 하기</button></div>
@@ -102,6 +110,12 @@ export function initCharacter({ me, look, profile, save, rebuild, view, toast, o
     card.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
       if (e.target === card || e.target.classList.contains('close')) return closeCard();
+      const pb = e.target.closest('[data-pet]');
+      if (pb) { if ((profile.pets[pb.dataset.pet] | 0) >= 3) { replay('pet:' + pb.dataset.pet); closeCard(); openCard(); } else toast('들짐승 들판에서 꼴로 세 번 돌보면 길들어요', 3.5); return; }
+      const gb = e.target.closest('[data-gear]');
+      if (gb) { replay('gear:' + gb.dataset.gear); closeCard(); openCard(); return; }
+      const g = e.target.closest('[data-use]');
+      if (g) { closeCard(); replay('use:' + g.dataset.use); return; }
       const it = e.target.closest('[data-item]');
       if (it && ITEMS[it.dataset.item]) { const [t, r] = ITEMS[it.dataset.item].verse; toast(`${t} (${r})`, 6); return; }
       const d = e.target.closest('[data-do]');
