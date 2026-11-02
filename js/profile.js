@@ -1,5 +1,5 @@
 // 나의 캐릭터: 닉네임, 성장 단계, 받은 물품, 안내(튜토리얼)를 마쳤는지
-// 처음에는 이 기기 안(localStorage)에만 저장. 모습(옷·머리 색)은 예전처럼 navs-cafe-look3d에 따로 둠
+// 이 기기 안(localStorage)에 저장하고, 계정으로 들어와 있으면 서버에도 올림(account.js). 모습(옷·머리 색)은 예전처럼 navs-cafe-look3d에 따로 둠
 const KEY = 'navs-cafe-profile';
 
 // 성장 단계 (디모데후서 2:2의 배가 흐름). need: 그 단계에 이르는 걸음 수
@@ -51,8 +51,11 @@ function fill(p = {}) {
 export function loadProfile() {
   try { return fill(JSON.parse(localStorage.getItem(KEY) || 'null') || {}); } catch (e) { return fill(); }
 }
+let saveHook = null; // 계정이 있으면 저장할 때마다 서버에도 (account.js)
+export const onProfileSave = (f) => { saveHook = f; };
 export function saveProfile(p) {
   try { localStorage.setItem(KEY, JSON.stringify(p)); } catch (e) { /* 저장 안 되는 환경: 이번 방문 동안만 기억 */ }
+  saveHook?.();
 }
 export function giveItem(p, id) {
   if (!p.items.includes(id)) p.items.push(id);
