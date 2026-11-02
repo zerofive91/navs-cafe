@@ -46,7 +46,7 @@ export function initTutorial(K) {
 
   // ---------- 말풍선 ----------
   const box = document.createElement('div');
-  box.id = 'tut'; box.hidden = true;
+  box.id = 'tut'; box.className = 'npcb'; box.hidden = true;
   box.innerHTML = '<div class="who"><b></b><span class="n"></span></div><p class="say"></p><div class="keys"></div><div class="row"><button class="end">안내 끝내기</button><button class="skip">넘기기</button><button class="next">다음</button></div>';
   document.body.appendChild(box);
   const $ = (s) => box.querySelector(s);
@@ -82,7 +82,7 @@ export function initTutorial(K) {
     { say: '금빛으로 반짝이는 단추는 그 자리에서만 하는 체험이에요. 꽃밭 곁에서는 꽃을 들고, 여리고 성이나 다윗과 골리앗 같은 성경 이야기 터에서는 그 이야기를 겪어 볼 수 있어요.', keys: [['E', '그 자리 체험']], touch: '꽃밭이나 성경 이야기 터로 가서 반짝이는 단추를 눌러 보세요.', done: () => marks.has('place') },
     { say: '풀밭에 누워 하늘을 볼까요? 누운 채로 별을 볼 수 있어요.', keys: [['K', '눕기'], ['N', '별 보기']], touch: '눕기 단추를 누른 다음, 반짝이는 별 단추를 눌러 보세요.', done: () => marks.has('stars') },
     { say: '마음에 드는 풍경은 사진으로 남겨요.', keys: [['P', '사진 모드'], ['Space', '찰칵'], ['Esc', '나오기']], touch: '위쪽의 사진기 단추를 눌러 보세요.', done: () => marks.has('photo') && !photoOn() },
-    { auto: true, end: true, say: () => `이제 마음껏 다녀 보세요, ${nm()}님. 이 겨자씨를 드릴게요. 작은 씨가 자라 큰 나무가 되듯, 천천히 걸으며 말씀 안에서 자라 가요.`, reward: ['mustard'] },
+    { auto: true, end: true, say: () => `이제 마음껏 다녀 보세요, ${nm()}님. 이 겨자씨를 드릴게요. 정원 곳곳에는 수레바퀴 훈련장 다섯이 있어요. 에스라, 다니엘, 아굴라와 브리스길라, 빌립, 아브라함이 기다리니 곁에 가서 말을 걸어 보세요. 작은 씨가 자라 큰 나무가 되듯 말씀 안에서 자라 가요.`, reward: ['mustard'] },
   ];
 
   function start(id) {

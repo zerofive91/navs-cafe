@@ -1,6 +1,6 @@
 // 나의 캐릭터 만들기(닉네임·옷·머리) 창과 '나' 카드
 // 만드는 동안 카메라가 캐릭터 앞으로 와서 바뀐 모습이 바로 보임
-import { stageOf, STAGES, ITEMS } from './profile.js';
+import { stageOf, STAGES, ITEMS, STATS } from './profile.js';
 
 export const HOODIES = [0x8fb7e0, 0xf2a7a0, 0xa7d3a6, 0xf4d27a, 0xb9a6e0, 0xf5f0e6, 0x6f8fb0, 0xd98f6a];
 export const HAIRS = [0x3b2a22, 0x5a3b2a, 0x22201f, 0x7a5634, 0xa8784a];
@@ -93,6 +93,8 @@ export function initCharacter({ me, look, profile, save, rebuild, view, toast, o
       <p class="stage">${st.name}${next ? ` <span>· 다음 단계 ${next.name}</span>` : ''}</p>
       <div class="bar"><i style="width:${Math.round(k * 100)}%"></i></div>
       <p class="steps">걸음 ${profile.steps}${next ? ` / ${next.need}` : ''}</p>
+      <p class="lb">수레바퀴</p>
+      <div class="stats">${STATS.map((x) => { const v = (profile.stats && profile.stats[x.id]) || 0; return `<div><span>${x.name}</span><div class="sb"><i style="width:${Math.min(100, v)}%;background:${x.color}"></i></div><b>${v}</b>${profile.train && profile.train[x.id] ? '<em>훈련 마침</em>' : ''}</div>`; }).join('')}</div>
       <p class="lb">받은 것</p>
       <div class="items">${profile.items.length ? profile.items.map((id) => `<button data-item="${id}">${ITEMS[id] ? ITEMS[id].name : id}</button>`).join('') : '<span class="none">아직 없어요</span>'}</div>
       <div class="row"><button data-do="look">모습 바꾸기</button><button data-do="cafe">카페 안내 다시</button><button data-do="garden">정원 안내 다시</button></div>

@@ -1,18 +1,15 @@
 // 정원에서 쉬며 할 수 있는 일 (2026-11): 연 날리기, 꽃 따서 건네기, 물수제비, 누워서 별 보기,
-// 씨 심기(다음에 와도 자라 있음), 그네·해먹, 사진 찍기
+// 씨 심기(다음에 와도 자라 있음), 사진 찍기
 import * as THREE from 'three';
 import { VERSES, showVerse } from './verses.js';
-import { R_HALL, R_GARDEN, R_WALK, FLOWER_BEDS, PARK, JONAH_SEA, SWING, HAMMOCK, floorY, parkClear, inPool } from './layout.js';
+import { R_HALL, R_GARDEN, R_WALK, FLOWER_BEDS, PARK, JONAH_SEA, floorY, parkClear } from './layout.js';
 
-VERSES['l-kite'] = ['바람이 임의로 불매 네가 그 소리를 들어도 어디서 오며 어디로 가는지 알지 못하나니 성령으로 난 사람은 다 이러하니라', '요한복음 3:8'];
 VERSES['l-flower'] = ['또 너희가 어찌 의복을 위하여 염려하느냐 들의 백합화가 어떻게 자라는가 생각하여 보라 수고도 아니하고 길쌈도 아니하느니라 그러나 내가 너희에게 말하노니 솔로몬의 모든 영광으로도 입은 것이 이 꽃 하나만 같지 못하였느니라', '마태복음 6:28-29'];
 VERSES['l-give'] = ['내 계명은 곧 내가 너희를 사랑한 것 같이 너희도 서로 사랑하라 하는 이것이니라', '요한복음 15:12'];
 VERSES['l-stars'] = ['그를 이끌고 밖으로 나가 가라사대 하늘을 우러러 뭇별을 셀 수 있나 보라 또 그에게 이르시되 네 자손이 이와 같으리라', '창세기 15:5'];
 VERSES['l-stars2'] = ['저가 별의 수효를 계수하시고 저희를 다 이름대로 부르시는도다', '시편 147:4'];
 VERSES['l-seed'] = ['나는 심었고 아볼로는 물을 주었으되 오직 하나님은 자라나게 하셨나니', '고린도전서 3:6'];
 VERSES['l-grown'] = ['우리가 선을 행하되 낙심하지 말찌니 피곤하지 아니하면 때가 이르매 거두리라', '갈라디아서 6:9'];
-VERSES['l-swing'] = ['울 때가 있고 웃을 때가 있으며 슬퍼할 때가 있고 춤출 때가 있으며', '전도서 3:4'];
-VERSES['l-hammock'] = ['내가 평안히 눕고 자기도 하리니 나를 안전히 거하게 하시는 이는 오직 여호와시니이다', '시편 4:8'];
 VERSES['l-skip'] = ['천하에 범사가 기한이 있고 모든 목적이 이룰 때가 있나니', '전도서 3:1'];
 
 const M = (c, r = 0.85, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: r, ...o });
@@ -21,18 +18,9 @@ const ease = (x) => (x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x));
 export function initLeisure({ scene, me, camera, renderer, view, lights, act, sfx, burst, walkTo, faceTo, standUp, nearestPerson, toast, ICONS, LIEABLE }) {
   const actions = {}, avail = [], steps = [];
   const r0 = () => Math.hypot(me.x, me.z);
-  const inGarden = () => r0() > R_HALL + 1.5 && r0() < R_GARDEN + 1 && !inPool(me.x, me.z);
+  const inGarden = () => r0() > R_HALL + 1.5 && r0() < R_GARDEN + 1;
   const lying = () => me.state === 'sit' && me.seat && (me.seat.kind === 'lie' || LIEABLE.has(me.seat.kind));
   const say = (k, o = {}) => showVerse(k, { delay: 1.2, cooldown: 120, ...o });
-
-  // ---------- 연 날리기 ----------
-  actions.kite = () => {
-    if (me.hold === 'kite') { me.hold = null; sfx('tap', 0.12, 0.8); return; }
-    me.hold = 'kite'; sfx('impact/impactSoft_medium_000', 0.15, 1.6);
-    say('l-kite', { delay: 3 });
-  };
-  avail.push(() => (me.hold === 'kite' ? 'kite' : inGarden() && PARK.meadow.inside(me.x, me.z, 2) ? ['place', 'kite'] : inGarden() && r0() > R_WALK + 2 && parkClear(me.x, me.z, 2.5) ? 'kite' : null)); // 탁 트인 풀밭에서
-  steps.push(() => { if (me.hold === 'kite' && r0() < R_HALL + 0.5) me.hold = null; }); // 카페 안에서는 접음
 
   // ---------- 꽃 따서 건네기 ----------
   const nearBed = () => FLOWER_BEDS.some((b) => Math.hypot(me.x - b.x, me.z - b.z) < b.r + 1.4) || PARK.meadow.inside(me.x, me.z);
@@ -236,58 +224,6 @@ export function initLeisure({ scene, me, camera, renderer, view, lights, act, sf
   avail.push(() => (canPlant() ? 'seed' : null));
   let growT = 0;
   steps.push((dt) => { if ((growT -= dt) < 0) { growT = 5; plants.forEach(grow); } });
-
-  // ---------- 그네와 해먹 ----------
-  const wood = M(0x8a6a4a), rope = M(0xd8c8a0, 1);
-  const SZ = PARK.swing, HZ = PARK.hammock;
-  const swings = [];
-  {
-    const g = new THREE.Group(); g.position.set(SZ.x, floorY(SZ.x, SZ.z), SZ.z); g.rotation.y = Math.atan2(-SZ.t.z, SZ.t.x); scene.add(g);
-    // 그룹 안: +x = 둘레 방향(u), -z = 바깥(v). 줄을 +x축으로 돌리면 판이 바깥으로
-    for (const u of [-1.9, 1.9]) for (const v of [-0.7, 0.7]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 2.9, 8), wood); p.position.set(u, 1.42, v * 0.55); p.rotation.x = v > 0 ? -0.25 : 0.25; g.add(p); }
-    const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 4.1, 8), wood); bar.rotation.z = Math.PI / 2; bar.position.y = 2.82; g.add(bar);
-    for (const S of SWING.seats) {
-      const piv = new THREE.Group(); piv.position.set(S.u, 2.78, 0); g.add(piv);
-      for (const s of [-1, 1]) { const r = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 2.3, 5), rope); r.position.set(s * 0.26, -1.15, 0); piv.add(r); }
-      const board = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.05, 0.3), wood); board.position.y = -2.3; piv.add(board);
-      swings.push({ S, piv, A: 0, ph: 0 });
-    }
-    g.traverse((m) => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } });
-  }
-  const L = 2.3; // 줄 길이
-  for (const w of swings) {
-    // 앉은 사람도 그네와 함께 흔들림 (main.js stepChar에서 부름)
-    w.S.sway = (ch) => {
-      const th = w.th || 0, dx = Math.sin(th) * L, dy = L * (1 - Math.cos(th));
-      ch.av.position.x += SZ.n.x * dx; ch.av.position.z += SZ.n.z * dx; ch.av.position.y += dy;
-      ch.av.rotation.order = 'YXZ'; ch.av.rotation.x = -th * 0.7;
-    };
-  }
-  const HSEAT = HAMMOCK.seat;
-  let ham;
-  {
-    const g = new THREE.Group(); g.position.set(HZ.x, floorY(HZ.x, HZ.z), HZ.z); g.rotation.y = Math.atan2(-HZ.t.z, HZ.t.x); scene.add(g);
-    for (const u of [-2.1, 2.1]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 2.1, 8), wood); p.position.set(u, 1.05, 0); g.add(p); }
-    ham = new THREE.Group(); ham.position.y = 0.95; g.add(ham);
-    const cloth = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 3, 16, 1, true, Math.PI * 1.15, Math.PI * 0.7), M(0xe8a07a, 0.9, { side: THREE.DoubleSide }));
-    cloth.rotation.z = Math.PI / 2; ham.add(cloth); // 아래로 처진 천 (단면이 아래쪽 활 모양)
-    for (const s of [-1, 1]) { const r = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.75, 5), rope); r.position.set(s * 1.78, 0.1, 0); r.rotation.z = s * 1.0; ham.add(r); }
-    g.traverse((m) => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } });
-  }
-  HSEAT.sway = (ch) => { const r = ham.rotation.x; ch.av.rotation.order = 'YXZ'; ch.av.rotation.z = r * 1.2; ch.av.position.y += Math.abs(r) * 0.05; };
-  let prevSeat = null;
-  steps.push((dt, t) => {
-    for (const w of swings) {
-      const riding = me.seat === w.S || w.S.taken;
-      w.A += ((riding ? 0.55 : 0) - w.A) * Math.min(1, dt * (riding ? 0.35 : 0.5));
-      w.ph += dt * Math.sqrt(9.8 / L);
-      w.th = w.A * Math.sin(w.ph);
-      w.piv.rotation.x = w.th; // +x 축으로 돌면 판이 +z(바깥)로
-    }
-    ham.rotation.x = Math.sin(t * 1.1) * (HSEAT.taken ? 0.07 : 0.03);
-    const sk = me.seat && me.state === 'sit' ? me.seat : null;
-    if (sk !== prevSeat) { prevSeat = sk; if (sk && sk.kind === 'swing') say('l-swing', { delay: 3 }); if (sk && sk.kind === 'hammock') say('l-hammock', { delay: 3 }); }
-  });
 
   // ---------- 사진 찍기: 단추와 안내를 감추고 지금 화면을 그림 파일로 ----------
   const photo = document.createElement('div');

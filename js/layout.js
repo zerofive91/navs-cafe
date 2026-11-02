@@ -37,8 +37,6 @@ export function floorY(x, z) {
   const r = Math.hypot(x, z);
   if (r >= R_HALL) {
     if (r < R_HALL + 0.6) return 0; // 기단 위
-    const d = poolDepth(x, z);
-    if (d) return -0.5 - d; // 수영장 안은 물속 바닥
     const y = -0.5 + (r > R_GARDEN ? terrainH(x, z) : 0); // 잔디, 숲속은 높낮이 지형
     if (PLATFORMS.length && r > R_GARDEN) { const p = platformTop(x, z); if (p > y) return p; } // 성벽·계단 위
     return y;
@@ -146,23 +144,42 @@ export const PARK = {
   fold: zone('fold', gr(46), 240, 9, 9),        // 양 우리 (잃은 양)
   well: zone('well', gr(46), 300, 6, 6),        // 우물 (요 4:14)
   // 바깥 띠 (둘레길 바깥)
-  pool: zone('pool', gr(65), 120, 14, 7),
-  camp: zone('camp', gr(65), 150, 13, 10),
-  bbq: zone('bbq', gr(65), 173, 9, 7),
+  // 수레바퀴 다섯 훈련장 (예전 운동장·캠핑장 자리). 순종 훈련장은 등불을 따라 굽이진 길을 걸으므로 넓게
+  t_obey: zone('t_obey', gr(65), 148, 34, 16),
   ark: zone('ark', gr(65), 205, 30, 15),   // 방주 + 짝지어 줄 선 동물들
-  soccer: zone('soccer', gr(65), 245, 22, 13),
-  basket: zone('basket', gr(65), 280, 12, 10),
-  tennis: zone('tennis', gr(65), 310, 17, 9),
-  badminton: zone('badminton', gr(65), 337, 11, 6),
-  pingpong: zone('pingpong', gr(65), 0, 7, 6),
+  t_word: zone('t_word', gr(65), 245, 18, 13),     // 말씀 훈련장: 에스라 (스 7:10)
+  t_pray: zone('t_pray', gr(65), 280, 15, 13),     // 기도 훈련장: 다니엘 (단 6:10)
+  t_fellow: zone('t_fellow', gr(65), 312, 18, 12), // 교제 훈련장: 아굴라와 브리스길라 (갈 6:2)
+  t_witness: zone('t_witness', gr(65), 343, 18, 13), // 증거 훈련장: 빌립 (행 8:30)
   meadow: zone('meadow', gr(63), 40, 22, 14),   // 푸른 초장: 동물들이 노님 (연 날리기)
-  swing: zone('swing', gr(62), 141, 6, 5),      // 그네 두 자리
-  hammock: zone('hammock', gr(62), 258, 6, 4),  // 해먹
   // 안쪽 띠 빈자리: 성경 이야기 체험
   jericho: zone('jericho', gr(46), 76, 12, 12), // 여리고 성 (수 6, 히 11:30)
   david: zone('david', gr(46), 104, 12, 11),    // 다윗과 골리앗 (삼상 17)
   jonah: zone('jonah', gr(46), 164, 12, 11),    // 요나와 큰 물고기 (욘 1-2)
 };
+// 수레바퀴 다섯 훈련장의 자리 (u: 둘레 방향, v: 바깥 방향. 카페 쪽이 -v)
+export const TRAIN = (() => {
+  const P = PARK;
+  const W = P.t_word, R = P.t_pray, F = P.t_fellow, X = P.t_witness, O = P.t_obey;
+  return {
+    word: { zone: W, npc: W.at(0, -4.6), pillars: [-6, -3, 0, 3, 6].map((u) => ({ ...W.at(u, 2.2), stand: W.at(u, 0.6) })) },
+    pray: { zone: R, npc: R.at(0, 4.4), altars: [[-3.4, -2.2], [3.4, -2.2], [-3.4, 1.6], [3.4, 1.6]].map(([u, v]) => ({ ...R.at(u, v), stand: R.at(u * 0.62, v - 0.9) })) },
+    fellow: { zone: F, npc: F.at(5.6, -1.6), npc2: F.at(7.4, -1.2), table: F.at(6.5, 1.6), pile: F.at(-6.5, 1.2) },
+    witness: { zone: X, npc: X.at(-7.2, -4), road: [X.at(-7, 1.5), X.at(7, 1.5)] },
+    obey: {
+      zone: O, npc: O.at(-15, -5.2), tent: O.at(-15.6, -2.6), oak: O.at(14.5, 4.5),
+      // 등불이 지나가는 굽이진 길 (훈련장 안을 이리저리)
+      way: [[-13, -4.5], [-10, 1], [-6, 5.5], [-2, 2], [-4, -3], [1, -5.5], [5, -2], [3, 3], [7, 6], [11, 2.5], [13.5, 4]].map(([u, v]) => O.at(u, v)),
+    },
+  };
+})();
+export const TRAIN_BLOCKS = [
+  ...TRAIN.word.pillars.map((p) => ({ x: p.x, z: p.z, r: 0.4 })),
+  ...TRAIN.pray.altars.map((p) => ({ x: p.x, z: p.z, r: 0.55, h: 0.95 })),
+  { ...TRAIN.fellow.table, r: 1.0, h: 0.85 },
+  { ...TRAIN.obey.oak, r: 0.7 },
+  { ...TRAIN.obey.tent, r: 1.3 },
+];
 // 성경 이야기 구역의 막힌 곳: 여리고 성벽(무너지면 풀림), 골리앗, 요나의 못
 export const JERICHO = { ...PARK.jericho.at(0, 0), R: 3.4 };
 for (let k = 0; k < 20; k++) {
@@ -184,15 +201,9 @@ export const JONAH_SEA = {
     return Math.hypot(cu, cv) < this.round + pad;
   },
 };
-// 수영장 물: 가장자리 1m는 완만한 경사, 가운데 깊이 0.75m
-export const POOL = { w: 12, d: 5.4, depth: 0.75, water: -0.5 - 0.2 };
-export function poolDepth(x, z) {
-  const l = PARK.pool.local(x, z);
-  const eu = POOL.w / 2 - Math.abs(l.u), ev = POOL.d / 2 - Math.abs(l.v);
-  if (eu <= 0 || ev <= 0) return 0;
-  return POOL.depth * Math.min(1, Math.min(eu, ev) / 1.2);
-}
-export const inPool = (x, z) => poolDepth(x, z) > 0.25;
+// 수영장은 걷어냄 (2026-11 정원을 훈련장으로). 예전 코드가 부르는 이름만 남김
+export const poolDepth = () => 0;
+export const inPool = () => false;
 // 입구 길이 시작하는 자리 (예전 좁은 문 자리: 문은 없앰)
 export const GATE = { r: gr(44), w: 1.0 };
 // 둘레길과 이어지는 오솔길 각도
@@ -654,17 +665,9 @@ for (const l of GARDEN_LAMPS) block(l.x, l.z, 0.15, 1.7);
     b(P.fold, Math.sin(ang) * 4.2, Math.cos(ang) * 4.2, 0.3, 0.95);
   }
   b(P.well, 0, 0, 1.1, 0.9);
-  // 수영장 둘레는 걸을 수 있음, 선베드 두 개
-  for (const u of [-3, 0, 3]) b(P.camp, u, 2.8, 1.2, 1.5); // 텐트
-  b(P.camp, 0, -1.2, 0.7, 0.6); // 모닥불
-  b(P.bbq, -2, 0.5, 0.6, 1.05); for (const u of [1.5, 3.4]) b(P.bbq, u, 1.2, 0.8, 0.8); // 화로, 피크닉 탁자
   for (let u = -7; u <= 7; u += 1.4) b(P.ark, u, 1, 2.1 - Math.abs(u) * 0.12); // 방주
   for (const v of [-2.4, -3.6, -4.8]) b(P.ark, 0, v, 0.75, 1.3); // 경사로
-  for (const u of [-11, 11]) for (const v of [-1.3, 1.3]) b(P.soccer, u, v, 0.15, 1.25); // 골대 기둥
-  b(P.basket, 5.8, 0, 0.3);
-  for (const v of [-4.8, 4.8]) b(P.tennis, 0, v, 0.12, 1.05);
-  for (const v of [-3.2, 3.2]) b(P.badminton, 0, v, 0.1, 1.6);
-  for (const u of [-0.9, 0, 0.9]) b(P.pingpong, 0, u * 0.6, 0.55, 0.8);
+  for (const p of TRAIN_BLOCKS) block(p.x, p.z, p.r, p.h ?? Infinity); // 훈련장 기둥·제단·탁자
 }
 
 // 앉을 수 있는 자리
@@ -716,62 +719,11 @@ block(Q.prayer.x, Q.prayer.z, 1.5); // 기도하는 손이 선 작은 섬
     seat(p.x, p.z, { x: p.x - dir.z, z: p.z + dir.x }, 'boat', edge);
   }
 }
-// 테마파크: 모닥불 둘레 통나무, 포도나무 그늘 벤치, 피크닉 탁자 의자
-export const CAMP_FIRE = PARK.camp.at(0, -1.2);
-for (const a of [-50, 0, 50]) {
-  const ang = deg(a) + Math.atan2(-PARK.camp.n.z, -PARK.camp.n.x);
-  const p = { x: CAMP_FIRE.x + Math.cos(ang) * 1.7, z: CAMP_FIRE.z + Math.sin(ang) * 1.7 };
-  seat(p.x, p.z, CAMP_FIRE, 'log', { x: CAMP_FIRE.x + Math.cos(ang) * 2.4, z: CAMP_FIRE.z + Math.sin(ang) * 2.4 });
-  seats[seats.length - 1].top = -0.5 + 0.34;
-}
+// 테마파크: 포도나무 그늘 벤치
 for (const u of [-1.2, 1.2]) {
   const p = PARK.vine.at(u, 0.9);
   seat(p.x, p.z, PARK.vine.at(u, -3), 'vine', PARK.vine.at(u, 0.2));
   seats[seats.length - 1].top = -0.5 + 0.49;
-}
-for (const u of [1.5, 3.4]) for (const sd of [-1, 1]) {
-  const p = PARK.bbq.at(u, 1.2 + sd * 0.65);
-  seat(p.x, p.z, PARK.bbq.at(u, 1.2), 'picnic', PARK.bbq.at(u, 1.2 + sd * 1.25));
-  seats[seats.length - 1].top = -0.5 + 0.475;
-}
-// 수영장 선베드 두 개: 등받이(바깥쪽)에 기대어 수영장을 보며 누움
-export const SUNBEDS = [-3, 3].map((u) => ({ u, ...PARK.pool.at(u, 4.2) }));
-for (const b of SUNBEDS) {
-  for (const v of [3.75, 4.65]) { const p = PARK.pool.at(b.u, v); block(p.x, p.z, 0.42, 0.42); }
-  const p = PARK.pool.at(b.u, 4.5);
-  seat(p.x, p.z, PARK.pool.at(b.u, 0), 'sunbed', PARK.pool.at(b.u - Math.sign(b.u) * 0.95, 4.1));
-  Object.assign(seats[seats.length - 1], { top: -0.5 + 0.34, lean: 0.87, legs: -0.7 });
-}
-// 캠핑장 침낭: 그 위에 반듯이 누움 (모델의 긴 쪽이 회전한 z축)
-export const BEDROLL = (() => {
-  const zn = PARK.camp, c = zn.at(-4.6, 1), rot = Math.atan2(-zn.n.x, -zn.n.z) + 0.4;
-  const ax = { x: Math.sin(rot), z: Math.cos(rot) };
-  return { ...c, rot, ax };
-})();
-{
-  const B = BEDROLL, p = { x: B.x + B.ax.x * 0.55, z: B.z + B.ax.z * 0.55 };
-  seat(p.x, p.z, { x: p.x + B.ax.x, z: p.z + B.ax.z }, 'lie', { x: B.x - B.ax.z * 0.9, z: B.z + B.ax.x * 0.9 });
-  seats[seats.length - 1].top = -0.5 + 0.2;
-}
-// 그네 두 자리: 둘레 방향으로 나란히 매달려 바깥(숲)을 보며 앞뒤로 흔들림
-export const SWING = { seats: [] };
-{
-  const Z = PARK.swing;
-  for (const u of [-1.9, 1.9]) for (const v of [-0.7, 0.7]) { const p = Z.at(u, v); block(p.x, p.z, 0.22); }
-  for (const u of [-0.8, 0.8]) {
-    const p = Z.at(u, 0);
-    seat(p.x, p.z, Z.at(u, 5), 'swing', Z.at(u, -1.9));
-    Object.assign(seats[seats.length - 1], { top: -0.5 + 0.52, u }); SWING.seats.push(seats[seats.length - 1]);
-  }
-}
-// 해먹: 두 기둥 사이에 길게 누움 (머리는 -u 쪽)
-export const HAMMOCK = {};
-{
-  const Z = PARK.hammock;
-  for (const u of [-2.1, 2.1]) { const p = Z.at(u, 0); block(p.x, p.z, 0.25); }
-  const p = Z.at(0.45, 0);
-  seat(p.x, p.z, Z.at(6, 0), 'hammock', Z.at(0, -1.4));
-  Object.assign(seats[seats.length - 1], { top: -0.5 + 0.72, lean: 1.45, legs: -0.05 }); HAMMOCK.seat = seats[seats.length - 1];
 }
 // 말씀: 성경을 둘러싼 곡선 벤치 3곳
 for (const a of [-160, -135, -110]) {

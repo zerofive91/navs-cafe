@@ -496,6 +496,12 @@ html.rot #meChip { top: auto; bottom: 120px; }
 #meCard .bar i { display: block; height: 100%; background: linear-gradient(90deg, #b9d48a, #e8c46a); }
 #meCard .steps { margin: 5px 0 0; font-size: 12px; text-align: right; color: #a08868; }
 #meCard .lb { margin: 12px 0 6px; font-size: 12.5px; font-weight: 700; color: #a07a40; letter-spacing: 0.08em; }
+#meCard .stats > div { display: grid; grid-template-columns: 38px 1fr 28px auto; align-items: center; gap: 8px; margin: 4px 0; font-size: 13px; }
+#meCard .stats span { font-weight: 700; color: #6b4c32; }
+#meCard .stats .sb { height: 7px; border-radius: 4px; background: #eadfca; overflow: hidden; }
+#meCard .stats .sb i { display: block; height: 100%; border-radius: 4px; }
+#meCard .stats b { font: 600 12px system-ui, sans-serif; color: #8f7458; text-align: right; }
+#meCard .stats em { font: 600 10.5px system-ui, sans-serif; font-style: normal; color: #4f6b2f; background: #e6f0d2; padding: 1px 6px; border-radius: 8px; }
 #meCard .items { display: flex; flex-wrap: wrap; gap: 6px; }
 #meCard .items button { border: 0; border-radius: 12px; padding: 7px 11px; background: #fff; color: #6b4c32; font: 600 13px "Noto Serif KR", serif; box-shadow: 0 1px 4px rgba(60, 40, 20, 0.15); cursor: pointer; }
 #meCard .none { font-size: 13px; color: #a08868; }
@@ -504,32 +510,34 @@ html.rot #meChip { top: auto; bottom: 120px; }
 #meCard .close { position: absolute; top: 8px; right: 10px; width: 32px; height: 32px; border: 0; border-radius: 16px; background: rgba(0, 0, 0, 0.06); font-size: 21px; color: #6b4c32; cursor: pointer; }
 
 /* 안내 말풍선: 컴퓨터는 아래 가운데, 휴대폰은 위쪽 */
-#tut { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 44; width: min(480px, calc(100vw - 320px)); padding: 12px 16px 10px; border-radius: 18px; background: rgba(255, 250, 238, 0.96); color: #5a4030; box-shadow: 0 6px 24px rgba(40, 30, 15, 0.25); font-family: "Noto Serif KR", serif; transition: box-shadow 0.3s; }
-#tut[hidden] { display: none; }
-#tut.ok { box-shadow: 0 0 0 3px #b9d48a, 0 6px 24px rgba(40, 30, 15, 0.25); }
-#tut .who { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
-#tut .who b { font-size: 14px; color: #8f6744; }
-#tut .who .n { font-size: 11px; color: #b09878; font-family: system-ui, sans-serif; }
-#tut .say { margin: 0; font-size: 15px; line-height: 1.55; word-break: keep-all; }
-#tut .say small { display: block; margin-top: 6px; font-size: 12.5px; line-height: 1.5; color: #8f7458; }
-#tut .keys { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 8px; font: 500 13px system-ui, sans-serif; }
-#tut .keys:empty { display: none; }
-#tut .keys span { display: flex; align-items: center; gap: 6px; }
-#tut .keys .tt { font: 500 13.5px/1.5 "Noto Serif KR", serif; color: #7a5a3a; word-break: keep-all; }
-#tut kbd { min-width: 28px; padding: 2px 7px; border-radius: 7px; background: #fff; border: 1px solid #d8c8a8; box-shadow: 0 2px 0 #d8c8a8; font: 700 12px system-ui, sans-serif; text-align: center; }
-#tut .row { display: flex; justify-content: flex-end; gap: 6px; margin-top: 8px; }
-#tut .row button { border: 0; border-radius: 12px; height: 32px; padding: 0 12px; background: transparent; color: #a08868; font: 600 12.5px "Noto Serif KR", serif; cursor: pointer; }
-#tut .row button[hidden] { display: none; }
-#tut .row .next { background: #8f6744; color: #fffaf0; padding: 0 16px; }
-#tut.ok .row .skip { visibility: hidden; }
+.npcb { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 44; width: min(480px, calc(100vw - 320px)); padding: 12px 16px 10px; border-radius: 18px; background: rgba(255, 250, 238, 0.96); color: #5a4030; box-shadow: 0 6px 24px rgba(40, 30, 15, 0.25); font-family: "Noto Serif KR", serif; transition: box-shadow 0.3s; }
+.npcb[hidden] { display: none; }
+.npcb.ok { box-shadow: 0 0 0 3px #b9d48a, 0 6px 24px rgba(40, 30, 15, 0.25); }
+.npcb .who { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+.npcb .who b { font-size: 14px; color: #8f6744; }
+.npcb .who .n { font-size: 11px; color: #b09878; font-family: system-ui, sans-serif; }
+.npcb .say { margin: 0; font-size: 15px; line-height: 1.55; word-break: keep-all; }
+.npcb .say small { display: block; margin-top: 6px; font-size: 12.5px; line-height: 1.5; color: #8f7458; }
+.npcb .keys { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 8px; font: 500 13px system-ui, sans-serif; }
+.npcb .keys:empty { display: none; }
+.npcb .keys span { display: flex; align-items: center; gap: 6px; }
+.npcb .keys .tt { font: 500 13.5px/1.5 "Noto Serif KR", serif; color: #7a5a3a; word-break: keep-all; }
+.npcb kbd { min-width: 28px; padding: 2px 7px; border-radius: 7px; background: #fff; border: 1px solid #d8c8a8; box-shadow: 0 2px 0 #d8c8a8; font: 700 12px system-ui, sans-serif; text-align: center; }
+.npcb .row { display: flex; justify-content: flex-end; gap: 6px; margin-top: 8px; }
+.npcb .row button { border: 0; border-radius: 12px; height: 32px; padding: 0 12px; background: transparent; color: #a08868; font: 600 12.5px "Noto Serif KR", serif; cursor: pointer; }
+.npcb .row button[hidden] { display: none; }
+.npcb .row .next { background: #8f6744; color: #fffaf0; padding: 0 16px; }
+.npcb.ok .row .skip { visibility: hidden; }
 @media (max-width: 760px), (max-height: 500px) {
-  #tut { bottom: auto; top: calc(62px + env(safe-area-inset-top)); width: calc(100vw - 24px); max-width: 480px; padding: 10px 14px 6px; }
-  #tut .say { font-size: 14px; }
-  #tut .row button { height: 30px; }
+  .npcb { bottom: auto; top: calc(62px + env(safe-area-inset-top)); width: calc(100vw - 24px); max-width: 480px; padding: 10px 14px 6px; }
+  .npcb .say { font-size: 14px; }
+  .npcb .row button { height: 30px; }
   body.tutoring #verse { top: 46%; }
   body.tutoring #toast { top: auto; bottom: calc(150px + env(safe-area-inset-bottom)); }
+  body.talking #verse { top: 46%; }
+  body.talking #toast { top: auto; bottom: calc(150px + env(safe-area-inset-bottom)); }
 }
-html.rot #tut { bottom: auto; top: 52px; width: min(60vh, 480px); }
+html.rot .npcb { bottom: auto; top: 52px; width: min(60vh, 480px); }
 @media (min-width: 761px) and (min-height: 501px) {
   #creator { top: 0; align-items: center; justify-content: flex-start; padding: 24px 32px; }
   #creator .pad { width: 380px; max-height: 90vh; }
