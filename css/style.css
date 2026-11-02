@@ -451,3 +451,14 @@ html.rot #musicPanel { max-height: calc(100vw - 64px); }
 #keyhelp .close { position: absolute; top: 8px; right: 10px; width: 34px; height: 34px; border: 0; border-radius: 17px; background: rgba(0, 0, 0, 0.06); font-size: 22px; color: #6b4c32; cursor: pointer; }
 @media (max-width: 520px) { #keyhelp .pad { grid-template-columns: 1fr; } }
 @media (hover: none) { .place.keys { display: none; } }
+
+/* 사진 찍기: 단추·안내를 모두 감추고 셔터만 */
+body.photo-mode > *:not(canvas):not(#photo) { visibility: hidden !important; }
+#photo { position: fixed; inset: 0; z-index: 70; pointer-events: none; }
+#photo[hidden] { display: none; }
+#photo .shutter { pointer-events: auto; position: absolute; left: 50%; bottom: max(26px, env(safe-area-inset-bottom)); transform: translateX(-50%); width: 68px; height: 68px; border-radius: 50%; border: 5px solid rgba(255, 252, 244, 0.95); background: rgba(255, 252, 244, 0.35); box-shadow: 0 2px 14px rgba(40, 30, 15, 0.35); cursor: pointer; }
+#photo .shutter:active { background: rgba(255, 252, 244, 0.85); }
+#photo .close { pointer-events: auto; position: absolute; top: max(14px, env(safe-area-inset-top)); right: 16px; width: 42px; height: 42px; border-radius: 50%; border: 0; background: rgba(255, 250, 238, 0.85); color: #5a4030; font-size: 24px; line-height: 1; cursor: pointer; }
+#photo .flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
+#photo .flash.go { animation: snapflash 0.45s ease-out; }
+@keyframes snapflash { from { opacity: 0.85; } to { opacity: 0; } }

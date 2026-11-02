@@ -14,6 +14,7 @@ import { initMap } from './map.js';
 import { initScrolls } from './scrolls.js';
 import { initTogether, inviteCodeFromUrl, RANDOM_CAP, INVITE_CAP } from './together.js';
 import { makeWheelProxy } from './wheelproxy.js';
+import { initLeisure } from './leisure.js';
 
 const canvas = document.getElementById('cafe');
 const bar = document.getElementById('actions');
@@ -35,7 +36,8 @@ scene.fog = new THREE.Fog(0xcfe3ee, 45, 180);
 const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 
-scene.add(new THREE.HemisphereLight(0xffffff, 0xd9cfc0, 0.7));
+const hemi = new THREE.HemisphereLight(0xffffff, 0xd9cfc0, 0.7);
+scene.add(hemi);
 // 천창으로 들어오는 햇빛
 const sun = new THREE.DirectionalLight(0xfff1dc, 1.6);
 sun.position.set(-14, 40, -10);
@@ -503,7 +505,7 @@ function wrapTask(first, then) {
 // 그 자리에서만 할 수 있는 체험 단추는 반짝여서 알려 줌
 let placeActs = new Set();
 // 가까운 빈 자리: 앉을 자리, 누울 수 있는 자리
-const LIEABLE = new Set(['recline', 'beanbag', 'lie', 'sunbed']);
+const LIEABLE = new Set(['recline', 'beanbag', 'lie', 'sunbed', 'hammock']);
 function nearSeat(lie, maxD = 3.2) {
   let best = null, bd = maxD;
   for (const s of seats) {
@@ -538,6 +540,7 @@ function availableActions() {
   if (signs.canFish()) place('fish');
   place(...park.available());
   if (outdoors(me) && nearTree(me.x, me.z, 1.8, 3.6)) list.push('climb');
+  for (const v of leisure.available()) { if (Array.isArray(v)) place(v[1]); else list.push(v); } // 연·꽃·물수제비·별·씨앗
   list.push(...walkToggle);
   if ((me.item === 'cup' || me.food) && !near(SPOTS.tray)) list.push('putdown');
   if ((me.item === 'cup' || me.food) && near(SPOTS.tray)) place('tray');
@@ -553,11 +556,14 @@ function availableActions() {
   list.push('wave');
   return list;
 }
+const isOn = (name) => me.action === name || (name === 'light' && me.action === 'gaze') || (name === 'boat' && me.seat && me.seat.kind === 'boat') || (me.hold && me.hold === name);
+const TOGGLES = new Set(['kite', 'flower', 'stars']); // 다시 누르면 그 단추가 직접 끔
 let shown = '';
 function pressAction(name, on) {
   sfx(name === 'sip' || name === 'order' || name === 'eat' ? 'cup' : 'tap', 0.15);
   if (VERSE_OF[name]) showNext(VERSE_OF[name], on ? 0.2 : 1.2);
   if (on && VERSE_OF[name]) return; // 이미 하는 중이면 다음 구절만
+  if (on && TOGGLES.has(name)) { ACTIONS[name](); shown = ''; return; }
   if (on && name !== 'wave' && name !== 'share') { me.action = null; if (me.seat && me.seat.free) standUp(me); shown = ''; return; }
   ACTIONS[name]();
 }
@@ -566,19 +572,18 @@ function pressIfAvailable(...names) {
   const list = availableActions();
   const name = names.find((n) => list.includes(n));
   if (!name) return false;
-  const on = me.action === name || (name === 'light' && me.action === 'gaze') || (name === 'boat' && me.seat && me.seat.kind === 'boat');
-  pressAction(name, on);
+  pressAction(name, isOn(name));
   return true;
 }
 function refreshActions() {
   const list = availableActions();
-  const key = list.join(',') + '|' + me.action + '|' + [...placeActs].join(',');
+  const key = list.join(',') + '|' + me.action + '|' + (me.hold || '') + '|' + [...placeActs].join(',');
   if (key === shown) return;
   shown = key;
   bar.innerHTML = '';
   for (const name of list) {
     const b = document.createElement('button');
-    const on = me.action === name || (name === 'light' && me.action === 'gaze') || (name === 'boat' && me.seat && me.seat.kind === 'boat');
+    const on = isOn(name);
     if (name === 'jump' || name === 'sit' || name === 'stand' || name === 'share') { /* 누를 때마다 실행 */ }
     b.className = 'act' + (on ? ' on' : '') + (placeActs.has(name) && !on ? ' place' : '');
     b.setAttribute('aria-label', name);
@@ -758,7 +763,7 @@ const KEYMAP = { ArrowUp: 'u', KeyW: 'u', ArrowDown: 'd', KeyS: 'd', ArrowLeft: 
 // 컴퓨터 단축키: 방향키·WASD 걷기, 스페이스 점프, M 지도, Shift 걷기/달리기, E 그 자리 체험(나무 오르기·주문·낚시 등), Enter 다음 말씀
 // Z 말씀, X 기도, C 교제, V 증거, B 찬양 (수레바퀴 순서) / J 앉기, K 눕기, L 먹고 마시기
 const NOT_E = new Set(['walk', 'run', 'sit', 'stand', 'recline', 'jump', 'pray', 'read', 'praise', 'share', 'wave', 'sip', 'eat', 'putdown']);
-const lying = () => me.seat && (me.seat.kind === 'lie' || me.seat.kind === 'recline' || me.seat.kind === 'beanbag');
+const lying = () => me.seat && (me.seat.kind === 'lie' || LIEABLE.has(me.seat.kind));
 const goPlace = (name) => { const p = PLACES.find((q) => q[0] === name); if (p) walkTo(me, { x: p[1].x, z: p[1].z }, () => faceTo(me, p[2])); };
 const toggle = (name) => (me.action === name ? (me.seat ? ACTIONS.stand() : (me.action = null)) : pressIfAvailable(name));
 const HOTKEYS = {
@@ -779,12 +784,14 @@ const HOTKEYS = {
   KeyE: () => { if (me.action !== 'menu') pressIfAvailable(...availableActions().filter((n) => !NOT_E.has(n))); },
   Enter: () => nextVerse(),
   NumpadEnter: () => nextVerse(),
+  KeyN: () => pressIfAvailable('stars'),
+  KeyP: () => leisure.togglePhoto(),
 };
 // 컴퓨터 단축키 안내: ? 또는 F1, 위쪽 키보드 단추 (터치 화면에서는 단추 숨김)
 const KEY_HELP = [
   ['움직이기', [['↑ ↓ / W S', '앞으로 · 뒤로'], ['← → / A D', '몸 돌리기'], ['Space', '점프 (공중에서 또 누르면 2·3단)'], ['Shift', '걷기 ↔ 달리기 (정원·숲)'], ['M', '지도 (누른 곳으로 걸어감)'], ['Esc', '지도·안내 닫기']]],
   ['수레바퀴', [['Z', '말씀 읽기'], ['X', '기도'], ['C', '교제 (카운터에서 주문)'], ['V', '증거 (곁의 사람에게 빛 건네기)'], ['B', '찬양']]],
-  ['쉬기', [['J', '앉기 · 일어서기'], ['K', '눕기 (앉은 채로도)'], ['L', '먹기 · 마시기']]],
+  ['쉬기', [['J', '앉기 · 일어서기'], ['K', '눕기 (앉은 채로도)'], ['N', '누운 채로 별 보기'], ['L', '먹기 · 마시기'], ['P', '사진 찍기 (Space 찰칵)']]],
   ['체험', [['E', '그 자리 체험 (반짝이는 단추)'], ['Enter', '다음 말씀'], ['? / F1', '이 안내']]],
 ];
 const keyHelp = document.createElement('div');
@@ -795,14 +802,14 @@ const toggleKeyHelp = (v = keyHelp.hidden) => { keyHelp.hidden = !v; };
 keyHelp.addEventListener('pointerdown', (e) => { e.stopPropagation(); if (e.target === keyHelp || e.target.classList.contains('close')) toggleKeyHelp(false); });
 HOTKEYS.Slash = () => toggleKeyHelp();
 HOTKEYS.F1 = () => toggleKeyHelp();
-{ const esc = HOTKEYS.Escape; HOTKEYS.Escape = () => { if (!keyHelp.hidden) toggleKeyHelp(false); else esc(); }; }
+{ const esc = HOTKEYS.Escape; HOTKEYS.Escape = () => { if (!keyHelp.hidden) toggleKeyHelp(false); else if (leisure.photoOn()) leisure.togglePhoto(); else esc(); }; }
 let keyTipShown = false;
 try { keyTipShown = localStorage.getItem('navs-cafe-keytip') === '1'; } catch (e) { /* 저장 안 됨 */ }
 window.addEventListener('keydown', (e) => {
   if (!keyTipShown) { keyTipShown = true; try { localStorage.setItem('navs-cafe-keytip', '1'); } catch (er) { /* 저장 안 됨 */ } setTimeout(() => toast('? 키를 누르면 단축키 안내가 열려요', 4), 300); }
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (HOTKEYS[e.code]) { if (!e.repeat) HOTKEYS[e.code](); e.preventDefault(); return; }
-  if (e.code === 'Space') { ACTIONS.jump(); e.preventDefault(); return; }
+  if (e.code === 'Space') { if (leisure.photoOn()) leisure.snap(); else ACTIONS.jump(); e.preventDefault(); return; }
   if (KEYMAP[e.code]) { keys.add(KEYMAP[e.code]); e.preventDefault(); }
 });
 window.addEventListener('keyup', (e) => { keys.delete(KEYMAP[e.code]); });
@@ -933,6 +940,12 @@ keysBtn.setAttribute('aria-label', 'keyboard shortcuts');
 keysBtn.innerHTML = ICONS.keys;
 keysBtn.addEventListener('pointerdown', (e) => { e.stopPropagation(); toggleKeyHelp(); });
 placesEl.appendChild(keysBtn);
+const photoBtn = document.createElement('button');
+photoBtn.className = 'place view photo';
+photoBtn.setAttribute('aria-label', 'photo');
+photoBtn.innerHTML = ICONS.photo;
+photoBtn.addEventListener('pointerdown', (e) => { e.stopPropagation(); leisure.togglePhoto(); });
+placesEl.appendChild(photoBtn);
 // 음악 켜기/끄기
 const musicBtn = document.createElement('button');
 musicBtn.className = 'place view music';
@@ -1018,6 +1031,8 @@ function stepChar(ch, dt) {
     ch.av.position.x += Math.sin(ch.face) * hy * Math.sin(ch.lean);
     ch.av.position.z += Math.cos(ch.face) * hy * Math.sin(ch.lean);
   } else if (ch.av.rotation.x) ch.av.rotation.x = 0;
+  if (ch.av.rotation.z && !(ch.seat && ch.seat.sway)) ch.av.rotation.z = 0;
+  if (ch.state === 'sit' && ch.seat && ch.seat.sway) ch.seat.sway(ch); // 그네·해먹과 함께 흔들림
   // 부드럽게 돌기
   let da = ch.face - ch.av.rotation.y;
   da = Math.atan2(Math.sin(da), Math.cos(da));
@@ -1219,6 +1234,7 @@ function frame(now) {
   stepWakes(dt);
   signs.step(dt * (window.__cafe.speed || 1));
   park.step(dt * (window.__cafe.speed || 1), t);
+  leisure.step(dt, t);
   scrolls.step(dt * (window.__cafe.speed || 1), t);
   // 그림자 범위가 캐릭터를 따라감 (넓은 정원에서도 그림자)
   {
@@ -1325,6 +1341,8 @@ window.__enterReady = true;
 const signs = initSigns({ scene, me, npcs, interactive, act, sfx, fxSprite, burst, sun, walkTo, faceTo });
 const park = initPark({ scene, me, interactive, act, sfx, fxSprite, burst, walkTo, faceTo, standUp, shot });
 Object.assign(ACTIONS, park.actions);
+const leisure = initLeisure({ scene, me, camera, renderer, view, lights: [hemi, sun, warm], act, sfx, burst, walkTo, faceTo, standUp, nearestPerson, toast, ICONS, LIEABLE });
+Object.assign(ACTIONS, leisure.actions);
 const scrolls = initScrolls({ scene, me, sfx, fxSprite, burst, icon: ICONS.scroll });
 requestAnimationFrame(frame);
 if (window.__pick) choose(window.__pick);

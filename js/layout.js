@@ -155,7 +155,9 @@ export const PARK = {
   tennis: zone('tennis', gr(65), 310, 17, 9),
   badminton: zone('badminton', gr(65), 337, 11, 6),
   pingpong: zone('pingpong', gr(65), 0, 7, 6),
-  meadow: zone('meadow', gr(63), 40, 22, 14),   // 푸른 초장: 동물들이 노님
+  meadow: zone('meadow', gr(63), 40, 22, 14),   // 푸른 초장: 동물들이 노님 (연 날리기)
+  swing: zone('swing', gr(62), 141, 6, 5),      // 그네 두 자리
+  hammock: zone('hammock', gr(62), 258, 6, 4),  // 해먹
   // 안쪽 띠 빈자리: 성경 이야기 체험
   jericho: zone('jericho', gr(46), 76, 12, 12), // 여리고 성 (수 6, 히 11:30)
   david: zone('david', gr(46), 104, 12, 11),    // 다윗과 골리앗 (삼상 17)
@@ -274,7 +276,9 @@ const TRAIL_DEF = {
   humanity: { pts: [[56, 86], [66, 86], [78, 87], [90, 86], [102, 88], [114, 87], [126, 88], [138, 89], [150, 91], [162, 94], [172, 100], [182, 108], [190, 117], [196, 126]], st: [[0.07, 1], [0.18, -1], [0.29, 1], [0.4, -1], [0.51, 1], [0.62, -1], [0.73, 1], [0.85, -1], [1, 0]] },
   love: { pts: [[56, 112], [66, 113], [78, 112], [90, 113], [102, 114], [114, 113], [126, 112], [138, 113], [150, 114], [160, 118], [168, 128], [174, 140], [178, 152]], st: [[0.07, 1], [0.18, -1], [0.29, 1], [0.4, -1], [0.51, 1], [0.62, -1], [0.73, 1], [0.85, -1], [1, 0]] },
   obey: { pts: [[56, 216], [66, 216], [78, 214], [90, 217], [102, 218], [114, 215], [126, 214], [138, 214], [150, 214], [160, 213], [170, 208], [178, 200], [184, 192], [188, 184]], st: [[0.07, 1], [0.18, -1], [0.29, 1], [0.4, -1], [0.51, 1], [0.62, -1], [0.73, 1], [0.85, -1], [1, 0]] },
-  passion: { stretch: 3.6, pts: [[56, 288], [64, 288], [72, 287], [80, 289], [88, 290], [96, 288], [104, 287], [110, 289]], st: [[0.07, 1], [0.18, -1], [0.29, 1], [0.4, -1], [0.51, 1], [0.62, -1], [0.73, 1], [0.85, -1], [1, 0]] },
+  // 고난의 길: 겟세마네(감람산 기슭) → 대제사장의 뜰 → 공회·빌라도 법정(성 안 거리) → 성문 밖 → 골고다 언덕 (12정거장)
+  passion: { stretch: 3.6, pts: [[56, 288], [64, 288], [72, 287], [80, 289], [88, 290], [96, 288], [104, 287], [110, 289], [116, 292], [121, 297], [125, 302]],
+    st: [[0.05, 1], [0.13, -1], [0.21, 1], [0.3, -1], [0.39, 1], [0.48, -1], [0.57, 1], [0.67, -1], [0.76, 1], [0.84, -1], [0.92, 1], [1, 0]] },
   // 생명의 다리: 곧은 길 끝의 넓은 빈터를 가로지르는 낭떠러지 (정거장 위치는 아래 BRIDGE 기준으로 다시 잡음)
   bridge: { stretch: 2.6, pts: [[56, 295], [66, 295], [76, 296], [88, 296], [100, 296], [108, 296], [113, 296]],
     st: [[0.2, 1], [0.45, -1], [-15, 0], [-11, -1, 7.5], [-6.4, 0], [13, 0]], byV: true }, // 앞의 둘은 길 위 비율(f), 나머지는 빈터 가운데에서 잰 거리(m)
@@ -374,6 +378,9 @@ for (const t of Object.values(TRAILS)) {
   for (const st of t.stations) if (st.side) block(st.show.x, st.show.z, 0.8, 1.4);
   const e = t.end; block(e.x + e.dir.x * 5, e.z + e.dir.z * 5, 1.4);
 }
+// 나무가 없는 구간: 고난의 길의 성 안 거리와 골고다 언덕
+export const PASSION_CITY = [0.17, 0.6], PASSION_HILL = 0.64;
+function bareAt(t, f) { return t.id === 'passion' && ((f > PASSION_CITY[0] && f < PASSION_CITY[1]) || f > PASSION_HILL); }
 export const WALK_MAX = Math.max(...Object.values(TRAILS).map((t) => Math.hypot(t.end.x, t.end.z) + 8));
 
 // ---------- 높낮이 지형 (숲속 코스) ----------
@@ -407,7 +414,7 @@ export const TERRAIN_PROFILE = {
   humanity: keys([[0, 0], [0.5, 0.6], [1, 1.2]]),
   love: keys([[0, 0], [0.5, 1], [1, 2]]),
   obey: keys([[0, 0], [0.55, 1.2], [0.62, 2.6], [0.73, 4], [0.85, 3], [1, 7]]),  // 겟세마네 → 골고다 → 지극히 높임
-  passion: keys([[0, 0], [0.5, 0.8], [0.73, 3], [0.85, 5.5], [1, 3]]),             // 골고다 언덕
+  passion: keys([[0, 0], [0.08, 0], [0.12, 1], [0.14, 0.9], [0.18, 0.3], [0.21, 0.6], [0.3, 1.3], [0.39, 1.7], [0.48, 1.7], [0.57, 1.5], [0.62, 2], [0.72, 5], [0.76, 7], [1, 7.4]]), // 겟세마네 동산 → 감람산 기슭 → 기드론 골짜기 → 성 → 골고다 언덕
 };
 // 모래땅: 코스와 그 구간(f)
 const SAND = { magi: [0, 1], exodus: [0.27, 0.86] };
@@ -588,7 +595,7 @@ export const TREES = [];
   for (const t of Object.values(TRAILS)) {
     for (let k = 0; k < t.samples.length; k += 16) {
       const q = t.samples[k];
-      if (Math.hypot(q.x, q.z) < RF) continue;
+      if (Math.hypot(q.x, q.z) < RF || bareAt(t, q.s / t.len)) continue;
       for (let m = 0; m < 2; m++) {
         const a = rnd() * Math.PI * 2, d = 5 + rnd() * 16;
         const x = q.x + Math.cos(a) * d, z = q.z + Math.sin(a) * d;
@@ -612,6 +619,7 @@ export const TREES = [];
 for (const t of Object.values(TRAILS)) {
   let side = 1, k = 0;
   for (let f = 0.1; f < 0.92; f += 0.13, side = -side, k++) {
+    if (bareAt(t, f)) continue;
     const p = t.sample(f);
     const off = TRAIL_W + 1.5;
     const x = p.x - p.dir.z * off * side, z = p.z + p.dir.x * off * side;
@@ -744,6 +752,26 @@ export const BEDROLL = (() => {
   const B = BEDROLL, p = { x: B.x + B.ax.x * 0.55, z: B.z + B.ax.z * 0.55 };
   seat(p.x, p.z, { x: p.x + B.ax.x, z: p.z + B.ax.z }, 'lie', { x: B.x - B.ax.z * 0.9, z: B.z + B.ax.x * 0.9 });
   seats[seats.length - 1].top = -0.5 + 0.2;
+}
+// 그네 두 자리: 둘레 방향으로 나란히 매달려 바깥(숲)을 보며 앞뒤로 흔들림
+export const SWING = { seats: [] };
+{
+  const Z = PARK.swing;
+  for (const u of [-1.9, 1.9]) for (const v of [-0.7, 0.7]) { const p = Z.at(u, v); block(p.x, p.z, 0.22); }
+  for (const u of [-0.8, 0.8]) {
+    const p = Z.at(u, 0);
+    seat(p.x, p.z, Z.at(u, 5), 'swing', Z.at(u, -1.9));
+    Object.assign(seats[seats.length - 1], { top: -0.5 + 0.52, u }); SWING.seats.push(seats[seats.length - 1]);
+  }
+}
+// 해먹: 두 기둥 사이에 길게 누움 (머리는 -u 쪽)
+export const HAMMOCK = {};
+{
+  const Z = PARK.hammock;
+  for (const u of [-2.1, 2.1]) { const p = Z.at(u, 0); block(p.x, p.z, 0.25); }
+  const p = Z.at(0.45, 0);
+  seat(p.x, p.z, Z.at(6, 0), 'hammock', Z.at(0, -1.4));
+  Object.assign(seats[seats.length - 1], { top: -0.5 + 0.72, lean: 1.45, legs: -0.05 }); HAMMOCK.seat = seats[seats.length - 1];
 }
 // 말씀: 성경을 둘러싼 곡선 벤치 3곳
 for (const a of [-160, -135, -110]) {

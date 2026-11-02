@@ -111,6 +111,7 @@ export function initTogether({ scene, me, look, makeChar, poseAvatar, upgradeCup
       ch.food = n.fd || null;
       ch.bites = n.b || 0;
       ch.racket = n.r || null;
+      ch.hold = n.h || null;
       ch.swim = !!n.sw;
       ch.seat = n.s ? { kind: n.s, free: true } : null;
       ch.av.position.set(ch.x, ch.y, ch.z);
@@ -130,7 +131,7 @@ export function initTogether({ scene, me, look, makeChar, poseAvatar, upgradeCup
       x: +me.x.toFixed(2), z: +me.z.toFixed(2), y: +(me.y + hop + (me.sinkY || 0) + (me.swimY || 0)).toFixed(2), f: +me.face.toFixed(2),
       st: me.state === 'walk' ? 'walk' : me.state === 'sit' ? 'sit' : 'idle',
       run: me.running ? 1 : 0, a: me.action || 0, i: me.item || 0, d: me.drink || 0, fd: me.food || 0, b: me.bites || 0,
-      r: me.racket || 0, sw: me.swim ? 1 : 0, s: me.state === 'sit' && me.seat ? me.seat.kind : 0,
+      r: me.racket || 0, h: me.hold || 0, sw: me.swim ? 1 : 0, s: me.state === 'sit' && me.seat ? me.seat.kind : 0,
       o: outfitCode(), ts: Date.now(),
     };
   }
@@ -146,7 +147,7 @@ export function initTogether({ scene, me, look, makeChar, poseAvatar, upgradeCup
     lastKey = key(m);
     dirty = false;
   }
-  const key = (m) => [m.st, m.run, m.a, m.i, m.d, m.fd, m.b, m.r, m.sw, m.s, m.o].join('|');
+  const key = (m) => [m.st, m.run, m.a, m.i, m.d, m.fd, m.b, m.r, m.h, m.sw, m.s, m.o].join('|');
   function sendStep(dt) {
     if (st.count < 2) return; // 혼자 있는 방에서는 보내지 않음
     sinceSend += dt;

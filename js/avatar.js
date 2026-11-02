@@ -131,6 +131,31 @@ export function makeAvatar(look) {
   book.visible = false;
   body.add(book);
 
+  // 왼손에 든 꽃 한 송이
+  const flower = new THREE.Group();
+  {
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.22, 5), m(0x5f9a4a));
+    stem.position.y = 0.11;
+    const bloom = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 6), m(0xf28fb0, 0.6));
+    bloom.position.y = 0.23;
+    for (let k = 0; k < 5; k++) { const pt = new THREE.Mesh(new THREE.SphereGeometry(0.03, 6, 4), m(0xffc0d4, 0.6)); const a = (k / 5) * Math.PI * 2; pt.position.set(Math.cos(a) * 0.045, 0.23, Math.sin(a) * 0.045); flower.add(pt); }
+    flower.add(stem, bloom);
+  }
+  flower.position.set(0, -0.42, 0.05); flower.rotation.x = 0.9; flower.scale.setScalar(1.5); flower.visible = false;
+  arms[0].add(flower);
+  // 연: 몸 뒤 하늘 높이 (줄은 오른손에서)
+  const kite = new THREE.Group();
+  {
+    const sail = new THREE.Mesh(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0.55, 0), new THREE.Vector3(-0.4, 0, 0), new THREE.Vector3(0, -0.7, 0), new THREE.Vector3(0, 0.55, 0), new THREE.Vector3(0, -0.7, 0), new THREE.Vector3(0.4, 0, 0)]), new THREE.MeshStandardMaterial({ color: 0xf2a7a0, roughness: 0.7, side: THREE.DoubleSide }));
+    sail.geometry.computeVertexNormals();
+    kite.add(sail);
+    for (let k = 0; k < 4; k++) { const b = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.06, 0.01), m([0xf4d27a, 0x8fb7e0, 0xa7d3a6, 0xb9a6e0][k])); b.position.set(0, -0.8 - k * 0.28, 0); b.rotation.z = k % 2 ? 0.4 : -0.4; kite.add(b); }
+  }
+  const kiteLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3(0, 1, 0)]), new THREE.LineBasicMaterial({ color: 0xf6f1e6, transparent: true, opacity: 0.8 }));
+  kiteLine.frustumCulled = false;
+  const kiteRig = new THREE.Group(); kiteRig.add(kite, kiteLine); kiteRig.visible = false;
+  root.add(kiteRig);
+
   // 낚싯대 (손에서 앞쪽 위로 뻗음, 끝 위치는 낚싯줄 시작점)
   const rod = new THREE.Group();
   const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.016, 1.5, 6), m(0x8a6a4a, 0.6));
@@ -206,7 +231,7 @@ export function makeAvatar(look) {
   }
 
   root.traverse((c) => { if (c.isMesh) c.castShadow = true; });
-  root.userData = { body, legs, arms, head, eyes, cup, food, rod, rodTip, rackets, foods: {}, drinks: {}, book, can, drops, vfing, blinkAt: 2,
+  root.userData = { body, legs, arms, head, eyes, cup, food, rod, rodTip, rackets, foods: {}, drinks: {}, book, can, drops, vfing, blinkAt: 2, flower, kite, kiteLine, kiteRig,
     cloth: [torso, pocket, hood, ...arms.map((a) => a.children[0])], pantsM: legs.map((l) => l.children[0]), bag };
   return root;
 }
@@ -394,7 +419,18 @@ export function poseAvatar(av, ch, t, dt) {
     case 'plant':
       armL = -1.3; armR = -1.3; armLz = 0.3; armRz = -0.3; headX = 0.5;
       break;
+    case 'skip': { // 물수제비: 옆으로 낮게 던짐
+      const k = Math.max(0, Math.min(1, 1 - (ch.skipT || 0) / 0.5));
+      armR = -1.2; armRz = -1.3 + k * 1.9; armL = -0.3; bodyY -= 0.06; headX = 0.1;
+      break;
+    }
+    case 'stars':
+      armL = -2.9; armR = -2.9; armLz = 0.5; armRz = -0.5; // 팔베개
+      break;
   }
+  if (ch.hold === 'kite' && !walking && ch.action !== 'stars') { armR = -1.9; armRz = -0.1; headX = -0.35; }
+  if (ch.hold === 'kite' && walking) armR = -1.6;
+  if (ch.hold === 'flower' && !ch.food) armL = Math.min(armL, -0.7);
   // 수영: 팔을 번갈아 크게 돌리고 발장구
   if (ch.swim) {
     const sp = t * (walking ? 5 : 2.2);
@@ -426,11 +462,21 @@ export function poseAvatar(av, ch, t, dt) {
   u.book.visible = ch.action === 'read';
   u.can.visible = ch.action === 'water';
   u.vfing.visible = ch.action === 'vhand';
+  u.flower.visible = ch.hold === 'flower' && !ch.food;
+  u.kiteRig.visible = ch.hold === 'kite';
+  if (ch.hold === 'kite') { // 바람에 흔들리는 연과 늘어진 줄
+    const kx = Math.sin(t * 0.7 + ch.phase) * 1.6, ky = 4.8 + Math.sin(t * 1.1) * 0.5, kz = 8 + Math.sin(t * 0.5) * 0.8; // 바람 부는 쪽, 앞 하늘
+    u.kite.position.set(kx, ky, kz); u.kite.rotation.set(0.5, 0, Math.sin(t * 1.7 + ch.phase) * 0.35);
+    u.kite.children.forEach((c, i) => { if (i) c.position.x = Math.sin(t * 4 - i) * 0.08 * i; });
+    const pos = u.kiteLine.geometry.attributes.position;
+    pos.setXYZ(0, 0.25, 0.75 + u.body.position.y + (walking ? 0 : 0.15), 0.32); pos.setXYZ(1, kx, ky - 0.1, kz); pos.needsUpdate = true;
+  }
   u.rod.visible = ch.action === 'fish';
   for (const [k, r] of Object.entries(u.rackets)) r.visible = ch.racket === k;
   if (ch.swingT > 0) ch.swingT -= dt;
   if (ch.kickT > 0) ch.kickT -= dt;
   if (ch.slashT > 0) ch.slashT -= dt;
+  if (ch.skipT > 0) ch.skipT -= dt;
 
   // 물방울
   u.drops.forEach((d, k) => {
