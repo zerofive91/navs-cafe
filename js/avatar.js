@@ -301,7 +301,7 @@ export function poseAvatar(av, ch, t, dt) {
     u.legs.forEach((l) => { l.rotation.x = 1.5; l.position.z = -0.05; });
   } else {
     u.legs.forEach((l, i) => { l.rotation.x = i ? -legA : legA; l.position.z = 0; });
-    if (sitting) u.legs.forEach((l) => { l.rotation.x = ch.seat && ch.seat.kind === 'lie' ? -0.05 : ch.seat && ch.seat.kind === 'recline' ? -1.15 : -1.4; });
+    if (sitting) u.legs.forEach((l) => { l.rotation.x = ch.seat && ch.seat.legs != null ? ch.seat.legs : ch.seat && ch.seat.kind === 'sunbed' ? -0.7 : ch.seat && ch.seat.kind === 'lie' ? -0.05 : ch.seat && ch.seat.kind === 'recline' ? -1.15 : -1.4; });
   }
 
   if (sitting && ch.seat && ch.seat.kind === 'lie' && !ch.action) { armL = -2.7; armR = -2.7; armLz = 0.7; armRz = -0.7; bodyY = Math.sin(t * 0.9) * 0.006; } // 두 팔을 머리 뒤로, 느린 숨

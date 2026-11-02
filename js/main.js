@@ -13,6 +13,7 @@ import { initPark } from './park.js';
 import { initMap } from './map.js';
 import { initScrolls } from './scrolls.js';
 import { initTogether, inviteCodeFromUrl, RANDOM_CAP, INVITE_CAP } from './together.js';
+import { makeWheelProxy } from './wheelproxy.js';
 
 const canvas = document.getElementById('cafe');
 const bar = document.getElementById('actions');
@@ -217,7 +218,16 @@ const ACTIONS = {
   },
   // 주문: 카운터 앞에서 메뉴(음료·빵)를 고르면 직원이 준비해 픽업대에서 받음
   order: () => walkTo(me, SPOTS.order, () => { faceTo(me, polar(COUNTER.r, -56)); me.action = 'menu'; }),
-  sip: () => act('sip', 3),
+  // 세 모금 마시면 컵이 비어 손에서 사라짐
+  sip: () => {
+    if (me.item !== 'cup' || me.action === 'sip') return;
+    act('sip', 2.2);
+    setTimeout(() => {
+      if (me.item !== 'cup') return;
+      me.sips = (me.sips || 0) + 1; sfx('cup', 0.1);
+      if (me.sips >= 3) { me.item = null; me.drink = null; me.sips = 0; if (me.action === 'sip') me.action = null; }
+    }, 1400);
+  },
   eat: () => {
     if (!me.food || me.action === 'eat') return;
     act('eat', 1.6);
@@ -245,14 +255,14 @@ const ACTIONS = {
     me.jumps = (me.jumps || 0) + 1;
     me.jump = me.jumps;
   },
-  recline: () => { // 그 자리에 누워 쉬기
-    const s = nearestFreeSeat(me, 3);
-    if (s && (s.kind === 'recline' || s.kind === 'beanbag')) return sitOn(me, s);
+  recline: () => { // 가까이 선베드·리클라이너·빈백·침낭이 있으면 거기에 바로 눕고, 의자·통나무 곁이면 거기에 앉고, 아니면 그 자리에 누움
+    const s = nearSeat(true) || nearSeat(false, 1.6);
+    if (s) return sitOn(me, s);
     sitHere('lie');
   },
   sit: () => {
     // 가까운 빈 자리가 있으면 거기에, 없으면 바닥에 앉음
-    const s = nearestFreeSeat(me, 3);
+    const s = nearSeat(false);
     if (s) sitOn(me, s);
     else sitHere('floor');
   },
@@ -343,12 +353,12 @@ function putDown() {
   const hitBox = new THREE.Mesh(new THREE.SphereGeometry(0.28, 8, 6), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
   hitBox.position.y = 0.08;
   g.add(hitBox);
-  const rec = { g, hitBox, kind, what: kind === 'food' ? me.food : me.drink, bites: me.bites || 0 };
+  const rec = { g, hitBox, kind, what: kind === 'food' ? me.food : me.drink, bites: me.bites || 0, sips: me.sips || 0 };
   hitBox.userData.onTap = () => pickUp(rec);
   interactive.push(hitBox);
   placed.push(rec);
   if (placed.length > 12) removePlaced(placed[0]);
-  if (kind === 'food') { me.food = null; me.bites = 0; } else { me.item = null; me.drink = null; }
+  if (kind === 'food') { me.food = null; me.bites = 0; } else { me.item = null; me.drink = null; me.sips = 0; }
   if (me.action === 'sip' || me.action === 'eat') me.action = null;
   sfx('cup', 0.15);
 }
@@ -360,7 +370,7 @@ function removePlaced(rec) {
 function pickUp(rec) {
   const take = () => {
     if (rec.kind === 'food') { if (me.food) return; me.food = rec.what; me.bites = rec.bites; }
-    else { if (me.item) return; me.item = 'cup'; me.drink = rec.what; }
+    else { if (me.item) return; me.item = 'cup'; me.drink = rec.what; me.sips = rec.sips || 0; }
     removePlaced(rec);
     sfx('cup', 0.15);
   };
@@ -381,20 +391,11 @@ function placeOrder(kind) {
     me.action = null;
     walkTo(me, SPOTS.pickup, () => {
       faceTo(me, polar(COUNTER.r, -40));
-      if (DRINKS.includes(kind)) { me.item = 'cup'; me.drink = kind; }
+      if (DRINKS.includes(kind)) { me.item = 'cup'; me.drink = kind; me.sips = 0; }
       else { me.food = kind; me.bites = 0; }
       sfx('cup', 0.15);
     });
   }, 2800);
-}
-function nearestFreeSeat(near, maxD) {
-  let best = null, bd = maxD;
-  for (const s of seats) {
-    if (s.taken) continue;
-    const d = Math.hypot(s.approach.x - near.x, s.approach.z - near.z);
-    if (d < bd) { bd = d; best = s; }
-  }
-  return best;
 }
 function sitHere(kind) {
   standUp(me);
@@ -495,35 +496,51 @@ function wrapTask(first, then) {
   return () => { if (first) first(); then(); };
 }
 
+// 그 자리에서만 할 수 있는 체험 단추는 반짝여서 알려 줌
+let placeActs = new Set();
+// 가까운 빈 자리: 앉을 자리, 누울 수 있는 자리
+const LIEABLE = new Set(['recline', 'beanbag', 'lie', 'sunbed']);
+function nearSeat(lie, maxD = 3.2) {
+  let best = null, bd = maxD;
+  for (const s of seats) {
+    if (s.taken || (lie && !LIEABLE.has(s.kind))) continue;
+    const d = Math.min(Math.hypot(s.approach.x - me.x, s.approach.z - me.z), Math.hypot(s.x - me.x, s.z - me.z));
+    if (d < bd) { bd = d; best = s; }
+  }
+  return best;
+}
 function availableActions() {
   const list = [];
+  const P = (placeActs = new Set());
+  const place = (...names) => { for (const n of names) { list.push(n); P.add(n); } };
   if (me.action === 'wait') return list;
   if (me.climb) return me.climb.phase === 'hang' ? ['down', 'jump'] : ['down'];
   const walkToggle = outdoors(me) && !inPool(me.x, me.z) && !me.slow ? [me.walkMode ? 'run' : 'walk'] : [];
   if (me.action === 'menu') {
-    if (Math.hypot(me.x - SPOTS.order.x, me.z - SPOTS.order.z) < SPOTS.order.r) return [...(me.item ? [] : DRINKS), ...(me.food ? [] : FOODS)];
+    if (Math.hypot(me.x - SPOTS.order.x, me.z - SPOTS.order.z) < SPOTS.order.r) { place(...(me.item ? [] : DRINKS), ...(me.food ? [] : FOODS)); return list; }
     me.action = null;
   }
-  if (signs.canCalm()) list.push('calm'); // 풍랑 속: 손을 들어 잠잠케
-  if (me.state === 'walk') return [...(me.slow ? park.available() : ['jump']), ...walkToggle]; // 걷는 중에는 점프(와 걷기·달리기)만
+  if (signs.canCalm()) place('calm'); // 풍랑 속: 손을 들어 잠잠케
+  if (me.state === 'walk') { if (me.slow) place(...park.available()); else list.push('jump'); list.push(...walkToggle); return list; } // 걷는 중에는 점프(와 걷기·달리기)만
   const near = (s) => Math.hypot(me.x - s.x, me.z - s.z) < s.r;
   // 그 장소에서만 할 수 있는 일
-  if (near(SPOTS.light)) list.push('light');
-  if (near(SPOTS.order) && (!me.item || !me.food)) list.push('order');
-  if (near(SPOTS.boat)) list.push('boat');
-  if (Math.hypot(me.x, me.z) > R_RIM_IN - 1 && Math.hypot(me.x, me.z) < R_HALL) list.push('water');
+  if (near(SPOTS.light)) place('light');
+  if (near(SPOTS.order) && (!me.item || !me.food)) place('order');
+  if (near(SPOTS.boat)) place('boat');
+  if (Math.hypot(me.x, me.z) > R_RIM_IN - 1 && Math.hypot(me.x, me.z) < R_HALL) place('water');
   if (me.item === 'cup') list.push('sip');
   if (me.food) list.push('eat');
-  if (signs.nearBread()) list.push('loaves');
-  if (signs.canFish()) list.push('fish');
-  list.push(...park.available());
+  if (signs.nearBread()) place('loaves');
+  if (signs.canFish()) place('fish');
+  place(...park.available());
   if (outdoors(me) && nearTree(me.x, me.z, 1.8, 3.6)) list.push('climb');
   list.push(...walkToggle);
   if ((me.item === 'cup' || me.food) && !near(SPOTS.tray)) list.push('putdown');
-  if ((me.item === 'cup' || me.food) && near(SPOTS.tray)) list.push('tray');
-  // 어디서나 할 수 있는 일
-  list.push(me.state === 'sit' ? 'stand' : 'sit');
-  if (me.state !== 'sit' && !inPool(me.x, me.z) && !me.slow) list.push('recline');
+  if ((me.item === 'cup' || me.food) && near(SPOTS.tray)) place('tray');
+  // 어디서나 할 수 있는 일 (가까이 의자·벤치·통나무·선베드가 있으면 앉기·눕기도 반짝임)
+  if (me.state === 'sit') list.push('stand');
+  else if (nearSeat(false)) place('sit'); else list.push('sit');
+  if (me.state !== 'sit' && !inPool(me.x, me.z) && !me.slow) { if (nearSeat(true)) place('recline'); else list.push('recline'); }
   if (me.state !== 'sit' && !me.slow) list.push('jump');
   list.push('pray', 'read', 'praise');
   if (nearestPerson(6)) list.push('share');
@@ -549,7 +566,7 @@ function pressIfAvailable(...names) {
 }
 function refreshActions() {
   const list = availableActions();
-  const key = list.join(',') + '|' + me.action;
+  const key = list.join(',') + '|' + me.action + '|' + [...placeActs].join(',');
   if (key === shown) return;
   shown = key;
   bar.innerHTML = '';
@@ -557,7 +574,7 @@ function refreshActions() {
     const b = document.createElement('button');
     const on = me.action === name || (name === 'light' && me.action === 'gaze') || (name === 'boat' && me.seat && me.seat.kind === 'boat');
     if (name === 'jump' || name === 'sit' || name === 'stand' || name === 'share') { /* 누를 때마다 실행 */ }
-    b.className = 'act' + (on ? ' on' : '');
+    b.className = 'act' + (on ? ' on' : '') + (placeActs.has(name) && !on ? ' place' : '');
     b.setAttribute('aria-label', name);
     b.innerHTML = ICONS[name];
     b.addEventListener('pointerdown', (e) => { e.stopPropagation(); pressAction(name, on); });
@@ -928,6 +945,7 @@ function stepChar(ch, dt) {
     if (ch.seat.kind === 'recline') fy = floorY(ch.x, ch.z) + 0.3;
     if (ch.seat.kind === 'beanbag') fy = floorY(ch.x, ch.z) + 0.06;
     if (ch.seat.kind === 'lie') fy = floorY(ch.x, ch.z) - 0.02;
+    if (ch.seat.kind === 'sunbed') fy = floorY(ch.x, ch.z) + 0.2;
     if (ch.seat.top != null) fy = ch.seat.top - 0.14; // 모델에서 잰 앉는 면 높이
   }
   ch.y += (fy - ch.y) * Math.min(1, dt * 10);
@@ -946,7 +964,7 @@ function stepChar(ch, dt) {
   ch.hop = hop;
   ch.av.position.set(ch.x, ch.y + hop + (ch.sinkY || 0) + (ch.swimY || 0), ch.z);
   // 기대거나 눕기: 엉덩이를 축으로 몸을 뒤로 젖힘
-  const lean = (ch.state === 'sit' && ch.seat && LEAN[ch.seat.kind]) || 0;
+  const lean = (ch.state === 'sit' && ch.seat && (ch.seat.lean || LEAN[ch.seat.kind])) || 0;
   ch.lean = (ch.lean || 0) + (lean - (ch.lean || 0)) * Math.min(1, dt * 2.5);
   if (ch.lean > 0.002) {
     const hy = ch.seat && ch.seat.kind === 'lie' ? 0.12 : 0.3;
@@ -965,8 +983,8 @@ function stepChar(ch, dt) {
 // 동작을 시작하거나 자리에 앉으면 잠시 뒤 그 동작에 어울리는 말씀이 은은하게 떠오름
 const ACTION_VERSE = { gaze: 'light', water: 'water_plant', share: 'share', sip: 'drink', eat: 'eat' };
 const VERSE_OF = { read: 'read', pray: 'pray', praise: 'praise' }; // 누를 때마다 말씀 한 구절
-const LEAN = { recline: 0.62, beanbag: 0.5, lie: 1.45 };
-const SEAT_VERSE = { recline: 'recline', beanbag: 'beanbag', lie: 'recline3', lounge: 'rest', bench: 'rest', gbench: 'garden', boat: 'boat', floor: 'still', log: 'campfire', vine: 'vine', picnic: 'bbq' };
+const LEAN = { sunbed: 0.87, recline: 0.62, beanbag: 0.5, lie: 1.45 };
+const SEAT_VERSE = { sunbed: 'recline', recline: 'recline', beanbag: 'beanbag', lie: 'recline3', lounge: 'rest', bench: 'rest', gbench: 'garden', boat: 'boat', floor: 'still', log: 'campfire', vine: 'vine', picnic: 'bbq' };
 // 쉼: 앉거나 누워 가만히 있으면 카메라가 천천히 물러나 둘레를 돌고, 화면 가장자리가 따뜻하게 물듦
 const restGlow = document.createElement('div');
 restGlow.id = 'restGlow';
@@ -976,10 +994,17 @@ let restT = 0, restK = 0;
 let cullT = 0;
 const CULL_D = 60;
 const cullBox = new THREE.Box3(), cullV = new THREE.Vector3();
+// 정원에 나가면 카페 안 가구·소품은 감추고 수레바퀴 하나로 (들어오면 다시 그대로)
+const wheelProxy = makeWheelProxy();
+scene.add(wheelProxy);
+let collapsed = false;
 function farCull(dt) {
   if ((cullT -= dt) > 0) return;
   cullT = 0.4;
   const cx = camera.position.x, cz = camera.position.z;
+  const mr = Math.hypot(me.x, me.z), camR = Math.hypot(cx, cz);
+  collapsed = collapsed ? mr > R_HALL + 1.5 || camR > R_HALL + 30 : mr > R_HALL + 3.5 && camR > R_HALL + 1;
+  wheelProxy.visible = collapsed;
   for (const o of scene.children) {
     if (o.userData.noCull || o.isLight || o.isInstancedMesh) continue;
     const x = o.position.x, z = o.position.z;
@@ -987,6 +1012,7 @@ function farCull(dt) {
     if (x * x + z * z < (R_HALL + 3) * (R_HALL + 3)) {
       // 카페 안의 작은 가구·소품은 정원 멀리서는 그리지 않음 (건물·바닥·기둥처럼 큰 것은 그대로)
       if (o === me.av || o.userData.small === false) continue;
+      if (o.userData.body && !npcs.some((n) => n.av === o)) continue; // 함께 있는 사람은 그대로
       if (o.userData.small == null) {
         const b = cullBox.setFromObject(o);
         if (b.isEmpty()) continue;
@@ -994,7 +1020,7 @@ function farCull(dt) {
         o.userData.small = Math.max(sz.x, sz.y, sz.z) < 4 && (x || z) !== 0;
         if (!o.userData.small) continue;
       }
-      far = Math.hypot(cx, cz) > R_HALL + 35;
+      far = collapsed;
     } else far = Math.hypot(x - cx, z - cz) > CULL_D;
     if (far && o.visible) { o.visible = false; o.userData.culled = true; }
     else if (!far && o.userData.culled) { o.visible = true; o.userData.culled = false; }

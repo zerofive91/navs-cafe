@@ -191,36 +191,6 @@ export function initPark({ scene, me, interactive, act, sfx, fxSprite, burst, wa
     scene.add(road);
   }
 
-  // ---------- 좁은 문 (마 7:13-14) ----------
-  {
-    const g = new THREE.Group();
-    g.position.set(0, G0, GATE.r);
-    for (const s of [-1, 1]) {
-      const pil = new THREE.Mesh(new THREE.BoxGeometry(0.35, 2.6, 0.45), MAT.white);
-      pil.position.set(s * (GATE.w / 2 + 0.18), 1.3, 0);
-      g.add(pil);
-      // 생울타리
-      const hedge = new THREE.Mesh(new THREE.BoxGeometry(3.6, 1.15, 0.8), MAT.leafDark);
-      hedge.position.set(s * (GATE.w / 2 + 0.36 + 1.8), 0.58, 0);
-      g.add(hedge);
-    }
-    const lintel = new THREE.Mesh(new THREE.BoxGeometry(GATE.w + 0.9, 0.3, 0.55), MAT.white);
-    lintel.position.y = 2.75;
-    g.add(lintel);
-    const glow = new THREE.Mesh(new THREE.PlaneGeometry(GATE.w, 2.5), new THREE.MeshBasicMaterial({ color: 0xffe9b8, transparent: true, opacity: 0.0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
-    glow.position.y = 1.25;
-    g.add(glow);
-    scene.add(shadow(g));
-    let lastZ = me.z, flash = 0;
-    steps.push((dt) => {
-      // 안쪽에서 바깥쪽(남쪽)으로 문을 지나가면
-      if (Math.abs(me.x) < GATE.w / 2 + 0.1 && lastZ < GATE.r && me.z >= GATE.r) { showVerse('gate', { delay: 0.6, cooldown: 60 }); flash = 1.6; }
-      lastZ = me.z;
-      flash = Math.max(0, flash - dt);
-      glow.material.opacity = 0.08 + flash * 0.3;
-    });
-  }
-
   // ---------- 테마파크 입구 (CC0 놀이공원 문) ----------
   place(scene, 'assets/park/park-entrance.glb', { x: 0, z: gr(51), y: G0, rot: 0, width: 10 });
   {
@@ -241,7 +211,7 @@ export function initPark({ scene, me, interactive, act, sfx, fxSprite, burst, wa
         tapTo([m], front, () => {
           faceTo(me, p);
           if (n === 'stall-food') { me.food = ['croissant', 'donut', 'muffin'][Math.floor(Math.random() * 3)]; me.bites = 0; }
-          else { me.item = 'cup'; me.drink = Math.random() < 0.5 ? 'coffee' : 'tea'; }
+          else { me.item = 'cup'; me.drink = Math.random() < 0.5 ? 'coffee' : 'tea'; me.sips = 0; }
           sfx('cup', 0.15);
           showVerse(n, { delay: 0.8, cooldown: 30 });
         });
@@ -695,8 +665,10 @@ export function initPark({ scene, me, interactive, act, sfx, fxSprite, burst, wa
     // 선베드 두 개, 파라솔
     for (const u of [-3, 3]) {
       const lb = new THREE.Group();
-      const bed = box(0.7, 0.08, 1.8, M(0xffffff, 0.6)); bed.position.y = 0.3; bed.rotation.z = 0; lb.add(bed);
-      const back = box(0.7, 0.08, 0.7, M(0xffffff, 0.6)); back.position.set(0.95, 0.5, 0); back.rotation.z = 0.7; lb.add(back);
+      // 긴 쪽은 바깥(v) 방향, 등받이는 바깥 끝에서 비스듬히 (layout SUNBEDS 자리와 맞춤)
+      const bed = box(0.7, 0.08, 1.8, M(0xffffff, 0.6)); bed.position.y = 0.3; lb.add(bed);
+      const back = box(0.7, 0.08, 0.7, M(0xffffff, 0.6)); back.position.set(0.72, 0.52, 0); back.rotation.z = 0.7; lb.add(back);
+      for (const x of [-0.8, 0.8]) for (const z of [-0.3, 0.3]) { const leg = box(0.05, 0.28, 0.05, MAT.white); leg.position.set(x, 0.13, z); lb.add(leg); }
       at(lb, u, 0, 4.2);
       g.add(shadow(lb));
     }
