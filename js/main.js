@@ -28,6 +28,7 @@ import { initStory } from './story.js';
 import { initPets } from './pets.js';
 import { TIER } from './dungeon.js';
 import { COURSE_META } from './courses.js';
+import { initQuestLog } from './questlog.js';
 
 const canvas = document.getElementById('cafe');
 const bar = document.getElementById('actions');
@@ -146,7 +147,7 @@ function makeChar(look, x, z) {
 }
 
 const myLook = loadLook();
-let tut = null, character = null, training = null, dungeon = null, quests = null, shop = null, gear = null, story = null, pets = null; // 안내와 캐릭터 창은 맨 아래에서 만듦
+let tut = null, character = null, training = null, dungeon = null, quests = null, shop = null, gear = null, story = null, pets = null, questLog = null; // 안내와 캐릭터 창은 맨 아래에서 만듦
 const profile = loadProfile(); // 닉네임·걸음·받은 것·안내 기록 (이 기기 안에만)
 if (profile.name) myLook.name = profile.name;
 const me = makeChar(myLook, SPAWN.x, SPAWN.z);
@@ -1198,6 +1199,7 @@ function frame(now) {
   gear.step(dt);
   story.step(dt, t);
   pets.step(dt);
+  questLog?.step(dt);
   for (const n of npcs) { stepChar(n, dt); poseAvatar(n.av, n, t, dt); }
   training.pin();
   together.step(dt, t);
@@ -1471,6 +1473,7 @@ story = initStory({
   busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!dungeon?.active() || !!quests?.active() || !!shop?.active(),
   onChange: () => character.showChip(),
 });
+questLog = initQuestLog({ me, quests, story, walkTo, toast });
 requestAnimationFrame(frame);
 if (window.__pick) choose(window.__pick);
 // 첫 화면이 뜬 뒤 소품 모델을 천천히 불러와 바꿔 끼움
@@ -1480,4 +1483,4 @@ setTimeout(() => {
   for (const n of npcs) if (n.av) upgradeCup(n.av);
 }, 300);
 
-window.__cafe = { get pets() { return pets; }, get story() { return story; }, get shop() { return shop; }, get gear() { return gear; }, availableActions, profile, tut, character, training, dungeon, quests, camera, shot, together, me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs, placed, park, scrolls, renderer, map };
+window.__cafe = { get questLog() { return questLog; }, get pets() { return pets; }, get story() { return story; }, get shop() { return shop; }, get gear() { return gear; }, availableActions, profile, tut, character, training, dungeon, quests, camera, shot, together, me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs, placed, park, scrolls, renderer, map };

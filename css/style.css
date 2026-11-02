@@ -566,7 +566,7 @@ body.trialing #verse { visibility: hidden; } /* 고르는 동안은 시험 창�
 #map .courses button small { color: #e8b84a; font-size: 0.85em; }
 
 /* 정원의 부탁: 지금 하는 부탁 */
-#questChip { position: fixed; left: calc(12px + env(safe-area-inset-left)); top: calc(54px + env(safe-area-inset-top)); z-index: 6; max-width: min(360px, 60vw); padding: 7px 12px; border-radius: 14px; background: rgba(255, 246, 220, 0.9); color: #6b4c32; box-shadow: 0 2px 10px rgba(60, 40, 20, 0.14); font: 600 12.5px/1.45 "Noto Serif KR", serif; word-break: keep-all; pointer-events: none; }
+#questChip { position: fixed; left: calc(12px + env(safe-area-inset-left)); top: calc(54px + env(safe-area-inset-top)); z-index: 6; max-width: min(360px, 60vw); padding: 7px 12px; border-radius: 14px; background: rgba(255, 246, 220, 0.9); color: #6b4c32; box-shadow: 0 2px 10px rgba(60, 40, 20, 0.14); font: 600 12.5px/1.45 "Noto Serif KR", serif; word-break: keep-all; pointer-events: auto; cursor: pointer; }
 #questChip::before { content: "📜 "; }
 #questChip[hidden] { display: none; }
 @media (max-width: 760px), (max-height: 500px) { #questChip { top: auto; bottom: calc(186px + env(safe-area-inset-bottom)); max-width: calc(100vw - 110px); } }
@@ -637,7 +637,31 @@ body.bigtrial #trial { box-shadow: 0 0 0 2px #6a4a9a, 0 10px 40px rgba(20, 10, 4
 #meCard .items.pets button.locked, #meCard .items.gear button.locked { opacity: 0.55; }
 
 /* 성경 큰 이야기 진행 */
-#storyChip { position: fixed; left: calc(12px + env(safe-area-inset-left)); top: calc(92px + env(safe-area-inset-top)); z-index: 6; max-width: min(360px, 60vw); padding: 7px 12px; border-radius: 14px; background: rgba(255, 240, 200, 0.92); color: #7a5a20; box-shadow: 0 2px 10px rgba(60, 40, 20, 0.14); font: 600 12.5px/1.45 "Noto Serif KR", serif; word-break: keep-all; pointer-events: none; }
+#storyChip { position: fixed; left: calc(12px + env(safe-area-inset-left)); top: calc(92px + env(safe-area-inset-top)); z-index: 6; max-width: min(360px, 60vw); padding: 7px 12px; border-radius: 14px; background: rgba(255, 240, 200, 0.92); color: #7a5a20; box-shadow: 0 2px 10px rgba(60, 40, 20, 0.14); font: 600 12.5px/1.45 "Noto Serif KR", serif; word-break: keep-all; pointer-events: auto; cursor: pointer; }
 #storyChip::before { content: "✦ "; color: #d8a020; }
 #storyChip[hidden] { display: none; }
 @media (max-width: 760px), (max-height: 500px) { #storyChip { top: calc(150px + env(safe-area-inset-top)); max-width: calc(100vw - 110px); } }
+
+/* 부탁 창: 왼쪽 진행 표시를 누르면 열림 */
+/* 한 줄로 줄이고 자세한 내용은 부탁 창에서 */
+#questChip, #storyChip { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#questChip::after, #storyChip::after { content: " ›"; opacity: 0.6; }
+#questLog { position: fixed; left: calc(12px + env(safe-area-inset-left)); top: calc(130px + env(safe-area-inset-top)); z-index: 8; width: min(360px, calc(100vw - 24px)); max-height: calc(100vh - 220px); overflow-y: auto; padding: 12px 14px 10px; border-radius: 16px; background: rgba(255, 250, 238, 0.97); color: #5a3e28; box-shadow: 0 4px 22px rgba(60, 40, 20, 0.22); font: 500 13px/1.55 "Noto Serif KR", serif; word-break: keep-all; }
+#questLog[hidden] { display: none; }
+#questLog .x { position: absolute; right: 8px; top: 6px; border: 0; background: none; font-size: 20px; color: #8a6a4a; cursor: pointer; padding: 2px 8px; }
+#questLog section + section { margin-top: 10px; padding-top: 10px; border-top: 1px dashed rgba(140, 100, 60, 0.3); }
+#questLog h3 { margin: 0 24px 6px 0; font-size: 14px; color: #6b4c32; }
+#questLog .st h3 { color: #8a6418; }
+#questLog p { margin: 4px 0; }
+#questLog .now b { display: block; font-size: 12px; color: #a07040; }
+#questLog .where { color: #4a6a5a; font-weight: 600; }
+#questLog details summary { cursor: pointer; color: #8a6a4a; font-size: 12.5px; margin: 4px 0; }
+#questLog .ask { color: #6b5440; }
+#questLog blockquote { margin: 6px 0; padding: 6px 10px; border-left: 3px solid #e0c080; background: rgba(255, 240, 200, 0.5); border-radius: 6px; font-size: 12.5px; }
+#questLog cite { display: block; font-style: normal; font-size: 11.5px; color: #a07c50; margin-top: 2px; }
+#questLog .row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
+#questLog .row button { border: 0; border-radius: 12px; padding: 7px 14px; font: 600 13px "Noto Serif KR", serif; cursor: pointer; background: rgba(140, 100, 60, 0.12); color: #6b4c32; }
+#questLog .row .go { background: #e8b860; color: #4a3010; }
+@media (max-width: 760px), (max-height: 500px) { #questLog { top: calc(190px + env(safe-area-inset-top)); max-height: calc(100vh - 420px); min-height: 160px; } }
+/* 넓은 화면: 부탁·큰 이야기 표시 아래로 두루마리 수와 부탁 창을 내림 */
+@media (min-width: 761px) and (min-height: 501px) { #scrollChip { top: calc(134px + env(safe-area-inset-top)); } #questLog { top: calc(174px + env(safe-area-inset-top)); max-height: calc(100vh - 240px); } }
