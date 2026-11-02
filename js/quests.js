@@ -1,9 +1,9 @@
 // 정원의 부탁 (2026-11): 성경 인물이 정원 곳곳에서 부탁을 하고, 말씀 한 구절을 건넴
 //   그 말씀대로 간단히 해 보면 풀리고, 인물에게서 성경 물품과 능력치·걸음을 받음
 //   목자(잃은 양) · 사마리아 여인(우물) · 여호수아(여리고) · 다윗(매끄러운 돌) · 룻과 나오미(이삭)
-//   엘리야(로뎀나무) · 노아(비둘기) / 카페 안: 사무엘(기도의 자리) · 베드로(증거의 물)
+//   엘리야(로뎀나무) · 노아(비둘기) / 카페 안: 베드로(증거의 물)
 import * as THREE from 'three';
-import { PARK, floorY, isFree, polar, Q as WHEEL, PRAYER_POOL_R, WITNESS_POOL_R } from './layout.js';
+import { PARK, floorY, isFree, polar, Q as WHEEL, WITNESS_POOL_R } from './layout.js';
 import { VERSES, showVerse } from './verses.js';
 import { nameTag } from './tutorial.js';
 import { on } from './bus.js';
@@ -19,7 +19,8 @@ Object.assign(ITEMS, {
   sling: { name: '물매와 돌', verse: ['전쟁은 여호와께 속한 것인즉 그가 너희를 우리 손에 붙이시리라', '사무엘상 17:47'] },
   barley: { name: '보리 한 에바', verse: ['룻이 밭에서 저녁까지 줍고 그 주운 것을 떠니 보리가 한 에바쯤 되는지라', '룻기 2:17'] },
   mantle: { name: '엘리야의 겉옷', verse: ['엘리야의 몸에서 떨어진 겉옷을 주워가지고 돌아와서 요단 언덕에 서서', '열왕기하 2:13'] },
-  ear: { name: '듣는 귀', verse: ['사무엘이 가로되 말씀하옵소서 주의 종이 듣겠나이다', '사무엘상 3:10'] },
+  ear: { name: '듣는 귀', // 예전 사무엘 부탁의 물품 (받은 사람 기록 보존용)
+    verse: ['사무엘이 가로되 말씀하옵소서 주의 종이 듣겠나이다', '사무엘상 3:10'] },
   net: { name: '가득 찬 그물', verse: ['가득히 찬 큰 고기가 일백 쉰 세 마리라 이같이 많으나 그물이 찢어지지 아니하였더라', '요한복음 21:11'] },
   olive: { name: '감람 새 잎사귀', verse: ['저녁때에 비둘기가 그에게로 돌아왔는데 그 입에 감람 새 잎사귀가 있는지라', '창세기 8:11'] },
 });
@@ -128,10 +129,8 @@ export function initQuests(K) {
   let flight = null; // { T, leaf }
   const landed = () => { if (flight && flight.back) { flight = null; return true; } return false; };
 
-  // ---------- 카페 안 8. 사무엘: 말씀하옵소서 (삼상 3:9-10) ----------
-  const PR = WHEEL.prayer, toHub = (c, d) => { const l = Math.hypot(c.x, c.z) || 1; return { x: c.x - (c.x / l) * d, z: c.z - (c.z / l) * d }; };
-  const samuel = npc('사무엘', { hoodie: 0xe6dcc8, hair: 0x3b2a22 }, toHub(PR, PRAYER_POOL_R + 1.4), PR);
-  // ---------- 카페 안 9. 베드로: 배 오른편에 그물을 (요 21:6) ----------
+  const toHub = (c, d) => { const l = Math.hypot(c.x, c.z) || 1; return { x: c.x - (c.x / l) * d, z: c.z - (c.z / l) * d }; };
+  // ---------- 카페 안 8. 베드로: 배 오른편에 그물을 (요 21:6) ----------
   const WI = WHEEL.witness;
   const peter = npc('베드로', { hoodie: 0x5a7a9a, hair: 0x4a3a2a }, toHub(WI, WITNESS_POOL_R + 1.3), WI);
   const ring = (color, label) => {
@@ -222,16 +221,6 @@ export function initQuests(K) {
     },
   ];
   Q.push(
-    {
-      id: 'samuel', who: samuel, name: '사무엘', title: '말씀하옵소서', stat: 'word', item: 'ear',
-      ask: '어릴 적 성전에서 자다가 누가 제 이름을 부르는 소리를 들었어요. 엘리 선생님이 "그가 부르시거든 말씀하옵소서 하라" 하셨지요. 기도의 자리에 누워 조용히 기다려 볼래요?',
-      verse: V('q-samuel', '가서 누웠다가 그가 너를 부르시거든 네가 말하기를 여호와여 말씀하옵소서 주의 종이 듣겠나이다 하라', '사무엘상 3:9'),
-      steps: [
-        { hint: '기도의 자리 곁에 누워(K) 또는 앉아(J) 조용히 기다려요.', until: (r, dt) => { if ((lying() || me.state === 'sit') && near(PR, PRAYER_POOL_R + 4)) r.rest = (r.rest || 0) + dt; else r.rest = 0; if (r.rest > 3.5) { toast(`"${profile.name || '친구'}아, ${profile.name || '친구'}아" 부르시는 소리가 들려요`, 5); sfx('orb', 0.2, 0.8); return true; } return false; } },
-        { hint: '"말씀하옵소서" 기도로 대답해요 (X 또는 기도).', until: () => { if (me.action === 'pray' && near(PR, PRAYER_POOL_R + 5)) { showVerse(V('q-samuel2', '여호와께서 임하여 서서 전과 같이 사무엘아 사무엘아 부르시는지라 사무엘이 가로되 말씀하옵소서 주의 종이 듣겠나이다', '사무엘상 3:10'), { cooldown: 0 }); return true; } return false; } },
-      ],
-      done: '잘했어요. 말씀을 들으려면 먼저 조용히 귀를 기울여야 해요. 이 듣는 귀를 가져가요.',
-    },
     {
       id: 'peter', who: peter, name: '베드로', title: '배 오른편에 그물을', stat: 'witness', item: 'net', back: false,
       ask: '밤새 그물을 던졌는데 한 마리도 못 잡았어요. 그런데 물가에 계신 그분이 "그물을 배 오른편에 던지라" 하셨어요. 어부인 제가 보기엔 이상하지만... 같이 던져 볼래요?',
