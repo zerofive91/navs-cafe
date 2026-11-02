@@ -28,10 +28,25 @@ export function initMap({ me, people, walkTo, say, icon, placesEl, before }) {
     const path = q ? findPath(me, q) : [];
     if (q && (path.length || Math.hypot(q.x - me.x, q.z - me.z) < 1)) { walkTo(me, q, null, path); shut(); say?.(COURSE_META[id].name + ' 시작점으로 가요', 2); }
   };
-  // 정원 둘레를 따라 각도 순서로
-  const order = Object.entries(TRAILS).filter(([id, tr]) => !tr.from && COURSE_META[id])
-    .sort((a, b) => { const A = (q) => (Math.atan2(gateOf(q[1]).z, gateOf(q[1]).x) * 180 / Math.PI + 450) % 360; return A(a) - A(b); });
-  for (const [id] of order) {
+  // 주제별로 묶어서
+  const GROUPS = [
+    ['창조와 구약', ['creation', 'exodus', 'wisdom', 'faith']],
+    ['예수님', ['magi', 'jesus', 'deity', 'humanity', 'love', 'obey', 'passion']],
+    ['복음과 구원', ['bridge', 'gospel', 'pilgrim']],
+    ['성령과 성장', ['fruit', 'armor']],
+    ['하늘 소망', ['heaven', 'revelation']],
+  ];
+  const ids = Object.entries(TRAILS).filter(([id, tr]) => !tr.from && COURSE_META[id]).map(([id]) => id);
+  const listed = GROUPS.flatMap((q) => q[1]);
+  GROUPS[GROUPS.length - 1][1].push(...ids.filter((id) => !listed.includes(id)));
+  const order = [];
+  for (const [title, list] of GROUPS) {
+    const sub = list.filter((id) => ids.includes(id));
+    if (!sub.length) continue;
+    order.push([null, title], ...sub.map((id) => [id]));
+  }
+  for (const [id, title] of order) {
+    if (!id) { const sp = document.createElement('span'); sp.textContent = title; pick.appendChild(sp); continue; }
     const b = document.createElement('button');
     b.textContent = COURSE_META[id].name;
     b.style.setProperty('--c', hex(COURSE_META[id].color));
@@ -40,9 +55,6 @@ export function initMap({ me, people, walkTo, say, icon, placesEl, before }) {
     b.addEventListener('click', (e) => { e.stopPropagation(); goStart(id); });
     pick.appendChild(b);
   }
-  const pickLabel = document.createElement('span');
-  pickLabel.textContent = '코스 시작점';
-  pick.prepend(pickLabel);
   wrap.append(cv, close, pick);
   document.body.appendChild(wrap);
   const g = cv.getContext('2d');
@@ -52,9 +64,9 @@ export function initMap({ me, people, walkTo, say, icon, placesEl, before }) {
   let raf = 0, dpr = 1, W = 0, Hh = 0;
   const fit = () => {
     const found = foundCourses();
-    let R = R_GARDEN + 6;
+    let R = R_GARDEN + 42; // 숲 쪽으로 펼친 코스 이름까지
     for (const id of Object.keys(found)) { const t = TRAILS[id]; if (t) for (const q of t.samples) R = Math.max(R, Math.hypot(q.x, q.z) + 10); }
-    V.cx = 0; V.cz = 0; V.k = Math.min(W, Hh) / (2 * R) * 0.96;
+    V.k = Math.min(W, Hh - 56) / (2 * R) * 0.96; V.cx = 0; V.cz = 28 / V.k; // 아래 코스 줄만큼 위로
   };
   const resize = () => {
     dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -154,7 +166,13 @@ export function initMap({ me, people, walkTo, say, icon, placesEl, before }) {
         const a = 0.45 + 0.35 * Math.sin(t * 3 + id.length);
         circle(p.x, p.z, 2.2, `rgba(255,240,200,${a})`, null, 1, 7);
         circle(p.x, p.z, 1.2, col, null, 1, 3.5);
-        label(meta.name, p.x, p.z, { size: 11, color: col, dy: -14 });
+        // 이름은 정원 바깥 숲 쪽으로 방사형으로 (코스가 많아도 겹치지 않게)
+        const ang = Math.atan2(p.z, p.x), flip = Math.cos(ang) < 0;
+        const lx = Math.cos(ang) * (R_GARDEN + 3), lz = Math.sin(ang) * (R_GARDEN + 3);
+        g.save(); g.translate(sx(lx), sy(lz)); g.rotate(flip ? ang + Math.PI : ang);
+        g.font = '600 11px system-ui, sans-serif'; g.textAlign = flip ? 'right' : 'left'; g.textBaseline = 'middle';
+        g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,0.6)'; g.strokeText(meta.name, 0, 0); g.fillStyle = col; g.fillText(meta.name, 0, 0);
+        g.restore();
         continue;
       }
       if (!tr.from) { const p = tr.samples.find((q) => Math.hypot(q.x, q.z) > R_PARK + 2) || tr.samples[0]; circle(p.x, p.z, 2.2, 'rgba(255,240,200,0.5)', col, 1.5, 6); }

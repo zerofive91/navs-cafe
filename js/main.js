@@ -857,13 +857,26 @@ const PLACES = [
   ['boat', SPOTS.boat, Q.witness],
   ['garden', { x: 0, z: R_PARK - 2 }, { x: 0, z: 80 }],
 ];
+// 정원에 나가면 카페 바로가기 다섯 개는 접고 '카페' 단추 하나만 (누르면 펼침)
+const cafeFold = document.createElement('button');
+cafeFold.className = 'place fold';
+cafeFold.setAttribute('aria-label', 'cafe menu');
+cafeFold.innerHTML = ICONS.door;
+cafeFold.addEventListener('pointerdown', (e) => { e.stopPropagation(); placesEl.classList.toggle('open'); });
+placesEl.appendChild(cafeFold);
+function foldCafeMenu(out) {
+  if (placesEl.classList.contains('out') === out) return;
+  placesEl.classList.toggle('out', out);
+  placesEl.classList.remove('open');
+}
 for (const [icon, spot, look] of PLACES) {
   const b = document.createElement('button');
-  b.className = 'place';
+  b.className = 'place' + (icon === 'garden' ? '' : ' cafe');
   b.setAttribute('aria-label', icon);
   b.innerHTML = ICONS[icon];
   b.addEventListener('pointerdown', (e) => {
     e.stopPropagation();
+    placesEl.classList.remove('open');
     walkTo(me, { x: spot.x, z: spot.z }, () => faceTo(me, look));
   });
   placesEl.appendChild(b);
@@ -1005,6 +1018,7 @@ function farCull(dt) {
   const mr = Math.hypot(me.x, me.z), camR = Math.hypot(cx, cz);
   collapsed = collapsed ? mr > R_HALL + 1.5 || camR > R_HALL + 30 : mr > R_HALL + 3.5 && camR > R_HALL + 1;
   wheelProxy.visible = collapsed;
+  foldCafeMenu(mr > R_HALL + 1.5);
   for (const o of scene.children) {
     if (o.userData.noCull || o.isLight || o.isInstancedMesh) continue;
     const x = o.position.x, z = o.position.z;

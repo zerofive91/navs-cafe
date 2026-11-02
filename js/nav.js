@@ -148,7 +148,7 @@ export function findPath(from, to) {
     let far = idx;
     for (let k = cells.length - 1; k > idx; k--) {
       if (k - idx > 300) continue;
-      if (lineFree(anchor, cells[k]) && grassLen(anchor, cells[k]) <= gacc[k + 1] - gacc[ai] + 0.6) { far = k; break; }
+      if (lineFree(anchor, cells[k]) && grassLen(anchor, cells[k]) <= gacc[k + 1] - gacc[ai] + 0.2) { far = k; break; }
     }
     out.push(cells[far]);
     anchor = cells[far];
