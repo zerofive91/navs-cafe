@@ -543,3 +543,20 @@ html.rot .npcb { bottom: auto; top: 52px; width: min(60vh, 480px); }
   #creator .pad { width: 380px; max-height: 90vh; }
 }
 @media (max-width: 760px), (max-height: 500px) { #creator .pad { max-height: 56vh; } }
+
+/* 숲길 던전: 어둠의 속삭임과 말씀 고르기 */
+.npcb.trial { background: rgba(40, 32, 52, 0.95); color: #f3ecf8; }
+.npcb.trial .who b { color: #d8c8f0; }
+.npcb.trial .who .n { color: #a898c0; }
+.npcb.trial .say { font-style: italic; }
+.npcb.trial .say small { color: #c8b8e0; font-style: normal; }
+.npcb.trial .opts { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.npcb.trial .opt { display: flex; gap: 8px; align-items: flex-start; text-align: left; border: 0; border-radius: 12px; padding: 8px 10px; background: rgba(255, 250, 238, 0.95); color: #5a4030; font: 500 13.5px/1.5 "Noto Serif KR", serif; word-break: keep-all; cursor: pointer; }
+.npcb.trial .opt kbd { flex: none; min-width: 22px; padding: 1px 5px; border-radius: 6px; background: #f1e6d2; font: 700 12px system-ui, sans-serif; text-align: center; }
+.npcb.trial .opt em { display: block; font-style: normal; font-size: 11.5px; color: #a08868; }
+.npcb.trial .opt.hint { box-shadow: 0 0 0 3px #ffd56a; }
+.npcb.trial .opt.no { background: #6a5a72; color: #d8cce0; }
+.npcb.trial.ok .opt:not(.hint) { opacity: 0.6; }
+.npcb.trial .row button { color: #c8b8e0; }
+body.trialing #verse { visibility: hidden; } /* 고르는 동안은 시험 창만 */
+#map .courses button small { color: #e8b84a; font-size: 0.85em; }

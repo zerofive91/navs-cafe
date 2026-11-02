@@ -3,6 +3,7 @@
 // 지도를 누르면 그곳으로 걸어감
 import { TRAILS, PARK, R_HALL, R_WALK, R_PARK, R_GARDEN, BRIDGE, FLOWER_BEDS, TERRAIN, JONAH_SEA, CITY, Q, WALK_MAX } from './layout.js';
 import { COURSE_META, COURSE_STATIONS as STN, foundCourses } from './courses.js';
+import { stars } from './dungeon.js';
 import { nearestFree, findPath } from './nav.js';
 
 export function initMap({ me, people, walkTo, say, icon, placesEl, before }) {
@@ -49,6 +50,7 @@ export function initMap({ me, people, walkTo, say, icon, placesEl, before }) {
     if (!id) { const sp = document.createElement('span'); sp.textContent = title; pick.appendChild(sp); continue; }
     const b = document.createElement('button');
     b.textContent = COURSE_META[id].name;
+    if (stars(id)) { const s = document.createElement('small'); s.textContent = ' ' + stars(id); b.appendChild(s); }
     b.style.setProperty('--c', hex(COURSE_META[id].color));
     b.dataset.course = id;
     b.addEventListener('pointerdown', (e) => { e.stopPropagation(); });

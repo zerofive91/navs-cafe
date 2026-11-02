@@ -19,6 +19,8 @@ import { loadProfile, saveProfile } from './profile.js';
 import { initCharacter, HOODIES, HAIRS, BAGS } from './character.js';
 import { initTutorial, nameTag } from './tutorial.js';
 import { initTraining } from './training.js';
+import { initDungeon } from './dungeon.js';
+import { COURSE_META } from './courses.js';
 
 const canvas = document.getElementById('cafe');
 const bar = document.getElementById('actions');
@@ -137,7 +139,7 @@ function makeChar(look, x, z) {
 }
 
 const myLook = loadLook();
-let tut = null, character = null, training = null; // 안내와 캐릭터 창은 맨 아래에서 만듦
+let tut = null, character = null, training = null, dungeon = null; // 안내와 캐릭터 창은 맨 아래에서 만듦
 const profile = loadProfile(); // 닉네임·걸음·받은 것·안내 기록 (이 기기 안에만)
 if (profile.name) myLook.name = profile.name;
 const me = makeChar(myLook, SPAWN.x, SPAWN.z);
@@ -582,6 +584,7 @@ let shown = '';
 function pressAction(name, on) {
   tut?.mark(name, placeActs.has(name));
   training?.onPress(name);
+  dungeon?.onPress(name);
   sfx(name === 'sip' || name === 'order' || name === 'eat' ? 'cup' : 'tap', 0.15);
   if (VERSE_OF[name]) showNext(VERSE_OF[name], on ? 0.2 : 1.2);
   if (on && VERSE_OF[name]) return; // 이미 하는 중이면 다음 구절만
@@ -1175,6 +1178,7 @@ function frame(now) {
   if (owner.state !== 'walk') owner.face = nearOwner ? Math.atan2(me.x - owner.x, me.z - owner.z) : Math.PI;
   tut.step(dt);
   training.step(dt, t);
+  dungeon.step(dt, t);
   for (const n of npcs) { stepChar(n, dt); poseAvatar(n.av, n, t, dt); }
   training.pin();
   together.step(dt, t);
@@ -1394,10 +1398,16 @@ character = initCharacter({
 });
 training = initTraining({
   scene, me, makeChar, npcs, profile, save: saveMe, toast, sfx, burst, fxSprite,
-  busy: () => !!tut?.active() || !!character?.isOpen(),
+  busy: () => !!tut?.active() || !!character?.isOpen() || !!dungeon?.active(),
   onChange: () => character.showChip(),
 });
 Object.assign(ACTIONS, training.actions);
+dungeon = initDungeon({
+  scene, me, profile, save: saveMe, toast, sfx, burst, fxSprite,
+  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active(),
+  onChange: () => character.showChip(),
+  courseName: (id) => (COURSE_META[id] ? COURSE_META[id].name : id),
+});
 requestAnimationFrame(frame);
 if (window.__pick) choose(window.__pick);
 // 첫 화면이 뜬 뒤 소품 모델을 천천히 불러와 바꿔 끼움
@@ -1407,4 +1417,4 @@ setTimeout(() => {
   for (const n of npcs) if (n.av) upgradeCup(n.av);
 }, 300);
 
-window.__cafe = { profile, tut, character, training, camera, shot, together, me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs, placed, park, scrolls, renderer, map };
+window.__cafe = { profile, tut, character, training, dungeon, camera, shot, together, me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs, placed, park, scrolls, renderer, map };

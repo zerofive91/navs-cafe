@@ -92,7 +92,7 @@ export function initCharacter({ me, look, profile, save, rebuild, view, toast, o
       <h3>${esc(profile.name)}</h3>
       <p class="stage">${st.name}${next ? ` <span>· 다음 단계 ${next.name}</span>` : ''}</p>
       <div class="bar"><i style="width:${Math.round(k * 100)}%"></i></div>
-      <p class="steps">걸음 ${profile.steps}${next ? ` / ${next.need}` : ''}</p>
+      <p class="steps">걸음 ${profile.steps}${next ? ` / ${next.need}` : ''}${profile.dungeon && Object.keys(profile.dungeon).length ? ` · 이긴 숲길 ${Object.keys(profile.dungeon).length}` : ''}</p>
       <p class="lb">수레바퀴</p>
       <div class="stats">${STATS.map((x) => { const v = (profile.stats && profile.stats[x.id]) || 0; return `<div><span>${x.name}</span><div class="sb"><i style="width:${Math.min(100, v)}%;background:${x.color}"></i></div><b>${v}</b>${profile.train && profile.train[x.id] ? '<em>훈련 마침</em>' : ''}</div>`; }).join('')}</div>
       <p class="lb">받은 것</p>
