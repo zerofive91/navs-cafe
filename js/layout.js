@@ -191,7 +191,7 @@ export function poolDepth(x, z) {
   return POOL.depth * Math.min(1, Math.min(eu, ev) / 1.2);
 }
 export const inPool = (x, z) => poolDepth(x, z) > 0.25;
-// 좁은 문 (마 7:13): 입구 길 위, 산책길과 둘레길 사이
+// 입구 길이 시작하는 자리 (예전 좁은 문 자리: 문은 없앰)
 export const GATE = { r: gr(44), w: 1.0 };
 // 둘레길과 이어지는 오솔길 각도
 export const LANES = [30, 90, 150, 210, 270, 330];
@@ -207,6 +207,13 @@ const onPaths = (x, z) => {
   if (Math.abs(x) < 4 && z > 0) return true; // 입구 길
   return false;
 };
+// 자동으로 걸어갈 때 길(산책길·둘레길·오솔길·입구 길·숲길)을 따라가도록 잔디는 비싸게 침
+export const GRASS_COST = 4;
+export function pathCost(x, z) {
+  const r = Math.hypot(x, z);
+  if (r < R_HALL + 1.2 || r > R_GARDEN) return 1;
+  return onPaths(x, z) || onTrail(x, z) || inAnyZone(x, z, 0) ? 1 : GRASS_COST;
+}
 export function parkClear(x, z, pad = 1.5) { return !inAnyZone(x, z, pad) && !onPaths(x, z) && !nearTrail(x, z, 3); }
 
 // ---------- 숲속 코스: 둘레길에서 숲으로 들어가는 오솔길 ----------
@@ -583,8 +590,6 @@ for (const l of GARDEN_LAMPS) block(l.x, l.z, 0.15, 1.7);
 {
   const P = PARK;
   const b = (zn, u, v, r, h = Infinity) => { const p = zn.at(u, v); block(p.x, p.z, r, h); };
-  // 좁은 문 양옆 생울타리
-  for (const dx of [-1, 1]) for (let k = 0; k < 6; k++) block(dx * (GATE.w / 2 + 0.45 + k * 0.6), GATE.r, 0.4, 1.2);
   for (let u = -5; u <= 5; u += 2.5) b(P.market, u, 1.8, 1.3, 2.6);
   b(P.mustard, 0, 0, 0.7);
   for (const u of [-3, 3]) for (const v of [-1.8, 1.8]) b(P.vine, u, v, 0.2);
@@ -674,6 +679,25 @@ for (const u of [1.5, 3.4]) for (const sd of [-1, 1]) {
   const p = PARK.bbq.at(u, 1.2 + sd * 0.65);
   seat(p.x, p.z, PARK.bbq.at(u, 1.2), 'picnic', PARK.bbq.at(u, 1.2 + sd * 1.25));
   seats[seats.length - 1].top = -0.5 + 0.475;
+}
+// 수영장 선베드 두 개: 등받이(바깥쪽)에 기대어 수영장을 보며 누움
+export const SUNBEDS = [-3, 3].map((u) => ({ u, ...PARK.pool.at(u, 4.2) }));
+for (const b of SUNBEDS) {
+  for (const v of [3.75, 4.65]) { const p = PARK.pool.at(b.u, v); block(p.x, p.z, 0.42, 0.42); }
+  const p = PARK.pool.at(b.u, 4.5);
+  seat(p.x, p.z, PARK.pool.at(b.u, 0), 'sunbed', PARK.pool.at(b.u - Math.sign(b.u) * 0.95, 4.1));
+  Object.assign(seats[seats.length - 1], { top: -0.5 + 0.34, lean: 0.87, legs: -0.7 });
+}
+// 캠핑장 침낭: 그 위에 반듯이 누움 (모델의 긴 쪽이 회전한 z축)
+export const BEDROLL = (() => {
+  const zn = PARK.camp, c = zn.at(-4.6, 1), rot = Math.atan2(-zn.n.x, -zn.n.z) + 0.4;
+  const ax = { x: Math.sin(rot), z: Math.cos(rot) };
+  return { ...c, rot, ax };
+})();
+{
+  const B = BEDROLL, p = { x: B.x + B.ax.x * 0.55, z: B.z + B.ax.z * 0.55 };
+  seat(p.x, p.z, { x: p.x + B.ax.x, z: p.z + B.ax.z }, 'lie', { x: B.x - B.ax.z * 0.9, z: B.z + B.ax.x * 0.9 });
+  seats[seats.length - 1].top = -0.5 + 0.2;
 }
 // 말씀: 성경을 둘러싼 곡선 벤치 3곳
 for (const a of [-160, -135, -110]) {

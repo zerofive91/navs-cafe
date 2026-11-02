@@ -1,7 +1,7 @@
 // 전체 지도: 카페·정원·숲속 코스와 내 위치(화살표), 함께 있는 사람들
 // 찾은 코스는 길과 정거장(지나온 곳은 채운 점)까지 보이고, 아직 못 찾은 코스는 입구만 반짝임
 // 지도를 누르면 그곳으로 걸어감
-import { TRAILS, PARK, R_HALL, R_WALK, R_PARK, R_GARDEN, BRIDGE, FLOWER_BEDS, TERRAIN, JONAH_SEA, CITY, Q, GATE } from './layout.js';
+import { TRAILS, PARK, R_HALL, R_WALK, R_PARK, R_GARDEN, BRIDGE, FLOWER_BEDS, TERRAIN, JONAH_SEA, CITY, Q } from './layout.js';
 import { COURSE_META, COURSE_STATIONS as STN, foundCourses } from './courses.js';
 import { nearestFree, findPath } from './nav.js';
 
@@ -12,13 +12,38 @@ export function initMap({ me, people, walkTo, say, icon, placesEl, before }) {
   btn.innerHTML = icon;
   placesEl.insertBefore(btn, before || null);
 
+  const hex = (c) => '#' + c.toString(16).padStart(6, '0');
   const wrap = document.createElement('div');
   wrap.id = 'map';
   wrap.hidden = true;
   const cv = document.createElement('canvas');
   const close = document.createElement('button');
   close.className = 'close'; close.setAttribute('aria-label', 'close'); close.textContent = '×';
-  wrap.append(cv, close);
+  // 코스 시작점 고르기: 이름을 누르면 그 코스 시작 문 앞까지 걸어감
+  const pick = document.createElement('div');
+  pick.className = 'courses';
+  const gateOf = (tr) => tr.samples.find((q) => Math.hypot(q.x, q.z) > R_PARK + 0.6) || tr.samples[0];
+  const goStart = (id) => {
+    const q = nearestFree(gateOf(TRAILS[id]));
+    const path = q ? findPath(me, q) : [];
+    if (q && (path.length || Math.hypot(q.x - me.x, q.z - me.z) < 1)) { walkTo(me, q, null, path); shut(); say?.(COURSE_META[id].name + ' 시작점으로 가요', 2); }
+  };
+  // 정원 둘레를 따라 각도 순서로
+  const order = Object.entries(TRAILS).filter(([id, tr]) => !tr.from && COURSE_META[id])
+    .sort((a, b) => { const A = (q) => (Math.atan2(gateOf(q[1]).z, gateOf(q[1]).x) * 180 / Math.PI + 450) % 360; return A(a) - A(b); });
+  for (const [id] of order) {
+    const b = document.createElement('button');
+    b.textContent = COURSE_META[id].name;
+    b.style.setProperty('--c', hex(COURSE_META[id].color));
+    b.dataset.course = id;
+    b.addEventListener('pointerdown', (e) => { e.stopPropagation(); });
+    b.addEventListener('click', (e) => { e.stopPropagation(); goStart(id); });
+    pick.appendChild(b);
+  }
+  const pickLabel = document.createElement('span');
+  pickLabel.textContent = '코스 시작점';
+  pick.prepend(pickLabel);
+  wrap.append(cv, close, pick);
   document.body.appendChild(wrap);
   const g = cv.getContext('2d');
 
@@ -40,7 +65,6 @@ export function initMap({ me, people, walkTo, say, icon, placesEl, before }) {
   };
   const sx = (x) => W / 2 + (x - V.cx) * V.k, sy = (z) => Hh / 2 + (z - V.cz) * V.k;
   const wx = (px) => V.cx + (px - W / 2) / V.k, wz = (py) => V.cz + (py - Hh / 2) / V.k;
-  const hex = (c) => '#' + c.toString(16).padStart(6, '0');
   const circle = (x, z, r, fill, stroke, lw = 1, minPx = 0.5) => {
     g.beginPath(); g.arc(sx(x), sy(z), Math.max(minPx, r * V.k), 0, Math.PI * 2);
     if (fill) { g.fillStyle = fill; g.fill(); }
@@ -116,7 +140,6 @@ export function initMap({ me, people, walkTo, say, icon, placesEl, before }) {
     if (V.k > 1.6) {
       for (const [id, nm] of [['prayer', '기도'], ['fellow', '교제'], ['witness', '증거'], ['word', '말씀']]) label(nm, Q[id].x, Q[id].z, { size: fz, color: '#3a2a18', weight: 700 });
       label('그리스도', 0, 0, { size: fz - 1, color: '#6b4a1a', weight: 700 });
-      label('좁은 문', 0, GATE.r, { size: fz - 1, dy: -10 });
     }
     label('Wheel Life Cafe', 0, -R_HALL - 4, { size: Math.max(11, fz), color: '#fff6dc', weight: 700 });
     // 숲속 코스
@@ -134,6 +157,7 @@ export function initMap({ me, people, walkTo, say, icon, placesEl, before }) {
         label(meta.name, p.x, p.z, { size: 11, color: col, dy: -14 });
         continue;
       }
+      if (!tr.from) { const p = tr.samples.find((q) => Math.hypot(q.x, q.z) > R_PARK + 2) || tr.samples[0]; circle(p.x, p.z, 2.2, 'rgba(255,240,200,0.5)', col, 1.5, 6); }
       line(tr.samples, 'rgba(0,0,0,0.35)', Math.max(3, 3.4 * V.k));
       line(tr.samples, col, Math.max(2, 2.2 * V.k));
       if (id === 'bridge') { // 낭떠러지와 다리
@@ -214,7 +238,7 @@ export function initMap({ me, people, walkTo, say, icon, placesEl, before }) {
       for (const tr of Object.values(TRAILS)) {
         if (tr.from) continue;
         const gate = tr.samples.find((q) => Math.hypot(q.x, q.z) > R_PARK + 2.2) || tr.samples[0];
-        if (Math.hypot(p.x - gate.x, p.z - gate.z) < snap) { p = tr.samples.find((q) => Math.hypot(q.x, q.z) > R_PARK + 0.6) || tr.samples[0]; break; }
+        if (Math.hypot(p.x - gate.x, p.z - gate.z) < snap) { p = gateOf(tr); break; }
       }
       const q = nearestFree(p);
       const path = q ? findPath(me, q) : [];
@@ -229,5 +253,5 @@ export function initMap({ me, people, walkTo, say, icon, placesEl, before }) {
     V.k = Math.max(0.5, Math.min(14, V.k * Math.exp(-e.deltaY * 0.0015)));
     V.cx = x - (e.offsetX - W / 2) / V.k; V.cz = z - (e.offsetY - Hh / 2) / V.k;
   }, { passive: false });
-  return { open, shut, el: wrap, toScreen: (x, z) => ({ x: sx(x), y: sy(z) }) }; // toScreen: 시험용
+  return { open, shut, el: wrap, goStart, toScreen: (x, z) => ({ x: sx(x), y: sy(z) }) }; // toScreen: 시험용
 }
