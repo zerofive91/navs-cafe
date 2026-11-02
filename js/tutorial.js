@@ -5,6 +5,7 @@
 // 휴대폰에서는 키 대신 같은 자리의 단추를 알려 줌. 언제든 넘기거나 끝낼 수 있고, '나' 카드에서 다시 볼 수 있음
 import * as THREE from 'three';
 import { giveItem, addSteps, ITEMS } from './profile.js';
+import { ICONS } from './icons.js';
 
 const TOUCH = matchMedia('(hover: none)').matches;
 
@@ -57,31 +58,31 @@ export function initTutorial(K) {
   });
 
   const nm = () => profile.name || '손님';
-  // 단계: say 말, keys 컴퓨터 키 [키, 뜻], touch 휴대폰에서 바꿔 할 말, done 다 했는지, auto 읽고 넘기는 단계
+  // 단계: aim 눌러야 할 단추(aria-label, 안내 중 초록 고리로 반짝임), say 말, keys 컴퓨터 키 [키, 뜻], touch 휴대폰에서 바꿔 할 말, done 다 했는지, auto 읽고 넘기는 단계
   const CAFE = [
     { auto: true, say: () => `샬롬, ${nm()}님! 저는 이 카페를 돌보는 바나바예요. 여기서 쉬어 가는 법을 하나씩 알려 드릴게요.`, verse: '저가 이르러 하나님의 은혜를 보고 기뻐하여 모든 사람에게 굳은 마음으로 주께 붙어 있으라 권하니 (사도행전 11:23)' },
-    { say: '먼저 걸어 볼까요?', keys: [['↑ ↓', '앞으로 · 뒤로'], ['← →', '몸 돌리기']], touch: '왼쪽 아래 동그라미를 밀거나, 가고 싶은 곳을 화면에서 눌러 보세요.', done: (r) => r.moved > 4 },
-    { say: '교제의 자리, 카운터로 가 봐요.', keys: [['C', '카운터로 걸어가기']], touch: '위쪽 줄의 컵 단추를 누르면 카운터로 걸어가요.', done: () => near('order') },
-    { say: '여기서 마실 것이나 빵을 받을 수 있어요. 메뉴를 열고 하나 골라 보세요.', keys: [['C', '메뉴 열기'], ['마우스', '메뉴에서 고르기']], touch: '반짝이는 주문 단추를 누르고 메뉴에서 하나 골라 보세요.', done: () => me.item === 'cup' || !!me.food },
-    { say: '받았네요! 한 모금 마시거나 한 입 먹어 봐요.', keys: [['L', '마시기 · 먹기']], touch: '오른쪽의 마시기(먹기) 단추를 눌러 보세요.', done: () => marks.has('sip') || marks.has('eat') },
-    { say: '이제 자리에 앉아 볼까요? 가까운 의자가 있으면 거기에 앉아요.', keys: [['J', '앉기 · 일어서기']], touch: '오른쪽의 앉기 단추를 눌러 보세요.', done: () => me.state === 'sit' },
-    { say: '누워서 쉴 수도 있어요. 가만히 있으면 화면 가장자리가 따뜻해져요.', keys: [['K', '눕기']], touch: '오른쪽의 눕기 단추를 눌러 보세요.', done: () => lying() },
-    { say: '이 카페는 수레바퀴 모양이에요. 첫째는 말씀이에요. 성경을 펼치면 한 구절이 떠요.', keys: [['Z', '말씀 읽기'], ['Enter', '다음 구절']], touch: '오른쪽의 책 단추를 눌러 보세요. 말씀 카드를 누르면 다음 구절로 넘어가요.', done: () => marks.has('read') },
-    { say: '둘째는 기도예요. 그 자리에서 손을 모아요.', keys: [['X', '기도']], touch: '오른쪽의 기도 단추를 눌러 보세요.', done: () => marks.has('pray') },
-    { say: '찬양도 해 봐요.', keys: [['B', '찬양']], touch: '오른쪽의 찬양 단추를 눌러 보세요.', done: () => marks.has('praise') },
-    { say: '증거는 받은 빛을 나누는 거예요. 곁에 사람이 있으면 빛을 건네고, 없으면 전도의 말씀이 떠요.', keys: [['V', '증거']], touch: '곁에 사람이 있으면 빛 단추로 빛을 건넬 수 있어요. 지금은 손 흔들기 단추로 인사해 보세요.', done: () => marks.has('KeyV') || marks.has('share') || marks.has('wave') },
-    { say: '전체 지도를 열어 볼까요? 지도에서 누른 곳으로 걸어가요.', keys: [['M', '지도 열기 · 닫기'], ['Esc', '닫기']], touch: '위쪽의 지도 단추를 눌러 보세요.', done: () => marks.has('mapOpen') && map.el.hidden },
+    { aim: [], say: '먼저 걸어 볼까요?', keys: [['↑ ↓', '앞으로 · 뒤로'], ['← →', '몸 돌리기']], touch: '왼쪽 아래 동그라미를 밀거나, 가고 싶은 곳을 화면에서 눌러 보세요.', done: (r) => r.moved > 4 },
+    { aim: ['cafe menu', 'order'], say: '교제의 자리, 카운터로 가 봐요.', keys: [['C', '카운터로 걸어가기']], touch: '위쪽의 카페 단추를 눌러 펼친 다음, 컵 단추를 누르면 카운터로 걸어가요.', done: () => near('order') },
+    { aim: ['order'], say: '여기서 마실 것이나 빵을 받을 수 있어요. 메뉴를 열고 하나 골라 보세요.', keys: [['C', '메뉴 열기'], ['마우스', '메뉴에서 고르기']], touch: '반짝이는 주문 단추를 누르고 메뉴에서 하나 골라 보세요.', done: () => me.item === 'cup' || !!me.food },
+    { aim: ['sip', 'eat'], say: '받았네요! 한 모금 마시거나 한 입 먹어 봐요.', keys: [['L', '마시기 · 먹기']], touch: '오른쪽의 마시기(먹기) 단추를 눌러 보세요.', done: () => marks.has('sip') || marks.has('eat') },
+    { aim: ['sit'], say: '이제 자리에 앉아 볼까요? 가까운 의자가 있으면 거기에 앉아요.', keys: [['J', '앉기 · 일어서기']], touch: '오른쪽의 앉기 단추를 눌러 보세요.', done: () => me.state === 'sit' },
+    { aim: ['recline'], say: '누워서 쉴 수도 있어요. 가만히 있으면 화면 가장자리가 따뜻해져요.', keys: [['K', '눕기']], touch: '오른쪽의 눕기 단추를 눌러 보세요.', done: () => lying() },
+    { aim: ['read'], say: '이 카페는 수레바퀴 모양이에요. 첫째는 말씀이에요. 성경을 펼치면 한 구절이 떠요.', keys: [['Z', '말씀 읽기'], ['Enter', '다음 구절']], touch: '오른쪽의 책 단추를 눌러 보세요. 말씀 카드를 누르면 다음 구절로 넘어가요.', done: () => marks.has('read') },
+    { aim: ['pray'], say: '둘째는 기도예요. 그 자리에서 손을 모아요.', keys: [['X', '기도']], touch: '오른쪽의 기도 단추(두 손을 모은 모양)를 눌러 보세요.', done: () => marks.has('pray') },
+    { aim: ['praise'], say: '찬양도 해 봐요.', keys: [['B', '찬양']], touch: '오른쪽의 찬양 단추(음표 모양)를 눌러 보세요.', done: () => marks.has('praise') },
+    { aim: ['share', 'wave'], say: '증거는 받은 빛을 나누는 거예요. 곁에 사람이 있으면 빛을 건네고, 없으면 전도의 말씀이 떠요.', keys: [['V', '증거']], touch: '곁에 사람이 있으면 빛 단추로 빛을 건넬 수 있어요. 지금은 손 흔들기 단추로 인사해 보세요.', done: () => marks.has('KeyV') || marks.has('share') || marks.has('wave') },
+    { aim: ['map'], say: '전체 지도를 열어 볼까요? 지도에서 누른 곳으로 걸어가요.', keys: [['M', '지도 열기 · 닫기'], ['Esc', '닫기']], touch: '위쪽의 지도 단추를 눌러 보세요.', done: () => marks.has('mapOpen') && map.el.hidden },
     { auto: true, desk: true, say: '단축키가 생각나지 않으면 언제든 물음표를 누르세요.', keys: [['? / F1', '단축키 안내']] },
     { auto: true, end: true, say: () => `잘하셨어요, ${nm()}님! 이 광주리를 드릴게요. 받은 것을 담는 바구니예요. 오늘의 만나도 넣어 두었어요. 문 밖 정원에서는 정원지기 아담이 기다려요.`, reward: ['basket', 'manna'] },
   ];
   const GARDEN = [
     { auto: true, say: () => `${nm()}님, 어서 오세요. 저는 정원지기 아담이에요. 정원과 숲을 다니는 법을 알려 드릴게요.`, verse: '여호와 하나님이 그 사람을 이끌어 에덴 동산에 두사 그것을 다스리며 지키게 하시고 (창세기 2:15)' },
-    { say: '정원에서는 저절로 달려요. 천천히 걷고 싶으면 걷기로 바꿔요.', keys: [['Shift', '걷기 ↔ 달리기']], touch: '오른쪽의 걷기 단추를 눌러 보세요.', done: () => marks.has('walk') || marks.has('run') },
-    { say: '뛰어 볼까요? 공중에서 또 누르면 두 번, 세 번 뛰어요.', keys: [['Space', '점프']], touch: '오른쪽의 점프 단추를 눌러 보세요.', done: () => marks.has('jump') },
-    { say: '정원 바깥 숲에는 성경 이야기를 따라 걷는 코스가 많아요. 지도를 열면 아래에 코스 이름이 있고, 누르면 그 시작점으로 가요.', keys: [['M', '지도'], ['마우스', '가고 싶은 곳 누르기']], touch: '위쪽의 지도 단추를 누르고, 가고 싶은 곳이나 아래의 코스 이름을 눌러 보세요.', done: () => marks.has('mapOpen') && map.el.hidden },
+    { aim: ['walk', 'run'], say: '정원에서는 저절로 달려요. 천천히 걷고 싶으면 걷기로 바꿔요.', keys: [['Shift', '걷기 ↔ 달리기']], touch: '오른쪽의 걷기 단추를 눌러 보세요.', done: () => marks.has('walk') || marks.has('run') },
+    { aim: ['jump'], say: '뛰어 볼까요? 공중에서 또 누르면 두 번, 세 번 뛰어요.', keys: [['Space', '점프']], touch: '오른쪽의 점프 단추를 눌러 보세요.', done: () => marks.has('jump') },
+    { aim: ['map'], say: '정원 바깥 숲에는 성경 이야기를 따라 걷는 코스가 많아요. 지도를 열면 아래에 코스 이름이 있고, 누르면 그 시작점으로 가요.', keys: [['M', '지도'], ['마우스', '가고 싶은 곳 누르기']], touch: '위쪽의 지도 단추를 누르고, 가고 싶은 곳이나 아래의 코스 이름을 눌러 보세요.', done: () => marks.has('mapOpen') && map.el.hidden },
     { say: '금빛으로 반짝이는 단추는 그 자리에서만 하는 체험이에요. 꽃밭 곁에서는 꽃을 들고, 여리고 성이나 다윗과 골리앗 같은 성경 이야기 터에서는 그 이야기를 겪어 볼 수 있어요.', keys: [['E', '그 자리 체험']], touch: '꽃밭이나 성경 이야기 터로 가서 반짝이는 단추를 눌러 보세요.', done: () => marks.has('place') },
-    { say: '풀밭에 누워 하늘을 볼까요? 누운 채로 별을 볼 수 있어요.', keys: [['K', '눕기'], ['N', '별 보기']], touch: '눕기 단추를 누른 다음, 반짝이는 별 단추를 눌러 보세요.', done: () => marks.has('stars') },
-    { say: '마음에 드는 풍경은 사진으로 남겨요.', keys: [['P', '사진 모드'], ['Space', '찰칵'], ['Esc', '나오기']], touch: '위쪽의 사진기 단추를 눌러 보세요.', done: () => marks.has('photo') && !photoOn() },
+    { aim: ['recline', 'stars'], say: '풀밭에 누워 하늘을 볼까요? 누운 채로 별을 볼 수 있어요.', keys: [['K', '눕기'], ['N', '별 보기']], touch: '눕기 단추를 누른 다음, 반짝이는 별 단추를 눌러 보세요.', done: () => marks.has('stars') },
+    { aim: ['photo'], say: '마음에 드는 풍경은 사진으로 남겨요.', keys: [['P', '사진 모드'], ['Space', '찰칵'], ['Esc', '나오기']], touch: '위쪽의 사진기 단추를 눌러 보세요.', done: () => marks.has('photo') && !photoOn() },
     { auto: true, end: true, say: () => `이제 마음껏 다녀 보세요, ${nm()}님. 이 겨자씨를 드릴게요. 정원 곳곳에는 수레바퀴 훈련장 다섯이 있어요. 에스라, 다니엘, 아굴라와 브리스길라, 빌립, 아브라함이 기다리니 곁에 가서 말을 걸어 보세요. 작은 씨가 자라 큰 나무가 되듯 말씀 안에서 자라 가요.`, reward: ['mustard'] },
   ];
 
@@ -108,6 +109,9 @@ export function initTutorial(K) {
     const showKeys = !TOUCH && s.keys;
     $('.keys').innerHTML = showKeys ? s.keys.map(([k, d]) => `<span><kbd>${k}</kbd>${d}</span>`).join('') : '';
     if (TOUCH && s.touch) { const p = document.createElement('span'); p.className = 'tt'; p.textContent = s.touch; $('.keys').append(p); }
+    // 눌러야 할 단추 모양을 말풍선에도 보여 줌 (기도·찬양처럼 비슷한 단추를 헷갈리지 않게)
+    const icons = (s.aim || []).filter((n) => ICONS[n] && n !== 'cafe menu');
+    if (icons.length) { const q = document.createElement('span'); q.className = 'ico'; q.innerHTML = icons.map((n) => `<i>${ICONS[n]}</i>`).join(''); $('.keys').prepend(q); }
     $('.next').hidden = !s.auto;
     $('.next').textContent = s.end ? '감사해요' : '다음';
     $('.skip').hidden = !!s.auto;
@@ -130,6 +134,7 @@ export function initTutorial(K) {
     const r = run;
     run = null;
     box.hidden = true;
+    aimAt(null);
     document.body.classList.remove('tutoring');
     if (how) {
       if (!profile.tut[r.id] || how === 'done') profile.tut[r.id] = how;
@@ -150,6 +155,11 @@ export function initTutorial(K) {
     if (r.id === 'cafe') setTimeout(() => walkTo(barnabas, home.barnabas, () => { barnabas.face = Math.PI; }), 1200);
   }
 
+  // 지금 단계에서 눌러야 할 단추에 초록 고리 (단추 줄은 자주 다시 그려지므로 0.2초마다 다시 붙임)
+  function aimAt(names) {
+    for (const el of document.querySelectorAll('.tutAim')) if (!names || !names.includes(el.getAttribute('aria-label'))) el.classList.remove('tutAim');
+    for (const n of names || []) for (const el of document.querySelectorAll(`#actions [aria-label="${n}"], #places [aria-label="${n}"]`)) el.classList.add('tutAim');
+  }
   // 키나 단추를 눌렀을 때 main.js에서 알려 줌
   function mark(name, place) {
     marks.add(name);
@@ -174,6 +184,7 @@ export function initTutorial(K) {
     if (now - tick < 200) return;
     tick = now;
     const s = run.list[run.i];
+    aimAt(box.classList.contains('ok') ? null : s.aim);
     if (s.auto || box.classList.contains('ok')) return;
     if (s.done && s.done(run)) {
       box.classList.add('ok');

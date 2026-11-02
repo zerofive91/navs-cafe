@@ -434,12 +434,10 @@ html.rot #musicPanel { max-height: calc(100vw - 64px); }
 /* 그 자리에서만 할 수 있는 체험: 금빛 테두리가 숨 쉬듯 반짝임 */
 .act.place { box-shadow: 0 0 0 3px #ffd77a, 0 0 14px 4px rgba(255, 210, 110, 0.75); animation: actGlow 1.6s ease-in-out infinite; }
 @keyframes actGlow { 50% { box-shadow: 0 0 0 3px #ffe7a8, 0 0 22px 8px rgba(255, 220, 130, 0.95); } }
-/* 정원에서는 카페 바로가기를 접음 */
-#places .place.fold { display: none; }
-#places.out .place.fold { display: grid; }
-#places.out .place.cafe { display: none; }
-#places.out.open .place.cafe { display: grid; }
-#places.out.open .place.fold { background: #fffaf0; color: #6b4f3a; }
+/* 카페 바로가기 다섯은 늘 '카페' 단추 하나로 접어 둠 (누르면 펼침) */
+#places .place.cafe { display: none; }
+#places.open .place.cafe { display: grid; }
+#places.open .place.fold { background: #fffaf0; color: #6b4f3a; }
 /* 컴퓨터 단축키 안내 */
 #keyhelp { position: fixed; inset: 0; z-index: 55; display: grid; place-items: center; background: rgba(40, 30, 15, 0.35); }
 #keyhelp[hidden] { display: none; }
@@ -521,6 +519,12 @@ html.rot #meChip { top: auto; bottom: 120px; }
 .npcb .keys { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 8px; font: 500 13px system-ui, sans-serif; }
 .npcb .keys:empty { display: none; }
 .npcb .keys span { display: flex; align-items: center; gap: 6px; }
+.npcb .keys .ico { display: flex; gap: 6px; flex: 0 0 100%; }
+.npcb .keys .ico i { width: 38px; height: 38px; border-radius: 50%; background: #fffaf0; color: #6b4f3a; display: grid; place-items: center; box-shadow: 0 0 0 3px #7cc49a; }
+.npcb .keys .ico svg { width: 24px; height: 24px; }
+/* 안내 중 눌러야 할 단추: 초록 고리가 숨 쉬듯 */
+.tutAim { box-shadow: 0 0 0 3px #5fbf8a, 0 0 16px 6px rgba(95, 191, 138, 0.8) !important; animation: tutAim 1.2s ease-in-out infinite !important; }
+@keyframes tutAim { 50% { box-shadow: 0 0 0 4px #8ee0b0, 0 0 24px 10px rgba(110, 210, 150, 0.95); transform: scale(1.08); } }
 .npcb .keys .tt { font: 500 13.5px/1.5 "Noto Serif KR", serif; color: #7a5a3a; word-break: keep-all; }
 .npcb kbd { min-width: 28px; padding: 2px 7px; border-radius: 7px; background: #fff; border: 1px solid #d8c8a8; box-shadow: 0 2px 0 #d8c8a8; font: 700 12px system-ui, sans-serif; text-align: center; }
 .npcb .row { display: flex; justify-content: flex-end; gap: 6px; margin-top: 8px; }

@@ -46,6 +46,23 @@ export function initMap({ me, people, walkTo, say, icon, placesEl, before }) {
     if (!sub.length) continue;
     order.push([null, title], ...sub.map((id) => [id]));
   }
+  // 정원 훈련장 다섯: 이름을 누르면 그 훈련장으로 걸어감
+  const TRAIN = [['t_word', '말씀', '#e8c56a'], ['t_pray', '기도', '#9ec3e6'], ['t_fellow', '교제', '#f0a878'], ['t_witness', '증거', '#f2d27a'], ['t_obey', '순종', '#a8d48a']];
+  const goZone = (id, name) => {
+    const q = nearestFree(PARK[id]);
+    const path = q ? findPath(me, q) : [];
+    if (q && (path.length || Math.hypot(q.x - me.x, q.z - me.z) < 1)) { walkTo(me, q, null, path); shut(); say?.(name + '으로 가요', 2); }
+  };
+  { const sp = document.createElement('span'); sp.textContent = '정원 훈련장'; pick.appendChild(sp); }
+  for (const [id, nm, c] of TRAIN) {
+    const b = document.createElement('button');
+    b.textContent = nm + ' 훈련장';
+    b.style.setProperty('--c', c);
+    b.dataset.zone = id;
+    b.addEventListener('pointerdown', (e) => { e.stopPropagation(); });
+    b.addEventListener('click', (e) => { e.stopPropagation(); goZone(id, nm + ' 훈련장'); });
+    pick.appendChild(b);
+  }
   for (const [id, title] of order) {
     if (!id) { const sp = document.createElement('span'); sp.textContent = title; pick.appendChild(sp); continue; }
     const b = document.createElement('button');
@@ -151,6 +168,7 @@ export function initMap({ me, people, walkTo, say, icon, placesEl, before }) {
     // 이름: 정원 구역, 카페 네 구역 (가까이 볼수록 더 많이)
     const fz = Math.max(10, Math.min(14, 2.6 * V.k + 6));
     if (V.k > 1.1) for (const [id, zn] of Object.entries(PARK)) label(KOR[id] || id, zn.x, zn.z, { size: fz - 1, color: '#fff1cf' });
+    else for (const [id, nm, c] of TRAIN) { circle(PARK[id].x, PARK[id].z, Math.max(3.5, 4 / V.k), c, 'rgba(255,250,235,0.9)', 1.5); label(nm, PARK[id].x, PARK[id].z, { size: 10, color: '#fff6e0', weight: 700, dy: -11 }); } // 멀리서 보면 훈련장 다섯만 점과 이름으로
     if (V.k > 1.6) {
       for (const [id, nm] of [['prayer', '기도'], ['fellow', '교제'], ['witness', '증거'], ['word', '말씀']]) label(nm, Q[id].x, Q[id].z, { size: fz, color: '#3a2a18', weight: 700 });
       label('그리스도', 0, 0, { size: fz - 1, color: '#6b4a1a', weight: 700 });

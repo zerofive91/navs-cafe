@@ -558,12 +558,15 @@ function availableActions() {
   // 그 장소에서만 할 수 있는 일
   if (near(SPOTS.light)) place('light');
   if (near(SPOTS.order) && (!me.item || !me.food)) place('order');
-  if (near(SPOTS.boat)) place('boat');
+  // 증거의 물가: 한 번에 하나만 (베드로 부탁 중이면 그물, 배에 앉으면 낚시, 아니면 배 타기)
+  const inBoat = me.state === 'sit' && me.seat && me.seat.kind === 'boat';
+  const netting = list.includes('q_net');
+  if (near(SPOTS.boat) && !inBoat && !netting) place('boat');
   if (Math.hypot(me.x, me.z) > R_RIM_IN - 1 && Math.hypot(me.x, me.z) < R_HALL) place('water');
   if (me.item === 'cup') list.push('sip');
   if (me.food) list.push('eat');
   if (signs.nearBread()) place('loaves');
-  if (signs.canFish()) place('fish');
+  if (inBoat && !netting && signs.canFish()) place('fish');
   place(...park.available());
   if (outdoors(me) && nearTree(me.x, me.z, 1.8, 3.6)) list.push('climb');
   for (const v of leisure.available()) { if (Array.isArray(v)) place(v[1]); else list.push(v); } // 연·꽃·물수제비·별·씨앗
@@ -924,11 +927,11 @@ const PLACES = [
   ['boat', SPOTS.boat, Q.witness],
   ['garden', { x: 0, z: R_PARK - 2 }, { x: 0, z: 80 }],
 ];
-// 정원에 나가면 카페 바로가기 다섯 개는 접고 '카페' 단추 하나만 (누르면 펼침)
+// 카페 바로가기 다섯 개는 늘 접어 두고 '카페' 단추 하나만 (누르면 펼침, 하나 고르면 다시 접힘)
 const cafeFold = document.createElement('button');
 cafeFold.className = 'place fold';
 cafeFold.setAttribute('aria-label', 'cafe menu');
-cafeFold.innerHTML = ICONS.door;
+cafeFold.innerHTML = ICONS.cafe;
 cafeFold.addEventListener('pointerdown', (e) => { e.stopPropagation(); placesEl.classList.toggle('open'); });
 placesEl.appendChild(cafeFold);
 function foldCafeMenu(out) {
@@ -1442,4 +1445,4 @@ setTimeout(() => {
   for (const n of npcs) if (n.av) upgradeCup(n.av);
 }, 300);
 
-window.__cafe = { profile, tut, character, training, dungeon, quests, camera, shot, together, me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs, placed, park, scrolls, renderer, map };
+window.__cafe = { availableActions, profile, tut, character, training, dungeon, quests, camera, shot, together, me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs, placed, park, scrolls, renderer, map };
