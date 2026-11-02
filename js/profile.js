@@ -42,6 +42,8 @@ function fill(p = {}) {
     tut: p.tut && typeof p.tut === 'object' ? p.tut : {}, // { cafe: 'done' | 'skip', garden: ... }
     stats: Object.fromEntries(STATS.map((x) => [x.id, (p.stats && p.stats[x.id]) | 0])),
     train: p.train && typeof p.train === 'object' ? p.train : {}, // { word: 'basic', ... }
+    quests: p.quests && typeof p.quests === 'object' ? p.quests : {}, // 정원의 부탁 { sheep: 'done', ... }
+    dungeon: p.dungeon && typeof p.dungeon === 'object' ? p.dungeon : {}, // 이긴 숲길 { exodus: 'clear', ... }
     since: p.since || null,
   };
 }

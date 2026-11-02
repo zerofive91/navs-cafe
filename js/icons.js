@@ -40,6 +40,14 @@ export const ICONS = {
   // 앉기 / 일어서기
   sit: svg('<circle cx="13" cy="6" r="3"/><path d="M13 10v8h8v8M8 26V16"/><path d="M6 20h4"/>'),
   stand: svg('<circle cx="16" cy="5" r="3"/><path d="M16 9v10M11 14l5-2 5 2M12 28l4-9 4 9"/>'),
+  // 정원의 부탁: 건네기, 줍기, 먹기, 비둘기 날리기
+  q_give: svg('<path d="M4 22h7l6 3 10-5"/><path d="M11 22c2-2 5-2 8-1"/><path d="M15 7h8l-1 9h-6z"/><path d="M16 10h6"/>'),
+  q_pick: svg('<path d="M6 26h20"/><ellipse cx="16" cy="22" rx="4" ry="2.4"/><path d="M16 4v9M12 9l4 4 4-4"/>'),
+  q_eat: svg('<ellipse cx="13" cy="20" rx="8" ry="3"/><path d="M5 20v2c0 2 4 3 8 3s8-1 8-3v-2"/><path d="M24 12h4l-1 13h-2z"/><path d="M12 8c0-2 2-2 2-4M16 9c0-2 2-2 2-4"/>'),
+  q_dove: svg('<path d="M4 18c6 0 9-3 12-8 2 4 6 6 12 5-3 5-8 8-14 8-4 0-7-2-10-5z"/><path d="M16 10c-2-3-5-5-9-5 1 4 3 7 7 9"/><circle cx="25" cy="15" r="0.8" fill="currentColor"/>'),
+  q_net: svg('<path d="M5 6l22 0-4 20H9z"/><path d="M7 13h18M8 19h16M12 6l1 20M20 6l-1 20"/>'),
+  // 길 끝에서 입구로 돌아가기
+  goback: svg('<path d="M6 27V11a10 10 0 0 1 20 0v16"/><path d="M10 27V12a6 6 0 0 1 12 0v15"/><path d="M20 20h-8M15 17l-3 3 3 3"/>'),
   // 보따리 들기 (교제 훈련장)
   bundle: svg('<path d="M10 12c0-3 2.5-5 6-5s6 2 6 5"/><path d="M8 12h16l-2 15H10z"/><path d="M13 17h6"/>'),
   // 전도: 빛을 건넴

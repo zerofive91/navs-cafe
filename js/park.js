@@ -8,6 +8,7 @@ import { place } from './props.js';
 import { showVerse, showNext } from './verses.js';
 import { addStories } from './stories.js';
 import { addCourses } from './courses.js';
+import { emit } from './bus.js';
 
 const G0 = -0.5; // 잔디 높이
 const loader = new GLTFLoader();
@@ -617,7 +618,7 @@ export function initPark({ scene, me, interactive, act, sfx, fxSprite, burst, wa
         if (Math.hypot(L.x - zn.x, L.z - zn.z) < 3.6) {
           lost.state = 'home'; lost.t = 0;
           burst(L.x, L.y + 0.8, L.z); sfx('share', 0.3);
-          showVerse('sheep', { delay: 0.6, cooldown: 30 });
+          showVerse('sheep', { delay: 0.6, cooldown: 30 }); emit('sheepHome');
           flock.push({ o: lost.o, tgt: null, wait: 2 });
         }
       } else if (lost.state === 'home') {

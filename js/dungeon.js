@@ -1,0 +1,285 @@
+// 숲길 던전 (2026-11): 숲 코스마다 난이도(별 하나~셋)와 들어갈 수 있는 단계가 있음
+//   대적은 사람이 아니라 어둠의 속삭임 (엡 6:12). 속삭임이 길을 막으면 세 구절 중 맞는 말씀을 골라 물리침
+//   (예수님의 광야 시험처럼, 암송 없이 고르기만). 막히면 기도(X)하면 맞는 말씀이 떠오름
+//   잘못 고르면 넘어지지만 바로 앞 정거장에서 다시 일어남 (미 7:8)
+//   길의 속삭임을 모두 물리치면 걸음·말씀·순종이 자람. 생명의 다리·복음·고난의 길은 누구나 걷는 열린 길
+import * as THREE from 'three';
+import { TRAILS, R_PARK, floorY } from './layout.js';
+import { VERSES, showVerse } from './verses.js';
+import { STAGES, stageOf, addSteps, addStat } from './profile.js';
+
+// 별 하나: 새싹부터, 별 둘: 제자부터, 별 셋: 일꾼부터
+export const TIER = {
+  creation: 1, magi: 1, jesus: 1, fruit: 1,
+  exodus: 2, pilgrim: 2, wisdom: 2, faith: 2, deity: 2, humanity: 2, love: 2, obey: 2, heaven: 2,
+  armor: 3, revelation: 3,
+};
+export const TIER_STAGE = { 1: '새싹', 2: '제자', 3: '일꾼' };
+export const stars = (id) => (TIER[id] ? '★'.repeat(TIER[id]) : '');
+const REWARD = { 1: 30, 2: 50, 3: 80 };
+
+// 거짓 속삭임과 그것을 이기는 말씀 (개역한글). 함께 보이는 두 구절은 이 거짓과 상관없는 말씀
+const W = {
+  A: ['사람이 떡으로만 살것이 아니요 하나님의 입으로 나오는 모든 말씀으로 살 것이라', '마태복음 4:4'],
+  B: ['주 너의 하나님을 시험치 말라', '마태복음 4:7'],
+  C: ['주 너의 하나님께 경배하고 다만 그를 섬기라', '마태복음 4:10'],
+  D: ['내게 능력 주시는 자 안에서 내가 모든 것을 할 수 있느니라', '빌립보서 4:13'],
+  E: ['그들은 혹시 잊을찌라도 나는 너를 잊지 아니할 것이라', '이사야 49:15'],
+  F: ['두려워 말며 놀라지 말라 네가 어디로 가든지 네 하나님 여호와가 너와 함께 하느니라', '여호수아 1:9'],
+  G: ['너희 죄가 주홍 같을찌라도 눈과 같이 희어질 것이요', '이사야 1:18'],
+  H: ['내일 일을 위하여 염려하지 말라', '마태복음 6:34'],
+  I: ['우리는 그의 만드신바라 그리스도 예수 안에서 선한 일을 위하여 지으심을 받은 자니', '에베소서 2:10'],
+  J: ['내 멍에는 쉽고 내 짐은 가벼움이라', '마태복음 11:30'],
+  K: ['거짓을 버리고 각각 그 이웃으로 더불어 참된 것을 말하라', '에베소서 4:25'],
+  L: ['너는 내게 부르짖으라 내가 네게 응답하겠고', '예레미야 33:3'],
+  M: ['시험 당할 즈음에 또한 피할 길을 내사 너희로 능히 감당하게 하시느니라', '고린도전서 10:13'],
+};
+const LIES = {
+  A: ['배고프지? 이 돌로 떡을 만들어 먹어. 말씀은 나중에 봐도 돼.', 'KG'],
+  B: ['여기서 뛰어내려 봐. 하나님이 정말 지키시는지 시험해 보자.', 'HI'],
+  C: ['나에게 한 번만 절하면 이 숲을 다 너에게 줄게.', 'GD'],
+  D: ['너는 못 해. 너무 약하잖아.', 'KB'],
+  E: ['하나님은 너를 잊으셨어. 아무도 너를 기억하지 않아.', 'AK'],
+  F: ['저 앞은 너무 무서워. 혼자서는 못 지나가.', 'KA'],
+  G: ['네 잘못은 너무 커서 용서받을 수 없어.', 'AB'],
+  H: ['내일 일이 걱정되지? 밤새 걱정해야 해.', 'KC'],
+  I: ['넌 쓸모없어. 아무것도 할 줄 모르잖아.', 'BH'],
+  J: ['이 길은 너무 어려워. 그냥 돌아가자.', 'KC'],
+  K: ['조금만 속이면 쉬워져. 아무도 몰라.', 'EH'],
+  L: ['기도해도 소용없어. 아무도 안 들어.', 'KA'],
+  M: ['이번 유혹은 너무 세. 넘어질 수밖에 없어.', 'KA'],
+};
+const SMALL = 'ABCDEGHIKL'.split(''), BIG = 'FJM'.split('');
+for (const [k, v] of Object.entries(W)) VERSES['dg-' + k] = v;
+VERSES['dg-rise'] = ['나의 대적이여 나로 인하여 기뻐하지 말찌어다 나는 엎드러질찌라도 일어날 것이요 어두운데 앉을찌라도 여호와께서 나의 빛이 되실 것임이로다', '미가 7:8'];
+VERSES['dg-win'] = ['그러나 이 모든 일에 우리를 사랑하시는 이로 말미암아 우리가 넉넉히 이기느니라', '로마서 8:37'];
+VERSES['dg-enter'] = ['우리의 씨름은 혈과 육에 대한 것이 아니요 정사와 권세와 이 어두움의 세상 주관자들과 하늘에 있는 악의 영들에게 대함이라', '에베소서 6:12'];
+
+const hash = (s) => { let h = 7; for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; };
+const shuffle = (a, seed) => { const r = a.slice(); let s = seed || 1; for (let i = r.length - 1; i > 0; i--) { s = (s * 1103515245 + 12345) >>> 0; const j = s % (i + 1); [r[i], r[j]] = [r[j], r[i]]; } return r; };
+export const gateOf = (tr) => tr.samples.find((q) => Math.hypot(q.x, q.z) > R_PARK + 2.2) || tr.samples[0];
+const rootOf = (id) => { let t = TRAILS[id]; while (t && t.from) t = TRAILS[t.from[0]]; return t ? t.id : id; };
+
+export function initDungeon(K) {
+  const { scene, me, profile, save, toast, sfx, burst, fxSprite, busy, onChange, courseName } = K;
+  const stageIx = () => STAGES.indexOf(stageOf(profile.steps));
+  const needIx = (id) => (TIER[id] || 1) - 1; // 새싹 0, 제자 1, 일꾼 2
+  const open = (id) => !TIER[id] || stageIx() >= needIx(id);
+  const gy = (p) => floorY(p.x, p.z);
+
+  // ---------- 길 입구 표지: 별과 들어갈 수 있는 단계 ----------
+  const signTex = (text, sub) => {
+    const cv = document.createElement('canvas'); cv.width = 256; cv.height = 96;
+    const g = cv.getContext('2d');
+    g.fillStyle = 'rgba(60,44,30,0.82)'; g.beginPath(); g.roundRect(18, 6, 220, 84, 18); g.fill();
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillStyle = '#ffd56a'; g.font = '700 34px system-ui, sans-serif'; g.fillText(text, 128, 34);
+    g.fillStyle = '#fff4dc'; g.font = '600 24px "Noto Serif KR", serif'; g.fillText(sub, 128, 70);
+    const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
+  };
+  const signs = [];
+  for (const id of Object.keys(TIER)) {
+    const tr = TRAILS[id]; if (!tr) continue;
+    const p = gateOf(tr);
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: signTex(stars(id), TIER_STAGE[TIER[id]] + '부터'), transparent: true, depthWrite: false }));
+    sp.scale.set(2.2, 0.82, 1); sp.position.set(p.x, gy(p) + 3.75, p.z); scene.add(sp);
+    signs.push({ sp, p });
+  }
+
+  // ---------- 어둠의 속삭임 ----------
+  const darkMat = () => new THREE.MeshBasicMaterial({ color: 0x1c1626, transparent: true, opacity: 0.55, depthWrite: false });
+  const shades = [];
+  const byCourse = {};
+  for (const [id, tier] of Object.entries(TIER)) {
+    const tr = TRAILS[id]; if (!tr) continue;
+    const st = tr.stations, last = st.length - 1, n = tier + 1;
+    const gaps = new Set();
+    for (let k = 0; k < n - 1; k++) gaps.add(Math.max(0, Math.min(last - 2, Math.round(((k + 1) * (last - 1)) / n) - 1)));
+    gaps.add(last - 1);
+    const seed = hash(id);
+    const small = shuffle(SMALL, seed), big = BIG[seed % BIG.length];
+    const list = [...gaps].sort((a, b) => a - b);
+    byCourse[id] = [];
+    list.forEach((gi, k) => {
+      const isBig = gi === last - 1;
+      const p = tr.sample((st[gi].f + st[gi + 1].f) / 2);
+      const g = new THREE.Group();
+      const parts = [];
+      for (let q = 0; q < 5; q++) { const m = new THREE.Mesh(new THREE.SphereGeometry(0.55 - q * 0.05, 12, 10), darkMat()); g.add(m); parts.push(m); }
+      for (let q = 0; q < 3; q++) { const s = fxSprite('circle_05', 0x2a2038, 2.6); s.material.blending = THREE.NormalBlending; s.material.opacity = 0.45; s.position.y = 1 + q * 0.5; g.add(s); parts.push(s); }
+      g.scale.setScalar(isBig ? 1.9 : 1);
+      g.position.set(p.x, gy(p), p.z); scene.add(g);
+      const S = { id, k, g, parts, x: p.x, z: p.z, back: st[gi], lie: isBig ? big : small[k % small.length], big: isBig, beaten: false, fade: -1 };
+      shades.push(S); byCourse[id].push(S);
+    });
+  }
+
+  // ---------- 시험 말풍선 ----------
+  const box = document.createElement('div');
+  box.className = 'npcb trial'; box.id = 'trial'; box.hidden = true;
+  box.innerHTML = '<div class="who"><b></b><span class="n"></span></div><p class="say"></p><div class="opts"></div><div class="row"><button class="later">물러나기</button></div>';
+  document.body.appendChild(box);
+  const $ = (s) => box.querySelector(s);
+  let cur = null, closedFor = null, opts = [];
+  box.addEventListener('pointerdown', (e) => {
+    e.stopPropagation();
+    const o = e.target.closest('.opt');
+    if (o) return choose(Number(o.dataset.i));
+    if (e.target.classList.contains('later')) { closedFor = cur; close(); }
+  });
+  addEventListener('keydown', (e) => {
+    if (!cur || cur.wait) return;
+    const m = /^(?:Digit|Numpad)([1-3])$/.exec(e.code);
+    if (m) { e.stopPropagation(); e.preventDefault(); choose(Number(m[1]) - 1); }
+    else if (e.code === 'KeyX') hint(); // 기도하면 맞는 말씀이 떠오름 (기도 동작은 그대로)
+  }, true);
+  const close = () => { box.hidden = true; cur = null; document.body.classList.remove('talking', 'trialing'); };
+  function meet(S) {
+    cur = S;
+    me.path = []; me.task = null; if (me.state === 'walk') me.state = 'idle';
+    me.face = Math.atan2(S.x - me.x, S.z - me.z);
+    const [lie, wrong] = LIES[S.lie];
+    opts = shuffle([S.lie, ...wrong.split('')], hash(S.id + S.k + performance.now()));
+    const list = byCourse[S.id];
+    $('.who b').textContent = S.big ? '큰 시험 · 어둠의 속삭임' : '어둠의 속삭임';
+    $('.n').textContent = `${courseName(S.id)} · ${list.indexOf(S) + 1} / ${list.length}`;
+    $('.say').textContent = `"${lie}"`;
+    const sm = document.createElement('small'); sm.textContent = '어떤 말씀으로 대답할까요? (1·2·3, 막히면 X 기도)'; $('.say').append(sm);
+    $('.opts').innerHTML = opts.map((k, i) => `<button class="opt" data-i="${i}"><kbd>${i + 1}</kbd><span>${W[k][0]} <em>${W[k][1]}</em></span></button>`).join('');
+    box.hidden = false; box.classList.remove('ok');
+    document.body.classList.add('talking', 'trialing');
+    sfx('impact/impactSoft_heavy_000', 0.2, 0.5);
+  }
+  function choose(i) {
+    const S = cur; if (!S || S.wait || opts[i] == null) return;
+    if (opts[i] === S.lie) {
+      S.beaten = true; S.fade = 0; S.wait = true;
+      box.classList.add('ok'); $(`.opt[data-i="${i}"]`)?.classList.add('hint');
+      sfx('orb', 0.3, 1.2); burst(S.x, gy(S) + 1.2, S.z);
+      showVerse('dg-' + S.lie, { cooldown: 0, title: '말씀으로 물리쳤어요' });
+      setTimeout(() => { S.wait = false; if (cur === S) close(); checkWin(S.id); }, 900);
+    } else {
+      // 넘어짐: 화면이 잠깐 어두워지고 앞 정거장에서 다시 일어남
+      S.wait = true;
+      const b = $(`.opt[data-i="${i}"]`); if (b) b.classList.add('no');
+      sfx('impact/impactSoft_medium_000', 0.3, 0.6);
+      veil.style.opacity = '0.85';
+      setTimeout(() => {
+        const p = S.back;
+        me.x = p.x; me.z = p.z; me.path = []; me.state = 'idle'; me.task = null; me.face = Math.atan2(p.dir.x, p.dir.z);
+        S.wait = false; closedFor = null; close();
+        veil.style.opacity = '0';
+        showVerse('dg-rise', { cooldown: 0, title: '넘어져도 다시 일어나요' });
+      }, 1300);
+    }
+  }
+  function hint() {
+    if (!cur || cur.wait) return;
+    const i = opts.indexOf(cur.lie);
+    $(`.opt[data-i="${i}"]`)?.classList.add('hint');
+    toast('기도하니 마음에 떠오르는 말씀이 있어요', 3);
+  }
+  function checkWin(id) {
+    const list = byCourse[id];
+    const left = list.filter((S) => !S.beaten).length;
+    if (left) { toast(`이 길에 남은 속삭임 ${left}`, 2.5); return; }
+    profile.dungeon = profile.dungeon || {};
+    if (profile.dungeon[id]) { addSteps(profile, 5); save(); onChange?.(); toast(`${courseName(id)}의 시험을 다시 이겼어요 (걸음 +5)`, 4); return; }
+    profile.dungeon[id] = 'clear';
+    const n = REWARD[TIER[id]];
+    addStat(profile, 'word', 5); addStat(profile, 'obey', 5);
+    const up = addSteps(profile, n);
+    save(); onChange?.();
+    setTimeout(() => {
+      showVerse('dg-win', { cooldown: 0, title: `${courseName(id)} ${stars(id)} 이겼어요` });
+      toast(`걸음 +${n}, 말씀 +5, 순종 +5`, 5);
+      for (let q = 0; q < 10; q++) setTimeout(() => burst(me.x + (Math.random() - 0.5) * 3, me.y + 1 + Math.random() * 2, me.z + (Math.random() - 0.5) * 3), q * 120);
+      if (up) setTimeout(() => toast(`${profile.name || '나'}님이 ${up.name}${josa(up.name)} 자랐어요! 이제 ${stars2(up)} 길이 열려요`, 6), 4000);
+    }, 2400);
+  }
+  const josa = (w) => { const c = w.charCodeAt(w.length - 1) - 0xac00; return c >= 0 && c < 11172 && c % 28 && c % 28 !== 8 ? '으로' : '로'; };
+  const stars2 = (st) => '★'.repeat(Math.min(3, STAGES.indexOf(st) + 1));
+
+  // 넘어질 때 화면을 덮는 막
+  const veil = document.createElement('div');
+  veil.style.cssText = 'position:fixed;inset:0;background:#120e18;opacity:0;pointer-events:none;transition:opacity .5s;z-index:30';
+  document.body.appendChild(veil);
+
+  // ---------- 매 프레임 ----------
+  let lockAt = 0, lockSaid = 0;
+  const entered = new Set();
+  function step(dt, t) {
+    const now = performance.now() / 1000;
+    // 표지와 속삭임은 가까이 있을 때만 그림
+    for (const s of signs) s.sp.visible = Math.abs(s.p.x - me.x) < 70 && Math.abs(s.p.z - me.z) < 70;
+    for (const S of shades) {
+      const d = Math.hypot(me.x - S.x, me.z - S.z);
+      S.g.visible = (!S.beaten || S.fade >= 0) && d < 70;
+      if (!S.g.visible) continue;
+      if (S.fade >= 0) { S.fade += dt; const k = Math.max(0, 1 - S.fade / 1.2); S.g.scale.setScalar((S.big ? 1.9 : 1) * (1 + (1 - k) * 0.6)); S.parts.forEach((m) => { m.material.opacity = (m.isSprite ? 0.45 : 0.55) * k; }); if (k <= 0) { S.fade = -1; S.g.visible = false; } continue; }
+      S.parts.forEach((m, q) => { if (m.isMesh) m.position.set(Math.sin(t * (1.1 + q * 0.3) + q) * 0.45, 0.8 + q * 0.32 + Math.sin(t * 2 + q) * 0.12, Math.cos(t * (0.9 + q * 0.25) + q * 2) * 0.45); else m.material.rotation = t * 0.3 * (q % 2 ? 1 : -1); });
+    }
+    // 시험: 속삭임 곁에 오면 길을 막고 물음
+    if (cur) {
+      if (!cur.wait && Math.hypot(me.x - cur.x, me.z - cur.z) > 8) close();
+    } else if (!busy()) {
+      let near = null;
+      for (const S of shades) if (!S.beaten && Math.hypot(me.x - S.x, me.z - S.z) < (S.big ? 5.5 : 4.2)) near = S;
+      if (near && near !== closedFor) meet(near);
+      if (!near) closedFor = null;
+    }
+    // 잠긴 길과 처음 들어선 길 (0.3초마다)
+    if (now - lockAt < 0.3) return;
+    lockAt = now;
+    const r = Math.hypot(me.x, me.z);
+    if (r < R_PARK + 2.5) return;
+    let best = null, bd = 3.2;
+    for (const tr of Object.values(TRAILS)) {
+      const q0 = tr.samples[0], qn = tr.samples[tr.samples.length - 1];
+      if (Math.min(Math.hypot(q0.x - me.x, q0.z - me.z), Math.hypot(qn.x - me.x, qn.z - me.z)) > tr.len + 4) continue;
+      for (let i = 0; i < tr.samples.length; i += 2) { const q = tr.samples[i]; const d = Math.abs(q.x - me.x) + Math.abs(q.z - me.z); if (d < bd) { bd = d; best = tr.id; } }
+    }
+    if (!best) return;
+    const id = rootOf(best);
+    if (!TIER[id]) return;
+    if (!open(id)) {
+      const g = gateOf(TRAILS[id]), k = (R_PARK - 1.2) / Math.hypot(g.x, g.z);
+      me.x = g.x * k; me.z = g.z * k; me.path = []; me.state = 'idle'; me.task = null; me.face = Math.atan2(-g.x, -g.z);
+      if (now - lockSaid > 4) { lockSaid = now; toast(`${courseName(id)} ${stars(id)}: ${TIER_STAGE[TIER[id]]}부터 들어갈 수 있어요. 정원 훈련장에서 자라 보세요.`, 5); sfx('impact/impactSoft_medium_000', 0.2, 0.8); }
+      return;
+    }
+    if (!entered.has(id)) {
+      if (!entered.size) showVerse('dg-enter', { cooldown: 0, title: '숲길 던전' });
+      entered.add(id);
+      const n = byCourse[id].filter((S) => !S.beaten).length;
+      if (n) setTimeout(() => toast(`${courseName(id)} ${stars(id)}: 이 길에 어둠의 속삭임 ${n}이 있어요. 말씀으로 이겨요.`, 5), 600);
+    }
+  }
+
+  // ---------- 길 끝에서 입구로 돌아가기 ----------
+  const ends = Object.values(TRAILS).map((tr) => ({ id: tr.id, p: tr.end, said: false }));
+  const nearEnd = () => ends.find((e) => Math.hypot(me.x - e.p.x, me.z - e.p.z) < 9);
+  function goBack() {
+    const e = nearEnd(); if (!e) return;
+    const g = gateOf(TRAILS[rootOf(e.id)]), k = (R_PARK - 1.5) / Math.hypot(g.x, g.z);
+    veil.style.opacity = '0.9'; sfx('orb', 0.2, 0.9);
+    setTimeout(() => {
+      me.x = g.x * k; me.z = g.z * k; me.path = []; me.state = 'idle'; me.task = null; me.action = null; me.face = Math.atan2(-g.x, -g.z);
+      veil.style.opacity = '0';
+      toast(`${courseName(rootOf(e.id))} 입구로 돌아왔어요`, 3);
+    }, 700);
+  }
+  function endHint() {
+    const e = nearEnd(); if (!e || e.said) return;
+    e.said = true;
+    setTimeout(() => toast('길 끝까지 왔어요! E(또는 반짝이는 단추)로 입구로 돌아갈 수 있어요', 5), 4000);
+  }
+
+  return {
+    actions: { goback: goBack },
+    available: () => (nearEnd() && !cur ? [['place', 'goback']] : []),
+    step: (dt, t) => { step(dt, t); endHint(); },
+    active: () => !!cur, open, shades, byCourse,
+    onPress(name) { if (cur && name === 'pray') hint(); },
+  };
+}
