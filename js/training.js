@@ -10,12 +10,13 @@ import { TRAIN, floorY } from './layout.js';
 import { VERSES, showVerse } from './verses.js';
 import { nameTag } from './tutorial.js';
 import { addStat, addSteps, giveItem, earn, ITEMS, STATS } from './profile.js';
+import { GEAR } from './gear.js';
 
 const V = (k, text, ref) => { VERSES[k] = [text, ref]; return k; };
 const STEP_REWARD = 20, STAT_REWARD = 10;
 
 export function initTraining(K) {
-  const { scene, me, makeChar, npcs, profile, save, toast, sfx, burst, fxSprite, busy, onChange } = K;
+  const { scene, me, makeChar, npcs, profile, save, toast, sfx, burst, fxSprite, busy, onChange, quests, goTo } = K;
   const M = (c, r = 0.8, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: r, ...o });
   const stone = M(0xe8e0d0, 0.9), wood = M(0x8a6a4a), cloth = M(0xe6d6b0, 1);
   const G = (p) => floorY(p.x, p.z);
@@ -227,13 +228,16 @@ export function initTraining(K) {
   // ---------- 말풍선 (안내와 같은 모양) ----------
   const box = document.createElement('div');
   box.className = 'npcb'; box.id = 'talk'; box.hidden = true;
-  box.innerHTML = '<div class="who"><b></b><span class="n"></span></div><p class="say"></p><div class="keys"></div><div class="row"><button class="end">그만두기</button><button class="later">나중에</button><button class="next">훈련 시작</button></div>';
+  box.innerHTML = '<div class="who"><b></b><span class="n"></span></div><p class="say"></p><div class="keys"></div><div class="guide"><button data-g="how">하는 방법</button><button data-g="prog">진행 보기</button><button data-g="quest">부탁 받기</button></div><div class="row"><button class="end">그만두기</button><button class="goq" hidden>그 사람에게 가기</button><button class="later">나중에</button><button class="next">훈련 시작</button></div>';
   document.body.appendChild(box);
   const $ = (s) => box.querySelector(s);
   let offer = null, run = null, closedFor = null;
   box.addEventListener('pointerdown', (e) => {
     e.stopPropagation();
     const c = e.target.classList;
+    const g = e.target.closest('[data-g]');
+    if (g && offer) { guide(offer, g.dataset.g); return; }
+    if (c.contains('goq')) { const q = pickQ; closedFor = offer; hide(); if (q) goTo(q.who, `${q.name}에게 가요`); return; }
     if (c.contains('next')) { if (offer) begin(offer); else if (run && run.finished) finish(); }
     else if (c.contains('later')) { closedFor = offer; hide(); }
     else if (c.contains('end')) stop();
@@ -245,6 +249,7 @@ export function initTraining(K) {
     if (verse) { const v = document.createElement('small'); v.textContent = verse; $('.say').append(v); }
     $('.keys').textContent = keys;
     $('.next').hidden = !next; $('.next').textContent = next;
+    $('.guide').hidden = !offer; $('.goq').hidden = true;
     $('.later').hidden = !later; $('.end').hidden = !end;
     box.hidden = false; box.classList.remove('ok');
     document.body.classList.add('talking');
@@ -254,6 +259,43 @@ export function initTraining(K) {
     offer = id;
     const d = T[id], again = profile.train[d.stat];
     show(whoName(id), again ? `다시 왔군요, ${profile.name || '친구'}님! 한 번 더 해 볼까요? 이번에는 연습이에요.` : d.intro, again ? '' : d.verse, { next: '훈련 시작', later: true, n: d.name });
+  }
+  // 훈련장 안내: 하는 방법·진행 정도·이 덕목에 맞는 부탁 (2026-11)
+  const HOW = {
+    word: '다섯 기둥(듣기·읽기·연구·묵상·적용) 앞의 빛나는 자리에 차례로 서요. 기둥마다 말씀 한 구절이 떠요. 다섯을 다 들르면 마쳐요.',
+    pray: '네 제단(찬양·자백·감사·간구) 앞의 빛나는 자리에서 기도해요 (X 또는 기도 단추, 잠시 손 모으고 있기). 넷을 차례로 하면 마쳐요.',
+    fellow: '보따리 곁에서 E(또는 반짝이는 단추)로 들고, 장막 짓는 탁자까지 가져가요. 세 번 나르면 마쳐요.',
+    witness: '길 가는 사람 곁으로 가서 V(또는 빛 단추)로 빛을 건네요. 세 사람에게 건네면 마쳐요.',
+    obey: '앞서가는 등불 가까이에서 따라 걸어요. 멀어지면 등불이 기다려 줘요. 끝까지 따라가면 마쳐요.',
+  };
+  const GEAR_OF = { word: 'belt', obey: 'breast', witness: 'shoes' };
+  let pickQ = null;
+  const jo = (w, a, b) => { const c = (w || '').charCodeAt(w.length - 1) - 0xac00; return c >= 0 && c < 11172 && c % 28 ? a : b; };
+  function guide(id, kind) {
+    const d = T[id], st = STATS.find((x) => x.id === d.stat), fin = !!profile.train[d.stat];
+    const Qs = quests?.()?.Q || [];
+    const mine = Qs.filter((q) => q.stat === d.stat);
+    const qdone = (q) => profile.quests?.[q.id] === 'done';
+    let text = '';
+    pickQ = null;
+    if (kind === 'how') {
+      text = `${HOW[id]} 훈련 중에는 아래 말풍선에 지금 할 일이 나와요. 마치면 ${st.name} +${STAT_REWARD}, 걸음 +${STEP_REWARD}, ${ITEMS[d.item].name}, 5 데나리온을 받아요. 다시 하면 연습이에요.`;
+    } else if (kind === 'prog') {
+      const gid = GEAR_OF[id], gear = gid && GEAR[gid];
+      text = `${st.name} 능력치 ${(profile.stats && profile.stats[d.stat]) || 0} · 훈련 ${fin ? '마침 ✓' : '아직'}`
+        + (gear ? ` · 장비 ${gear.name} ${profile.gear?.owned?.includes(gid) ? '받음 ✓' : '(훈련을 마치면 받아요)'}` : '')
+        + (mine.length ? `. ${st.name}${jo(st.name, '을', '를')} 기르는 부탁: ${mine.map((q) => `${q.name} "${q.title}" ${qdone(q) ? '✓' : '아직'}`).join(', ')}` : '') + '.';
+    } else {
+      const run = quests?.()?.run;
+      if (run) text = `지금 ${run.q.name}의 부탁 "${run.q.title}"을 하고 있군요. 왼쪽 📜 표시를 누르면 할 일과 자리를 보고 그곳으로 갈 수 있어요.`;
+      else {
+        pickQ = mine.find((q) => !qdone(q)) || Qs.find((q) => !qdone(q)) || mine[0] || null;
+        text = !pickQ ? '지금은 부탁할 사람이 없어요.'
+          : `${pickQ.name}${jo(pickQ.name, '이', '가')} 도움을 기다려요. "${pickQ.title}" (${(STATS.find((x) => x.id === pickQ.stat)?.name || '')}${jo(STATS.find((x) => x.id === pickQ.stat)?.name || '', '을', '를')} 길러요)${qdone(pickQ) ? '. 이미 마친 부탁이지만 한 번 더 할 수 있어요' : ''}. 그 사람 곁으로 가면 부탁을 들려줘요.`;
+      }
+    }
+    $('.say').textContent = text;
+    $('.goq').hidden = !pickQ;
   }
   function begin(id) {
     offer = null;
@@ -309,7 +351,34 @@ export function initTraining(K) {
 
   // ---------- 매 프레임 ----------
   const trainers = Object.entries(T).map(([id, d]) => [id, d.who]);
+  // 안내하는 사부 표시 (2026-11): 머리 위에 멀리서도 보이는 훈련 이름 팻말, 마치면 ✓
+  //   훈련장 안으로 들어오면 사부가 손을 흔들며 부름 (가까이 가면 말을 검)
+  const signs = {};
+  for (const [id, d] of Object.entries(T)) {
+    const short = d.name.replace('장', '');
+    const todo = label(short, 0.75), done = label('✓ ' + short, 0.75);
+    for (const sp of [todo, done]) { sp.position.y = 2.75; sp.renderOrder = 5; d.who.av.add(sp); }
+    signs[id] = { todo, done, called: false };
+  }
+  const CALL = { word: '말씀을 듣고 읽고 연구하고 묵상하고 적용하는 다섯 기둥을 함께 돌아요', pray: '찬양·자백·감사·간구, 네 제단에서 함께 기도해요', fellow: '서로 짐을 지는 법을 함께 배워요. 보따리 나르기를 도와줄래요?', witness: '길 가는 사람들에게 빛을 건네는 법을 알려 줄게요', obey: '갈 바를 몰라도 앞서가는 등불을 따라 걸어 봐요' };
+  function callOut(t) {
+    if (run || busy()) return;
+    for (const [id, n] of trainers) {
+      const S = signs[id], d = Math.hypot(me.x - n.x, me.z - n.z);
+      const fin = !!profile.train[T[id].stat];
+      const far = d > 4.5; // 곁에서는 이름표만
+      S.todo.visible = far && !fin; S.done.visible = far && fin;
+      S.todo.position.y = S.done.position.y = 2.75 + Math.sin(t * 2 + id.length) * 0.06;
+      if (d > 16) S.called = false;
+      else if (!S.called && d > 4.5 && d < 11 && me.state === 'walk') {
+        S.called = true;
+        n.action = 'wave'; setTimeout(() => { if (n.action === 'wave') n.action = null; }, 2400);
+        toast(`${whoName(id)}: ${fin ? '다시 왔군요! 언제든 한 번 더 연습해요' : `어서 와요, ${T[id].name}이에요. ${CALL[id] || ''}`}. 제 곁으로 오세요`, 5);
+      }
+    }
+  }
   function step(dt, t) {
+    callOut(t);
     // 사부: 가까이 오면 나를 봄
     for (const [, n] of trainers) { const d = Math.hypot(me.x - n.x, me.z - n.z); if (n.state !== 'walk') n.face = d < 7 ? Math.atan2(me.x - n.x, me.z - n.z) : n.face0; }
     priscilla.face = Math.hypot(me.x - priscilla.x, me.z - priscilla.z) < 7 ? Math.atan2(me.x - priscilla.x, me.z - priscilla.z) : priscilla.face;

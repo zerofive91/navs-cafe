@@ -28,7 +28,7 @@ import { initStory } from './story.js';
 import { initPets } from './pets.js';
 import { TIER } from './dungeon.js';
 import { COURSE_META } from './courses.js';
-import { initQuestLog } from './questlog.js';
+import { initQuestLog, walkToward } from './questlog.js';
 
 const canvas = document.getElementById('cafe');
 const bar = document.getElementById('actions');
@@ -1441,6 +1441,8 @@ character = initCharacter({
 });
 training = initTraining({
   scene, me, makeChar, npcs, profile, save: saveMe, toast, sfx, burst, fxSprite,
+  quests: () => quests,
+  goTo: (p, say) => { if (me.climb) { toast('먼저 나무에서 내려와요', 3); return; } if (walkToward(me, walkTo, p)) toast(say, 3); else toast('그곳으로 가는 길을 찾지 못했어요', 3); },
   busy: () => !!tut?.active() || !!character?.isOpen() || !!dungeon?.active() || !!quests?.active() || !!shop?.active(),
   onChange: () => character.showChip(),
 });
