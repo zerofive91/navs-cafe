@@ -1,4 +1,5 @@
 -- 기기가 달라도 이어 하기 (2026-11): 아이디 + 비밀번호 계정
+-- ※ 2026-11-02 보안 다지기는 accounts_hardening.sql (이 파일 다음에 적용)
 -- 표는 직접 읽고 쓸 수 없고(RLS, 정책 없음), 아래 함수로만 다룸. 비밀번호는 bcrypt로만 저장
 create extension if not exists pgcrypto with schema extensions;
 

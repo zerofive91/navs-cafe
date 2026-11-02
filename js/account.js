@@ -1,6 +1,6 @@
 // 계정으로 이어 하기 (2026-11): 아이디 + 비밀번호로 들어오면 어느 기기에서든 같은 캐릭터로 이어 함
 // 혼자·다같이·모임 어느 문으로 들어가도 같은 계정의 데이터를 씀
-// 서버: Supabase 함수 account_signup / account_login / account_load / account_save / account_logout
+// 서버(보안 다지기: supabase/accounts_hardening.sql): Supabase 함수 account_signup / account_login / account_load / account_save / account_logout
 //   (supabase/accounts.sql). 표는 직접 읽을 수 없고 함수로만, 비밀번호는 bcrypt로만 저장
 // 기기 안에는 아이디와 들어올 때 받은 토큰만 둠 (비밀번호는 두지 않음)
 // 한 계정은 한 번에 한 기기에서만: 카페에 들어갈 때 계정 채널(Realtime Presence)에 이름을 올리고,
@@ -12,10 +12,10 @@ const ACC = 'navs-cafe-account';
 const KEYS = { profile: 'navs-cafe-profile', look: 'navs-cafe-look3d', found: 'navs-cafe-found', seeds: 'navs-cafe-seeds' };
 const MSG = {
   taken: '이미 있는 아이디예요. 다른 아이디를 써 주세요.',
-  wrong: '비밀번호가 맞지 않아요.',
+  wrong: '아이디나 비밀번호가 맞지 않아요. 처음이면 "새로 만들기"를 눌러 주세요.',
   nouser: '없는 아이디예요. 처음이면 "새로 만들기"를 눌러 주세요.',
-  locked: '여러 번 틀려서 5분 동안 잠겼어요. 잠시 뒤에 다시 해 주세요.',
-  pass: '비밀번호는 4자 이상으로 해 주세요.',
+  locked: '여러 번 틀려서 잠시 잠겼어요. 조금 뒤에 다시 해 주세요.',
+  pass: '비밀번호는 6자 이상으로 해 주세요. 다른 사이트에서 쓰는 비밀번호는 피해 주세요.',
   id: '아이디는 2~16자로 해 주세요.',
   net: '지금은 연결하지 못했어요. 잠시 뒤에 다시 해 주세요.',
   missing: '계정 기능을 준비하고 있어요. 조금만 기다려 주세요.',
@@ -142,7 +142,7 @@ export function initAccount({ apply, toast, kicked }) {
       box.innerHTML = `<div class="pad"><button class="close" aria-label="닫기">×</button><h3>계정으로 이어 하기</h3>
         <p class="sub">아이디와 비밀번호를 정해 두면 다른 기기에서도 같은 캐릭터로 이어 할 수 있어요.</p>
         <label><span>아이디</span><input name="id" maxlength="16" autocomplete="username" spellcheck="false" placeholder="2~16자"></label>
-        <label><span>비밀번호</span><input name="pass" type="password" maxlength="40" autocomplete="current-password" placeholder="4자 이상"></label>
+        <label><span>비밀번호</span><input name="pass" type="password" maxlength="40" autocomplete="current-password" placeholder="새로 만들 땐 6자 이상"></label>
         <p class="msg">${msg}</p>
         <div class="row"><button data-do="new">새로 만들기</button><button class="go" data-do="in">들어오기</button></div></div>`;
     }
@@ -167,7 +167,7 @@ export function initAccount({ apply, toast, kicked }) {
     }
     const id = val('id').toLowerCase(), pass = val('pass');
     if (id.length < 2 || id.length > 16) return render(MSG.id);
-    if (pass.length < 4) return render(MSG.pass);
+    if (!pass || (what === 'new' && pass.length < 6)) return render(MSG.pass);
     busy = true; box.querySelector('.msg').textContent = '잠깐만요...';
     const r = what === 'new'
       ? await rpc('account_signup', { p_id: id, p_pass: pass, p_data: snapshot() })
