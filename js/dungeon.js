@@ -53,6 +53,7 @@ const SMALL = 'ABCDEGHIKL'.split(''), BIG = 'FJM'.split('');
 for (const [k, v] of Object.entries(W)) VERSES['dg-' + k] = v;
 VERSES['dg-rise'] = ['나의 대적이여 나로 인하여 기뻐하지 말찌어다 나는 엎드러질찌라도 일어날 것이요 어두운데 앉을찌라도 여호와께서 나의 빛이 되실 것임이로다', '미가 7:8'];
 VERSES['dg-win'] = ['그러나 이 모든 일에 우리를 사랑하시는 이로 말미암아 우리가 넉넉히 이기느니라', '로마서 8:37'];
+VERSES['dg-sword'] = ['하나님의 말씀은 살았고 운동력이 있어 좌우에 날선 어떤 검보다도 예리하여 혼과 영과 및 관절과 골수를 찔러 쪼개기까지 하며 또 마음의 생각과 뜻을 감찰하나니', '히브리서 4:12'];
 VERSES['dg-enter'] = ['우리의 씨름은 혈과 육에 대한 것이 아니요 정사와 권세와 이 어두움의 세상 주관자들과 하늘에 있는 악의 영들에게 대함이라', '에베소서 6:12'];
 
 const hash = (s) => { let h = 7; for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; };
@@ -62,6 +63,8 @@ const rootOf = (id) => { let t = TRAILS[id]; while (t && t.from) t = TRAILS[t.fr
 
 export function initDungeon(K) {
   const { scene, me, profile, save, toast, sfx, burst, fxSprite, busy, onChange, courseName } = K;
+  const wears = (id) => !!K.gear?.()?.worn(id); // 장비 (gear.js)
+  const shieldUsed = new Set(), swordUsed = new Set(); // 한 길에 한 번씩 (길을 이기면 다시)
   const stageIx = () => STAGES.indexOf(stageOf(profile.steps));
   const needIx = (id) => (TIER[id] || 1) - 1; // 새싹 0, 제자 1, 일꾼 2
   const open = (id) => !TIER[id] || stageIx() >= needIx(id);
@@ -134,9 +137,19 @@ export function initDungeon(K) {
     if (m) { e.stopPropagation(); e.preventDefault(); choose(Number(m[1]) - 1); }
     else if (e.code === 'KeyX') hint(); // 기도하면 맞는 말씀이 떠오름 (기도 동작은 그대로)
   }, true);
-  const close = () => { box.hidden = true; cur = null; document.body.classList.remove('talking', 'trialing'); };
+  const close = () => { box.hidden = true; cur = null; document.body.classList.remove('talking', 'trialing'); bigOff(); };
   function meet(S) {
-    cur = S;
+    // 성령의 검: 한 길에 한 번 작은 속삭임을 단번에 (히 4:12)
+    if (!S.big && wears('sword') && !swordUsed.has(S.id)) {
+      swordUsed.add(S.id);
+      S.beaten = true; S.fade = 0;
+      sfx('impact/impactMetal_light_000', 0.3, 1.2); burst(S.x, gy(S) + 1.2, S.z);
+      showVerse('dg-sword', { cooldown: 0, title: '성령의 검으로 물리쳤어요' });
+      setTimeout(() => checkWin(S.id), 900);
+      return;
+    }
+    cur = S; S.metAt = performance.now();
+    if (S.big) bigOn(S);
     me.path = []; me.task = null; if (me.state === 'walk') me.state = 'idle';
     me.face = Math.atan2(S.x - me.x, S.z - me.z);
     const [lie, wrong] = LIES[S.lie];
@@ -160,6 +173,12 @@ export function initDungeon(K) {
       sfx('orb', 0.3, 1.2); burst(S.x, gy(S) + 1.2, S.z);
       showVerse('dg-' + S.lie, { cooldown: 0, title: '말씀으로 물리쳤어요' });
       setTimeout(() => { S.wait = false; if (cur === S) close(); checkWin(S.id); }, 900);
+    } else if (wears('shield') && !shieldUsed.has(S.id)) {
+      // 믿음의 방패: 한 길에 한 번 넘어지지 않음 (엡 6:16)
+      shieldUsed.add(S.id);
+      const b = $(`.opt[data-i="${i}"]`); if (b) { b.classList.add('no'); b.disabled = true; }
+      sfx('impact/impactMetal_light_000', 0.3, 0.8);
+      toast('믿음의 방패가 불화살을 막아 넘어지지 않았어요. 다른 말씀을 골라 보세요', 4);
     } else if (useGood(profile, 'loaf')) {
       // 보리떡이 있으면: 넘어져도 그 자리에서 먹고 다시 일어나 다른 말씀을 고름 (왕상 19:7)
       const b = $(`.opt[data-i="${i}"]`); if (b) { b.classList.add('no'); b.disabled = true; }
@@ -173,7 +192,11 @@ export function initDungeon(K) {
       sfx('impact/impactSoft_medium_000', 0.3, 0.6);
       veil.style.opacity = '0.85';
       setTimeout(() => {
-        const p = S.back;
+        let p = S.back;
+        if (wears('helmet')) { // 구원의 투구: 앞 정거장까지 돌아가지 않고 속삭임 몇 걸음 앞에서 일어남
+          const dx = S.back.x - S.x, dz = S.back.z - S.z, l = Math.hypot(dx, dz) || 1, k = Math.min(1, 6.5 / l);
+          p = { x: S.x + dx * k, z: S.z + dz * k, dir: S.back.dir };
+        }
         me.x = p.x; me.z = p.z; me.path = []; me.state = 'idle'; me.task = null; me.face = Math.atan2(p.dir.x, p.dir.z);
         S.wait = false; closedFor = null; close();
         veil.style.opacity = '0';
@@ -181,6 +204,35 @@ export function initDungeon(K) {
       }, 1300);
     }
   }
+  // ---------- 큰 시험 연출: 길 끝의 큰 속삭임 ----------
+  //   숲이 어두워지고 화면 가장자리가 짙어지며, 큰 그림자가 숨 쉬듯 부풀고 천둥이 울림. 이기면 빛이 터지며 걷힘
+  let fog0 = null;
+  const dusk = new THREE.Color(0x2a2236);
+  function bigOn(S) {
+    document.body.classList.add('bigtrial');
+    if (scene.fog && !fog0) fog0 = { c: scene.fog.color.clone(), near: scene.fog.near, far: scene.fog.far };
+    S.boom = 0;
+    sfx('impact/impactSoft_heavy_000', 0.35, 0.35);
+    setTimeout(() => sfx('impact/impactSoft_heavy_000', 0.3, 0.3), 700);
+    K.shot?.(S, { dist: 11, el: 0.3, side: 0.7, dur: 6, mid: 0.6, y: 1.8 });
+  }
+  function bigPulse(t) {
+    if (fog0 && scene.fog) { scene.fog.color.lerp(dusk, 0.05); scene.fog.near += (fog0.near * 0.35 - scene.fog.near) * 0.05; scene.fog.far += (fog0.far * 0.45 - scene.fog.far) * 0.05; }
+    if (cur && !cur.beaten) cur.g.scale.setScalar(1.9 * (1 + Math.sin(t * 2.2) * 0.08));
+    if (cur && Math.random() < 0.004) sfx('impact/impactSoft_heavy_000', 0.18, 0.3); // 먼 천둥
+  }
+  function bigOff() {
+    document.body.classList.remove('bigtrial');
+    if (fog0 && scene.fog) { const f = fog0; fog0 = null; let k = 0; const back = () => { k += 0.08; scene.fog.color.lerp(f.c, 0.15); scene.fog.near += (f.near - scene.fog.near) * 0.15; scene.fog.far += (f.far - scene.fog.far) * 0.15; if (k < 1.6) requestAnimationFrame(back); else { scene.fog.color.copy(f.c); scene.fog.near = f.near; scene.fog.far = f.far; } }; back(); }
+  }
+  function victory(S) {
+    // 빛이 동그랗게 퍼지며 어둠이 걷힘
+    const ring = fxSprite('circle_05', 0xfff0c0, 1); ring.position.set(S.x, gy(S) + 1.2, S.z); scene.add(ring);
+    let k = 0; const grow = () => { k += 0.03; ring.scale.setScalar(1 + k * 18); ring.material.opacity = Math.max(0, 1 - k); if (k < 1) requestAnimationFrame(grow); else scene.remove(ring); }; grow();
+    for (let q = 0; q < 16; q++) setTimeout(() => burst(S.x + (Math.random() - 0.5) * 5, gy(S) + 0.5 + Math.random() * 3, S.z + (Math.random() - 0.5) * 5), q * 80);
+    sfx('orb', 0.35, 0.7);
+  }
+
   // 등잔 기름: 틀린 말씀 하나를 걷어 냄 (한 속삭임에 한 번)
   function oilBtn() {
     const b = $('.oil'), n = (profile.bag && profile.bag.oil) | 0;
@@ -206,10 +258,12 @@ export function initDungeon(K) {
     const list = byCourse[id];
     const left = list.filter((S) => !S.beaten).length;
     if (left) { toast(`이 길에 남은 속삭임 ${left}`, 2.5); return; }
+    shieldUsed.delete(id); swordUsed.delete(id);
+    const bigS = list.find((S) => S.big); if (bigS) victory(bigS);
     profile.dungeon = profile.dungeon || {};
     if (profile.dungeon[id]) { addSteps(profile, 5); earn(profile, 1); save(); onChange?.(); toast(`${courseName(id)}의 시험을 다시 이겼어요 (걸음 +5, 1 데나리온)`, 4); return; }
     profile.dungeon[id] = 'clear';
-    const n = REWARD[TIER[id]];
+    const n = REWARD[TIER[id]] * (K.gear?.()?.full() ? 2 : 1); // 전신갑주를 다 갖추면 두 배
     addStat(profile, 'word', 5); addStat(profile, 'obey', 5);
     const pay = { 1: 3, 2: 5, 3: 8 }[TIER[id]] || 3; earn(profile, pay);
     const up = addSteps(profile, n);
@@ -246,6 +300,8 @@ export function initDungeon(K) {
     // 시험: 속삭임 곁에 오면 길을 막고 물음
     if (cur) {
       if (!cur.wait && Math.hypot(me.x - cur.x, me.z - cur.z) > 8) close();
+      else if (cur && !cur.wait && !cur.belt && wears('belt') && performance.now() - cur.metAt > 8000) { cur.belt = true; hint(); toast('진리의 허리띠: 진리가 비쳐요', 2.5); }
+      if (cur && cur.big) bigPulse(t);
     } else if (!busy()) {
       let near = null;
       for (const S of shades) if (!S.beaten && Math.hypot(me.x - S.x, me.z - S.z) < (S.big ? 5.5 : 4.2)) near = S;

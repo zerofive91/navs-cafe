@@ -23,6 +23,10 @@ import { initTraining } from './training.js';
 import { initDungeon } from './dungeon.js';
 import { initQuests } from './quests.js';
 import { initShop } from './shop.js';
+import { initGear } from './gear.js';
+import { initStory } from './story.js';
+import { initPets } from './pets.js';
+import { TIER } from './dungeon.js';
 import { COURSE_META } from './courses.js';
 
 const canvas = document.getElementById('cafe');
@@ -142,7 +146,7 @@ function makeChar(look, x, z) {
 }
 
 const myLook = loadLook();
-let tut = null, character = null, training = null, dungeon = null, quests = null, shop = null; // 안내와 캐릭터 창은 맨 아래에서 만듦
+let tut = null, character = null, training = null, dungeon = null, quests = null, shop = null, gear = null, story = null, pets = null; // 안내와 캐릭터 창은 맨 아래에서 만듦
 const profile = loadProfile(); // 닉네임·걸음·받은 것·안내 기록 (이 기기 안에만)
 if (profile.name) myLook.name = profile.name;
 const me = makeChar(myLook, SPAWN.x, SPAWN.z);
@@ -551,7 +555,7 @@ function availableActions() {
     me.action = null;
   }
   // 부탁·훈련의 그 자리 단추가 먼저 (E가 이것부터 누름)
-  if (me.state !== 'walk') { for (const v of shop?.available() || []) place(v[1]); for (const v of quests?.available() || []) place(v[1]); for (const v of training?.available() || []) place(v[1]); }
+  if (me.state !== 'walk') { for (const v of shop?.available() || []) place(v[1]); for (const v of pets?.available() || []) place(v[1]); for (const v of quests?.available() || []) place(v[1]); for (const v of training?.available() || []) place(v[1]); }
   for (const v of dungeon?.available() || []) place(v[1]); // 길 끝: 입구로 돌아가기
   if (signs.canCalm()) place('calm'); // 풍랑 속: 손을 들어 잠잠케
   if (me.state === 'walk') { if (me.slow) place(...park.available()); else list.push('jump'); list.push(...walkToggle); return list; } // 걷는 중에는 점프(와 걷기·달리기)만
@@ -1018,7 +1022,7 @@ function stepChar(ch, dt) {
     const dx = tg.x - ch.x, dz = tg.z - ch.z;
     const d = Math.hypot(dx, dz);
     ch.running = !ch.slow && runBoost(ch) > 1;
-    const step = SPEED * (ch.running ? runBoost(ch) : 1) * (ch.slow || 1) * dt;
+    const step = SPEED * (ch.running ? runBoost(ch) : 1) * (ch.slow || 1) * (ch.boost || 1) * dt; // boost: 복음의 신 (gear.js)
     if (d > 0.01) ch.face = Math.atan2(dx, dz);
     if (d <= step) {
       ch.x = tg.x; ch.z = tg.z;
@@ -1191,6 +1195,9 @@ function frame(now) {
   dungeon.step(dt, t);
   quests.step(dt, t);
   shop.step(dt, t);
+  gear.step(dt);
+  story.step(dt, t);
+  pets.step(dt);
   for (const n of npcs) { stepChar(n, dt); poseAvatar(n.av, n, t, dt); }
   training.pin();
   together.step(dt, t);
@@ -1428,7 +1435,7 @@ tut = initTutorial({
 character = initCharacter({
   me, look: myLook, profile, save: saveMe, rebuild: rebuildMe, view, toast,
   onCreated: () => { character.showChip(); setTimeout(() => tut.start('cafe'), 500); },
-  replay: (id) => (id === 'account' ? account.open() : id.startsWith('use:') ? shop.use(id.slice(4)) : tut.start(id)),
+  replay: (id) => (id === 'account' ? account.open() : id.startsWith('use:') ? shop.use(id.slice(4)) : id.startsWith('gear:') ? gear.toggle(id.slice(5)) : id.startsWith('pet:') ? pets.choose(id.slice(4)) : tut.start(id)),
 });
 training = initTraining({
   scene, me, makeChar, npcs, profile, save: saveMe, toast, sfx, burst, fxSprite,
@@ -1441,8 +1448,10 @@ dungeon = initDungeon({
   busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!quests?.active() || !!shop?.active(),
   onChange: () => character.showChip(),
   courseName: (id) => (COURSE_META[id] ? COURSE_META[id].name : id),
+  gear: () => gear, shot,
 });
 Object.assign(ACTIONS, dungeon.actions);
+gear = initGear({ me, profile, scene, toast, sfx, burst, TIER });
 quests = initQuests({
   scene, me, makeChar, npcs, profile, save: saveMe, toast, sfx, burst, fxSprite, lying, nearestFree,
   busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!dungeon?.active() || !!shop?.active(),
@@ -1455,6 +1464,13 @@ shop = initShop({
   onChange: () => character.showChip(),
 });
 Object.assign(ACTIONS, shop.actions);
+pets = initPets({ scene, me, profile, toast, sfx, burst, onChange: () => character.showChip() });
+Object.assign(ACTIONS, pets.actions);
+story = initStory({
+  scene, me, makeChar, npcs, profile, save: saveMe, toast, sfx, burst, fxSprite,
+  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!dungeon?.active() || !!quests?.active() || !!shop?.active(),
+  onChange: () => character.showChip(),
+});
 requestAnimationFrame(frame);
 if (window.__pick) choose(window.__pick);
 // 첫 화면이 뜬 뒤 소품 모델을 천천히 불러와 바꿔 끼움
@@ -1464,4 +1480,4 @@ setTimeout(() => {
   for (const n of npcs) if (n.av) upgradeCup(n.av);
 }, 300);
 
-window.__cafe = { get shop() { return shop; }, availableActions, profile, tut, character, training, dungeon, quests, camera, shot, together, me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs, placed, park, scrolls, renderer, map };
+window.__cafe = { get pets() { return pets; }, get story() { return story; }, get shop() { return shop; }, get gear() { return gear; }, availableActions, profile, tut, character, training, dungeon, quests, camera, shot, together, me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs, placed, park, scrolls, renderer, map };

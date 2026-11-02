@@ -47,6 +47,10 @@ function fill(p = {}) {
     since: p.since || null,
     coins: Number.isFinite(p.coins) ? Math.max(0, p.coins | 0) : null, // 지갑 (데나리온 단위). null: 아직 지갑을 받기 전
     bag: p.bag && typeof p.bag === 'object' ? p.bag : {}, // 소모품 { oil: 2, ... }
+    gear: p.gear && typeof p.gear === 'object' ? { owned: p.gear.owned || [], worn: p.gear.worn || [] } : { owned: [], worn: [] }, // 전신갑주·등불 (gear.js)
+    pets: p.pets && typeof p.pets === 'object' ? p.pets : {}, // 돌본 동물 { dog: 3, ... } (3이면 길들임)
+    pet: typeof p.pet === 'string' ? p.pet : '', // 데리고 다니는 동물
+    story: p.story | 0, // 성경 큰 이야기: 마친 장 수
     sold: Array.isArray(p.sold) ? p.sold : [], // 가게에 판 물품 (다른 기기 기록과 합칠 때 되살아나지 않게)
     fishDay: typeof p.fishDay === 'string' ? p.fishDay : '', // 물고기 입의 한 세겔은 하루 한 번
     walletAt: p.walletAt | 0, // 지갑·소모품이 마지막으로 바뀐 때 (두 기기 기록을 합칠 때 새것을 씀)
@@ -72,6 +76,7 @@ export function fmtMoney(n) {
 export const GOODS = {
   oil: { name: '등잔 기름', price: 2, use: '숲길 시험에서 틀린 말씀 하나를 걷어 내요', verse: ['슬기 있는 자들은 그릇에 기름을 담아 등과 함께 가져갔더니', '마태복음 25:4'] },
   loaf: { name: '보리떡', price: 1, use: '숲길에서 넘어져도 그 자리에서 먹고 다시 일어나요', verse: ['여호와의 사자가 또 다시 와서 어루만지며 이르되 일어나서 먹으라 네가 길을 이기지 못할까 하노라 하는지라', '열왕기상 19:7'] },
+  fodder: { name: '꼴 한 단', price: 1, use: '들짐승 들판의 동물을 돌볼 때 먹여요 (세 번 돌보면 길들어요)', verse: ['의인은 그 육축의 생명을 돌아보나 악인의 긍휼은 잔인이니라', '잠언 12:10'] },
   spice: { name: '향 한 줌', price: 3, use: '기도할 때 피우면 기도 +1', verse: ['나의 기도가 주의 앞에 분향함과 같이 되며', '시편 141:2'] },
 };
 // 받은 물품을 가게에 팔 때 값 (광주리는 팔지 않음)

@@ -14,7 +14,7 @@ const G0 = -0.5; // 잔디 높이
 const loader = new GLTFLoader();
 const bufs = new Map();
 // 애니메이션 모델은 인스턴스마다 새로 읽음 (뼈대가 있는 모델은 clone으로 복사가 안 됨)
-function loadFresh(path) {
+export function loadFresh(path) {
   if (!bufs.has(path)) bufs.set(path, fetch(path).then((r) => (r.ok ? r.arrayBuffer() : null)).catch(() => null));
   const base = path.slice(0, path.lastIndexOf('/') + 1);
   return bufs.get(path).then((b) => (b ? new Promise((ok) => loader.parse(b, base, ok, () => ok(null))) : null));

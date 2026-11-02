@@ -50,6 +50,9 @@ function mergeProfile(a, b) {
     steps: Math.max(a.steps | 0, b.steps | 0),
     items: [...new Set([...(b.items || []), ...(a.items || [])])],
     stats,
+    gear: { owned: [...new Set([...(a.gear?.owned || []), ...(b.gear?.owned || [])])], worn: b.gear?.worn || a.gear?.worn || [] },
+    pets: Object.fromEntries([...new Set([...Object.keys(a.pets || {}), ...Object.keys(b.pets || {})])].map((k) => [k, Math.max(a.pets?.[k] | 0, b.pets?.[k] | 0)])),
+    story: Math.max(a.story | 0, b.story | 0),
     tut: obj(a.tut, b.tut), train: obj(a.train, b.train), quests: obj(a.quests, b.quests), dungeon: obj(a.dungeon, b.dungeon),
     since: [a.since, b.since].filter(Boolean).sort()[0] || null,
     // 지갑과 소모품은 더하거나 큰 쪽을 고르면 쓴 돈이 되살아나므로, 마지막으로 바뀐 쪽을 그대로 씀

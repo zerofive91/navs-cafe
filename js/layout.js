@@ -153,6 +153,11 @@ export const PARK = {
   t_fellow: zone('t_fellow', gr(39.5), 315, 18, 12),  // 교제 훈련장: 아굴라와 브리스길라 (갈 6:2)
   t_witness: zone('t_witness', gr(39.5), 135, 18, 13), // 증거 훈련장: 빌립 (행 8:30)
   meadow: zone('meadow', gr(63), 40, 22, 14),   // 푸른 초장: 동물들이 노님 (연 날리기)
+  // 훈련장이 카페 곁으로 옮겨 간 바깥 띠 빈자리: 부탁 셋과 들짐승 들판 (2026-11)
+  zacc: zone('zacc', gr(65), 250, 16, 12),       // 여리고 길가 뽕나무: 삭개오 (눅 19:4)
+  road: zone('road', gr(65), 285, 22, 10),       // 여리고로 내려가는 길: 선한 사마리아인 (눅 10:30)
+  wild: zone('wild', gr(65), 322, 24, 14),       // 들짐승 들판: 돌보아 길들이는 동물들
+  bethsaida: zone('bethsaida', gr(65), 148, 26, 14), // 벳새다 들녘: 오병이어 (요 6:9)
   // 안쪽 띠 빈자리: 성경 이야기 체험
   jericho: zone('jericho', gr(46), 76, 12, 12), // 여리고 성 (수 6, 히 11:30)
   david: zone('david', gr(46), 104, 12, 11),    // 다윗과 골리앗 (삼상 17)
@@ -648,6 +653,9 @@ export const FLOWER_BEDS = [-150, -30, 30, 150, 210].map((a) => ({ a, ...polar(g
 export const GARDEN_BENCHES = [0, 60, 120, 180, 240, 300].map((a) => ({ a, ...polar(gr(36.2), a), approach: polar(gr(35.1), a) }));
 export const GARDEN_LAMPS = [];
 for (let a = 15; a < 360; a += 30) GARDEN_LAMPS.push(polar(gr(32.5), a));
+// 삭개오가 올라간 뽕나무 (눅 19:4): 길가에 크게 한 그루, 올라갈 수 있음
+export const SYCAMORE = { ...PARK.zacc.at(2.5, 1), h: 8, dark: false, sycamore: true };
+TREES.push(SYCAMORE);
 for (const t of TREES) if (Math.hypot(t.x, t.z) < R_GARDEN + 1) block(t.x, t.z, 0.6);
 for (const b of FLOWER_BEDS) block(b.x, b.z, b.r, 0.35);
 for (const b of GARDEN_BENCHES) block(b.x, b.z, 0.55, 0.95);

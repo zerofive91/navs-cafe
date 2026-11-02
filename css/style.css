@@ -625,3 +625,19 @@ body.trialing #verse { visibility: hidden; } /* 고르는 동안은 시험 창�
 #shop .none { font-size: 13px; color: #8f7458; }
 #shop .msg { min-height: 1.3em; margin: 8px 0 0; font-size: 13px; color: #7a3a7a; word-break: keep-all; }
 #shop .close { position: absolute; top: 8px; right: 10px; width: 32px; height: 32px; border: 0; border-radius: 16px; background: rgba(0, 0, 0, 0.06); font-size: 21px; color: #6b4c32; cursor: pointer; }
+
+/* 숲길 큰 시험: 화면 가장자리가 짙어짐 */
+body.bigtrial::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 5; background: radial-gradient(ellipse at center, transparent 35%, rgba(20, 12, 34, 0.75) 100%); animation: bigtrial 2.4s ease-in-out infinite; }
+@keyframes bigtrial { 50% { opacity: 0.7; } }
+body.bigtrial #trial { box-shadow: 0 0 0 2px #6a4a9a, 0 10px 40px rgba(20, 10, 40, 0.6); }
+
+/* 장비 (내 카드) */
+#meCard .lb .hint { font-weight: 500; letter-spacing: 0; color: #b8a080; margin-left: 4px; }
+#meCard .items.pets button.on, #meCard .items.gear button.on { background: #fff2c8; box-shadow: 0 0 0 2px #e0b850; }
+#meCard .items.pets button.locked, #meCard .items.gear button.locked { opacity: 0.55; }
+
+/* 성경 큰 이야기 진행 */
+#storyChip { position: fixed; left: calc(12px + env(safe-area-inset-left)); top: calc(92px + env(safe-area-inset-top)); z-index: 6; max-width: min(360px, 60vw); padding: 7px 12px; border-radius: 14px; background: rgba(255, 240, 200, 0.92); color: #7a5a20; box-shadow: 0 2px 10px rgba(60, 40, 20, 0.14); font: 600 12.5px/1.45 "Noto Serif KR", serif; word-break: keep-all; pointer-events: none; }
+#storyChip::before { content: "✦ "; color: #d8a020; }
+#storyChip[hidden] { display: none; }
+@media (max-width: 760px), (max-height: 500px) { #storyChip { top: calc(150px + env(safe-area-inset-top)); max-width: calc(100vw - 110px); } }
