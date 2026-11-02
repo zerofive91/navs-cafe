@@ -15,6 +15,9 @@ import { initScrolls } from './scrolls.js';
 import { initTogether, inviteCodeFromUrl, RANDOM_CAP, INVITE_CAP } from './together.js';
 import { makeWheelProxy } from './wheelproxy.js';
 import { initLeisure } from './leisure.js';
+import { loadProfile, saveProfile } from './profile.js';
+import { initCharacter, HOODIES, HAIRS, BAGS } from './character.js';
+import { initTutorial, nameTag } from './tutorial.js';
 
 const canvas = document.getElementById('cafe');
 const bar = document.getElementById('actions');
@@ -114,9 +117,6 @@ function stepFades(dt) {
 }
 
 // ---------- 캐릭터 ----------
-const HOODIES = [0x8fb7e0, 0xf2a7a0, 0xa7d3a6, 0xf4d27a, 0xb9a6e0, 0xf5f0e6];
-const HAIRS = [0x3b2a22, 0x5a3b2a, 0x22201f, 0x7a5634];
-const BAGS = [0x5b6b8a, 0x8a5b5b, 0x6b8a5b, 0x444444];
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 
 function loadLook() {
@@ -136,7 +136,19 @@ function makeChar(look, x, z) {
 }
 
 const myLook = loadLook();
+let tut = null, character = null; // 안내와 캐릭터 창은 맨 아래에서 만듦
+const profile = loadProfile(); // 닉네임·걸음·받은 것·안내 기록 (이 기기 안에만)
+if (profile.name) myLook.name = profile.name;
 const me = makeChar(myLook, SPAWN.x, SPAWN.z);
+// 캐릭터 만들기에서 옷·머리를 바꾸면 그 자리에서 새 모습으로 갈아 끼움
+function rebuildMe() {
+  const old = me.av;
+  const av = makeAvatar(myLook);
+  av.position.copy(old.position); av.rotation.copy(old.rotation);
+  scene.remove(old); scene.add(av);
+  me.av = av;
+  upgradeCup(av);
+}
 
 // 상주 캐릭터: 카운터 바리스타, 입구의 사장님 (각자 화면에서만 움직임)
 const baristaPos = polar(COUNTER.r + 1.1, -54);
@@ -148,7 +160,13 @@ barista.av.userData.body.add(apron);
 const ownerPos = { x: 3.2, z: 22.2 * C };
 const owner = makeChar({ hoodie: 0xd9cbb5, hair: 0x6b6b6b, bag: 0xd9cbb5, style: 0, pants: 0x55504a }, ownerPos.x, ownerPos.z);
 owner.av.userData.body.children.find((c) => c.geometry && c.geometry.type === 'BoxGeometry' && c.position.z < -0.1).visible = false;
-const npcs = [barista, owner];
+// 정원지기 아담: 카페 문 밖에서 정원 안내를 해 줌
+const adamPos = { x: 2.4, z: R_HALL + 5 };
+const adam = makeChar({ hoodie: 0x8aa860, hair: 0x5a3b2a, bag: 0x8aa860, style: 0, pants: 0x6b5a40 }, adamPos.x, adamPos.z);
+adam.av.userData.body.children.find((c) => c.geometry && c.geometry.type === 'BoxGeometry' && c.position.z < -0.1).visible = false;
+owner.tag = nameTag('바나바'); owner.av.add(owner.tag);
+adam.tag = nameTag('아담'); adam.av.add(adam.tag);
+const npcs = [barista, owner, adam];
 
 // ---------- 이동 ----------
 const SPEED = 2.6;
@@ -560,6 +578,7 @@ const isOn = (name) => me.action === name || (name === 'light' && me.action === 
 const TOGGLES = new Set(['kite', 'flower', 'stars']); // 다시 누르면 그 단추가 직접 끔
 let shown = '';
 function pressAction(name, on) {
+  tut?.mark(name, placeActs.has(name));
   sfx(name === 'sip' || name === 'order' || name === 'eat' ? 'cup' : 'tap', 0.15);
   if (VERSE_OF[name]) showNext(VERSE_OF[name], on ? 0.2 : 1.2);
   if (on && VERSE_OF[name]) return; // 이미 하는 중이면 다음 구절만
@@ -786,13 +805,14 @@ const HOTKEYS = {
   NumpadEnter: () => nextVerse(),
   KeyN: () => pressIfAvailable('stars'),
   KeyP: () => leisure.togglePhoto(),
+  KeyI: () => character?.openCard(),
 };
 // 컴퓨터 단축키 안내: ? 또는 F1, 위쪽 키보드 단추 (터치 화면에서는 단추 숨김)
 const KEY_HELP = [
   ['움직이기', [['↑ ↓ / W S', '앞으로 · 뒤로'], ['← → / A D', '몸 돌리기'], ['Space', '점프 (공중에서 또 누르면 2·3단)'], ['Shift', '걷기 ↔ 달리기 (정원·숲)'], ['M', '지도 (누른 곳으로 걸어감)'], ['Esc', '지도·안내 닫기']]],
   ['수레바퀴', [['Z', '말씀 읽기'], ['X', '기도'], ['C', '교제 (카운터에서 주문)'], ['V', '증거 (곁의 사람에게 빛 건네기)'], ['B', '찬양']]],
   ['쉬기', [['J', '앉기 · 일어서기'], ['K', '눕기 (앉은 채로도)'], ['N', '누운 채로 별 보기'], ['L', '먹기 · 마시기'], ['P', '사진 찍기 (Space 찰칵)']]],
-  ['체험', [['E', '그 자리 체험 (반짝이는 단추)'], ['Enter', '다음 말씀'], ['? / F1', '이 안내']]],
+  ['체험', [['E', '그 자리 체험 (반짝이는 단추)'], ['Enter', '다음 말씀'], ['I', '나의 캐릭터 · 안내 다시 보기'], ['? / F1', '이 안내']]],
 ];
 const keyHelp = document.createElement('div');
 keyHelp.id = 'keyhelp'; keyHelp.hidden = true;
@@ -802,14 +822,17 @@ const toggleKeyHelp = (v = keyHelp.hidden) => { keyHelp.hidden = !v; };
 keyHelp.addEventListener('pointerdown', (e) => { e.stopPropagation(); if (e.target === keyHelp || e.target.classList.contains('close')) toggleKeyHelp(false); });
 HOTKEYS.Slash = () => toggleKeyHelp();
 HOTKEYS.F1 = () => toggleKeyHelp();
-{ const esc = HOTKEYS.Escape; HOTKEYS.Escape = () => { if (!keyHelp.hidden) toggleKeyHelp(false); else if (leisure.photoOn()) leisure.togglePhoto(); else esc(); }; }
+{ const esc = HOTKEYS.Escape; HOTKEYS.Escape = () => { if (document.getElementById('meCard')) character?.closeCard(); else if (!keyHelp.hidden) toggleKeyHelp(false); else if (leisure.photoOn()) leisure.togglePhoto(); else esc(); }; }
 let keyTipShown = false;
 try { keyTipShown = localStorage.getItem('navs-cafe-keytip') === '1'; } catch (e) { /* 저장 안 됨 */ }
 window.addEventListener('keydown', (e) => {
   if (!keyTipShown) { keyTipShown = true; try { localStorage.setItem('navs-cafe-keytip', '1'); } catch (er) { /* 저장 안 됨 */ } setTimeout(() => toast('? 키를 누르면 단축키 안내가 열려요', 4), 300); }
   if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.target && /^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return; // 이름을 쓰는 동안에는 단축키 쉼
+  if (character?.isOpen()) return;
+  if (!e.repeat && tut) { tut.mark(e.code); if (tut.onKey(e.code)) { e.preventDefault(); return; } }
   if (HOTKEYS[e.code]) { if (!e.repeat) HOTKEYS[e.code](); e.preventDefault(); return; }
-  if (e.code === 'Space') { if (leisure.photoOn()) leisure.snap(); else ACTIONS.jump(); e.preventDefault(); return; }
+  if (e.code === 'Space') { if (leisure.photoOn()) leisure.snap(); else { ACTIONS.jump(); tut?.mark('jump'); } e.preventDefault(); return; }
   if (KEYMAP[e.code]) { keys.add(KEYMAP[e.code]); e.preventDefault(); }
 });
 window.addEventListener('keyup', (e) => { keys.delete(KEYMAP[e.code]); });
@@ -1146,7 +1169,8 @@ function frame(now) {
   barista.face = baristaBusy > 0 ? Math.atan2(-barista.x, -barista.z) + 0.6 : Math.atan2(-barista.x, -barista.z);
   const nearOwner = Math.hypot(me.x - owner.x, me.z - owner.z) < 5;
   if (owner.action !== 'vhand') owner.action = nearOwner && Math.sin(t * 0.8) > 0.2 ? 'wave' : null;
-  owner.face = nearOwner ? Math.atan2(me.x - owner.x, me.z - owner.z) : Math.PI;
+  if (owner.state !== 'walk') owner.face = nearOwner ? Math.atan2(me.x - owner.x, me.z - owner.z) : Math.PI;
+  tut.step(dt);
   for (const n of npcs) { stepChar(n, dt); poseAvatar(n.av, n, t, dt); }
   together.step(dt, t);
   stepGifts(dt);
@@ -1197,7 +1221,8 @@ function frame(now) {
     view.w += ((sh ? 1 : 0) - view.w) * Math.min(1, rdt * 1.8);
     const w = view.w * view.w * (3 - 2 * view.w);
     const P = new THREE.Vector3(view.tx, view.ty, view.tz);
-    let az = view.az, el = clamp(view.el, 0.08, 1.1), dist = Math.max(4.5, view.dist);
+    const minD = view.close || 4.5; // 캐릭터 만들기에서는 더 가까이
+    let az = view.az, el = clamp(view.el, 0.08, 1.1), dist = Math.max(minD, view.dist);
     if (w > 0.001) {
       const s = sh || view.lastShot;
       view.lastShot = s;
@@ -1208,7 +1233,7 @@ function frame(now) {
     }
     const up = Math.sin(el) * dist;
     if (!outdoors(me) && P.y + up > CEIL - 0.8) dist = (CEIL - 0.8 - P.y) / Math.sin(el); // 천장 아래로
-    dist = Math.max(4.5, dist);
+    dist = Math.max(minD, dist);
     const horiz = Math.cos(el) * dist;
     const camPos = new THREE.Vector3(P.x + Math.sin(az) * horiz, Math.min(outdoors(me) ? 60 : CEIL - 0.8, P.y + Math.sin(el) * dist), P.z + Math.cos(az) * horiz);
     // 언덕·성벽이 카메라와 캐릭터 사이를 가리면 카메라를 그만큼 위로 들어 올림 (땅 속으로 들어가지 않게)
@@ -1225,7 +1250,7 @@ function frame(now) {
     camera.position.copy(camPos);
     camera.lookAt(P);
     // 화면에서 캐릭터 중심이 세로 -0.22(가운데보다 약간 아래)에 오도록 위로 살짝 기울임
-    camera.rotateX(Math.atan(0.22 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))));
+    camera.rotateX(Math.atan((view.aimY ?? 0.22) * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))));
     if (++occFrame % 3 === 0) { fadeOccluders(P, camPos); deco.forestFade?.(P, camPos); }
   }
   if (window.__cafe.camOverride) { const o = window.__cafe.camOverride; camera.position.set(...o.pos); camera.lookAt(...o.look); } // 시험용 시점
@@ -1315,7 +1340,12 @@ together.st.onChange = (s) => {
 function goIn() {
   enter.classList.add('gone');
   setTimeout(() => enter.remove(), 700);
-  walkTo(me, { x: 0, z: 19 });
+  // 처음 오면 이름과 모습을 정하고, 바나바의 카페 안내를 받음
+  walkTo(me, { x: 0, z: 19 }, () => {
+    if (!profile.name) character.openCreator(true);
+    else if (!profile.tut.cafe) setTimeout(() => tut.start('cafe'), 600);
+  });
+  character.showChip();
   setTimeout(maybeHint, 1200);
 }
 async function choose(mode, btn) {
@@ -1344,6 +1374,19 @@ Object.assign(ACTIONS, park.actions);
 const leisure = initLeisure({ scene, me, camera, renderer, view, lights: [hemi, sun, warm], act, sfx, burst, walkTo, faceTo, standUp, nearestPerson, toast, ICONS, LIEABLE });
 Object.assign(ACTIONS, leisure.actions);
 const scrolls = initScrolls({ scene, me, sfx, fxSprite, burst, icon: ICONS.scroll });
+const saveMe = () => saveProfile(profile);
+tut = initTutorial({
+  me, profile, save: saveMe, toast, sfx, burst, walkTo, faceTo, map, lying, outdoors: () => outdoors(me),
+  barnabas: owner, adam, home: { barnabas: ownerPos },
+  near: (k) => Math.hypot(me.x - SPOTS[k].x, me.z - SPOTS[k].z) < SPOTS[k].r,
+  photoOn: () => leisure.photoOn(),
+  onChange: () => character.showChip(),
+});
+character = initCharacter({
+  me, look: myLook, profile, save: saveMe, rebuild: rebuildMe, view, toast,
+  onCreated: () => { character.showChip(); setTimeout(() => tut.start('cafe'), 500); },
+  replay: (id) => tut.start(id),
+});
 requestAnimationFrame(frame);
 if (window.__pick) choose(window.__pick);
 // 첫 화면이 뜬 뒤 소품 모델을 천천히 불러와 바꿔 끼움
@@ -1353,4 +1396,4 @@ setTimeout(() => {
   for (const n of npcs) if (n.av) upgradeCup(n.av);
 }, 300);
 
-window.__cafe = { camera, shot, together, me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs, placed, park, scrolls, renderer, map };
+window.__cafe = { profile, tut, character, camera, shot, together, me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs, placed, park, scrolls, renderer, map };
