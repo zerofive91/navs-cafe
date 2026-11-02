@@ -22,6 +22,7 @@ import { initTutorial, nameTag } from './tutorial.js';
 import { initTraining } from './training.js';
 import { initDungeon } from './dungeon.js';
 import { initWarfare } from './warfare.js';
+import { initGuides } from './guides.js';
 import { initQuests } from './quests.js';
 import { initShop } from './shop.js';
 import { initGear } from './gear.js';
@@ -148,7 +149,7 @@ function makeChar(look, x, z) {
 }
 
 const myLook = loadLook();
-let tut = null, character = null, training = null, dungeon = null, warfare = null, quests = null, shop = null, gear = null, story = null, pets = null, questLog = null; // 안내와 캐릭터 창은 맨 아래에서 만듦
+let tut = null, character = null, training = null, dungeon = null, warfare = null, guides = null, quests = null, shop = null, gear = null, story = null, pets = null, questLog = null; // 안내와 캐릭터 창은 맨 아래에서 만듦
 const profile = loadProfile(); // 닉네임·걸음·받은 것·안내 기록 (이 기기 안에만)
 if (profile.name) myLook.name = profile.name;
 const me = makeChar(myLook, SPAWN.x, SPAWN.z);
@@ -1197,6 +1198,7 @@ function frame(now) {
   training.step(dt, t);
   dungeon.step(dt, t);
   warfare.step(dt, t);
+  guides.step(dt);
   quests.step(dt, t);
   shop.step(dt, t);
   gear.step(dt);
@@ -1206,6 +1208,7 @@ function frame(now) {
   for (const n of npcs) { stepChar(n, dt); poseAvatar(n.av, n, t, dt); }
   training.pin();
   warfare.pin();
+  guides.pin();
   together.step(dt, t);
   stepGifts(dt);
   barista.av.userData.book.visible = false;
@@ -1447,27 +1450,33 @@ training = initTraining({
   scene, me, makeChar, npcs, profile, save: saveMe, toast, sfx, burst, fxSprite,
   quests: () => quests,
   goTo: (p, say) => { if (me.climb) { toast('먼저 나무에서 내려와요', 3); return; } if (walkToward(me, walkTo, p)) toast(say, 3); else toast('그곳으로 가는 길을 찾지 못했어요', 3); },
-  busy: () => !!tut?.active() || !!character?.isOpen() || !!dungeon?.active() || !!warfare?.active() || !!quests?.active() || !!shop?.active(),
+  busy: () => !!tut?.active() || !!character?.isOpen() || !!dungeon?.active() || !!guides?.active() || !!warfare?.active() || !!quests?.active() || !!shop?.active(),
   onChange: () => character.showChip(),
 });
 Object.assign(ACTIONS, training.actions);
 dungeon = initDungeon({
   scene, me, profile, save: saveMe, toast, sfx, burst, fxSprite,
-  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!warfare?.active() || !!quests?.active() || !!shop?.active(),
+  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!warfare?.active() || !!guides?.active() || !!quests?.active() || !!shop?.active(),
   onChange: () => character.showChip(),
   courseName: (id) => (COURSE_META[id] ? COURSE_META[id].name : id),
   gear: () => gear, shot,
 });
 Object.assign(ACTIONS, dungeon.actions);
+guides = initGuides({
+  me, makeChar, npcs, profile, save: saveMe, toast, sfx, burst, dungeon,
+  goTo: (p, say) => { if (walkToward(me, walkTo, p)) toast(say, 3); else toast('그곳으로 가는 길을 찾지 못했어요', 3); },
+  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!dungeon?.active() || !!warfare?.active() || !!quests?.active() || !!shop?.active() || !!story?.active?.(),
+  onChange: () => character.showChip(),
+});
 warfare = initWarfare({
   scene, me, makeChar, npcs, profile, save: saveMe, toast, sfx, burst, fxSprite,
-  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!dungeon?.active() || !!quests?.active() || !!shop?.active() || !!story?.active?.(),
+  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!dungeon?.active() || !!guides?.active() || !!quests?.active() || !!shop?.active() || !!story?.active?.(),
   onChange: () => character.showChip(),
 });
 gear = initGear({ me, profile, scene, toast, sfx, burst, TIER });
 quests = initQuests({
   scene, me, makeChar, npcs, profile, save: saveMe, toast, sfx, burst, fxSprite, lying, nearestFree,
-  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!dungeon?.active() || !!warfare?.active() || !!shop?.active(),
+  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!dungeon?.active() || !!guides?.active() || !!warfare?.active() || !!shop?.active(),
   onChange: () => character.showChip(),
 });
 Object.assign(ACTIONS, quests.actions);
@@ -1478,8 +1487,9 @@ shop = initShop({
   guides: () => [
     ...(quests?.Q || []).filter((q) => q.who && q.who.av && profile.quests?.[q.id] !== 'done').map((q) => q.who),
     ...Object.values(training?.T || {}).filter((d) => d.who && d.who.av && !profile.train?.[d.stat]).map((d) => d.who),
+    ...(guides?.list || []).filter((g) => profile.trails?.[g.id] !== 'done' && dungeon?.open(g.id) !== false).map((g) => g.n),
   ],
-  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!dungeon?.active() || !!warfare?.active() || !!quests?.active(),
+  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!dungeon?.active() || !!guides?.active() || !!warfare?.active() || !!quests?.active(),
   onChange: () => character.showChip(),
 });
 Object.assign(ACTIONS, shop.actions);
@@ -1487,7 +1497,7 @@ pets = initPets({ scene, me, profile, toast, sfx, burst, onChange: () => charact
 Object.assign(ACTIONS, pets.actions);
 story = initStory({
   scene, me, makeChar, npcs, profile, save: saveMe, toast, sfx, burst, fxSprite,
-  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!dungeon?.active() || !!warfare?.active() || !!quests?.active() || !!shop?.active(),
+  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!dungeon?.active() || !!guides?.active() || !!warfare?.active() || !!quests?.active() || !!shop?.active(),
   onChange: () => character.showChip(),
 });
 questLog = initQuestLog({ me, quests, story, walkTo, toast });
@@ -1500,4 +1510,4 @@ setTimeout(() => {
   for (const n of npcs) if (n.av) upgradeCup(n.av);
 }, 300);
 
-window.__cafe = { get questLog() { return questLog; }, get pets() { return pets; }, get story() { return story; }, get shop() { return shop; }, get gear() { return gear; }, get warfare() { return warfare; }, availableActions, profile, tut, character, training, dungeon, quests, camera, shot, together, me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs, placed, park, scrolls, renderer, map };
+window.__cafe = { get questLog() { return questLog; }, get pets() { return pets; }, get story() { return story; }, get shop() { return shop; }, get gear() { return gear; }, get warfare() { return warfare; }, get guides() { return guides; }, availableActions, profile, tut, character, training, dungeon, quests, camera, shot, together, me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs, placed, park, scrolls, renderer, map };
