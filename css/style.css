@@ -677,3 +677,23 @@ body.bigtrial #trial { box-shadow: 0 0 0 2px #6a4a9a, 0 10px 40px rgba(20, 10, 4
 #wtrial .why[hidden] { display: none; }
 #wtrial.ok .why { background: rgba(185, 212, 138, 0.2); color: #e8f4d0; }
 #wtrial .row .next { background: #b9d48a; color: #2f3a20; }
+/* 장비 갖추기 (2026-11): 캐릭터가 보이도록 아래 작은 창만 */
+#dress { position: fixed; left: 0; right: 0; bottom: 0; z-index: 62; display: flex; justify-content: center; padding: 0 12px max(12px, env(safe-area-inset-bottom)); pointer-events: none; }
+#dress .pad { pointer-events: auto; width: min(420px, 100%); max-height: 46vh; overflow: auto; padding: 14px 16px 12px; border-radius: 22px; background: rgba(255, 250, 238, 0.96); color: #5a4030; box-shadow: 0 10px 40px rgba(40, 30, 15, 0.3); font-family: "Noto Serif KR", serif; touch-action: pan-y; }
+#dress h3 { margin: 0 0 2px; font-size: 16px; text-align: center; }
+#dress .sub { margin: 0 0 8px; font-size: 12px; color: #a08868; text-align: center; word-break: keep-all; }
+#dress .items { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+#dress .items button { border: 0; border-radius: 12px; padding: 7px 11px; background: #fff; color: #6b4c32; font: 600 13px "Noto Serif KR", serif; box-shadow: 0 1px 4px rgba(60, 40, 20, 0.15); cursor: pointer; }
+#dress .items button.on { background: #fff2c8; box-shadow: 0 0 0 2px #e0b850; }
+#dress .items button.locked { opacity: 0.55; }
+#dress .does { min-height: 1.4em; margin: 8px 0 0; font-size: 12.5px; line-height: 1.5; color: #7a5a3a; text-align: center; word-break: keep-all; }
+#dress .go { display: block; width: 100%; height: 40px; margin-top: 8px; border: 0; border-radius: 14px; background: #8f6744; color: #fffaf0; font: 700 14px "Noto Serif KR", serif; cursor: pointer; }
+/* 병거 타기 (2026-11): 갈 곳 고르기 */
+#trip { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; background: rgba(40, 30, 15, 0.4); font-family: "Noto Serif KR", serif; }
+#trip[hidden] { display: none; }
+#trip .pad { position: relative; width: min(380px, calc(100vw - 32px)); max-height: calc(100vh - 60px); overflow: auto; padding: 18px 16px 14px; border-radius: 20px; background: rgba(255, 250, 238, 0.98); color: #5a4030; box-shadow: 0 10px 40px rgba(40, 30, 15, 0.35); }
+#trip h3 { margin: 0 0 4px; font-size: 18px; text-align: center; }
+#trip .sub { margin: 0 0 10px; font-size: 13px; text-align: center; color: #8f7458; }
+#trip .list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+#trip .list button { border: 0; border-radius: 12px; padding: 9px 8px; background: #fff; color: #6b4c32; font: 600 13px "Noto Serif KR", serif; box-shadow: 0 1px 4px rgba(60, 40, 20, 0.15); cursor: pointer; word-break: keep-all; }
+#trip .close { position: absolute; top: 10px; right: 12px; border: 0; background: none; font-size: 22px; color: #a08868; cursor: pointer; }

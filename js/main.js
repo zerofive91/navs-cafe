@@ -1472,7 +1472,13 @@ quests = initQuests({
 });
 Object.assign(ACTIONS, quests.actions);
 shop = initShop({
-  scene, me, makeChar, npcs, profile, save: saveMe, toast, sfx, burst, act,
+  scene, me, makeChar, npcs, profile, save: saveMe, toast, sfx, burst, act, standUp,
+  camBehind: () => { view.az = me.face + Math.PI; },
+  // 안약: 할 일이 남은 사람 (마치지 않은 부탁의 사람, 마치지 않은 훈련의 사부)
+  guides: () => [
+    ...(quests?.Q || []).filter((q) => q.who && q.who.av && profile.quests?.[q.id] !== 'done').map((q) => q.who),
+    ...Object.values(training?.T || {}).filter((d) => d.who && d.who.av && !profile.train?.[d.stat]).map((d) => d.who),
+  ],
   busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!dungeon?.active() || !!warfare?.active() || !!quests?.active(),
   onChange: () => character.showChip(),
 });
