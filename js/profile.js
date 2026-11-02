@@ -17,7 +17,21 @@ export const ITEMS = {
   basket: { name: '광주리', verse: ['다 배불리 먹고 남은 조각을 열 두 바구니에 차게 거두었으며', '마태복음 14:20'] },
   manna: { name: '만나', verse: ['보라 내가 너희를 위하여 하늘에서 양식을 비 같이 내리리니 백성이 나가서 일용할 것을 날마다 거둘 것이라', '출애굽기 16:4'] },
   mustard: { name: '겨자씨', verse: ['천국은 마치 사람이 자기 밭에 갖다 심은 겨자씨 한 알 같으니', '마태복음 13:31'] },
+  // 훈련장 기초 과정을 마치면 사부에게서 받음
+  scroll: { name: '두루마리', verse: ['오직 여호와의 율법을 즐거워하여 그 율법을 주야로 묵상하는 자로다', '시편 1:2'] },
+  incense: { name: '금 대접의 향', verse: ['향이 가득한 금 대접을 가졌으니 이 향은 성도의 기도들이라', '요한계시록 5:8'] },
+  bread: { name: '떡 한 덩이', verse: ['집에서 떡을 떼며 기쁨과 순전한 마음으로 음식을 먹고', '사도행전 2:46'] },
+  lamp: { name: '등불', verse: ['이같이 너희 빛을 사람 앞에 비취게 하여 저희로 너희 착한 행실을 보고 하늘에 계신 너희 아버지께 영광을 돌리게 하라', '마태복음 5:16'] },
+  stake: { name: '장막 말뚝', verse: ['네 장막터를 넓히며 네 처소의 휘장을 아끼지 말고 널리 펴되 너의 줄을 길게 하며 너의 말뚝을 견고히 할찌어다', '이사야 54:2'] },
 };
+// 수레바퀴 다섯 능력치
+export const STATS = [
+  { id: 'word', name: '말씀', color: '#d8a93a' },
+  { id: 'prayer', name: '기도', color: '#9a7ac8' },
+  { id: 'fellow', name: '교제', color: '#e08a4a' },
+  { id: 'witness', name: '증거', color: '#6aa85a' },
+  { id: 'obey', name: '순종', color: '#5a9ad0' },
+];
 
 function fill(p = {}) {
   return {
@@ -26,6 +40,8 @@ function fill(p = {}) {
     steps: p.steps | 0,
     items: Array.isArray(p.items) ? p.items : [],
     tut: p.tut && typeof p.tut === 'object' ? p.tut : {}, // { cafe: 'done' | 'skip', garden: ... }
+    stats: Object.fromEntries(STATS.map((x) => [x.id, (p.stats && p.stats[x.id]) | 0])),
+    train: p.train && typeof p.train === 'object' ? p.train : {}, // { word: 'basic', ... }
     since: p.since || null,
   };
 }
@@ -38,6 +54,10 @@ export function saveProfile(p) {
 }
 export function giveItem(p, id) {
   if (!p.items.includes(id)) p.items.push(id);
+  saveProfile(p);
+}
+export function addStat(p, id, n) {
+  p.stats[id] = (p.stats[id] | 0) + n;
   saveProfile(p);
 }
 export function addSteps(p, n) {

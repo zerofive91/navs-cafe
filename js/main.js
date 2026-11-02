@@ -18,6 +18,7 @@ import { initLeisure } from './leisure.js';
 import { loadProfile, saveProfile } from './profile.js';
 import { initCharacter, HOODIES, HAIRS, BAGS } from './character.js';
 import { initTutorial, nameTag } from './tutorial.js';
+import { initTraining } from './training.js';
 
 const canvas = document.getElementById('cafe');
 const bar = document.getElementById('actions');
@@ -136,7 +137,7 @@ function makeChar(look, x, z) {
 }
 
 const myLook = loadLook();
-let tut = null, character = null; // 안내와 캐릭터 창은 맨 아래에서 만듦
+let tut = null, character = null, training = null; // 안내와 캐릭터 창은 맨 아래에서 만듦
 const profile = loadProfile(); // 닉네임·걸음·받은 것·안내 기록 (이 기기 안에만)
 if (profile.name) myLook.name = profile.name;
 const me = makeChar(myLook, SPAWN.x, SPAWN.z);
@@ -557,6 +558,7 @@ function availableActions() {
   if (signs.nearBread()) place('loaves');
   if (signs.canFish()) place('fish');
   place(...park.available());
+  for (const v of training?.available() || []) place(v[1]); // 훈련장: 보따리 들기
   if (outdoors(me) && nearTree(me.x, me.z, 1.8, 3.6)) list.push('climb');
   for (const v of leisure.available()) { if (Array.isArray(v)) place(v[1]); else list.push(v); } // 연·꽃·물수제비·별·씨앗
   list.push(...walkToggle);
@@ -579,6 +581,7 @@ const TOGGLES = new Set(['kite', 'flower', 'stars']); // 다시 누르면 그 �
 let shown = '';
 function pressAction(name, on) {
   tut?.mark(name, placeActs.has(name));
+  training?.onPress(name);
   sfx(name === 'sip' || name === 'order' || name === 'eat' ? 'cup' : 'tap', 0.15);
   if (VERSE_OF[name]) showNext(VERSE_OF[name], on ? 0.2 : 1.2);
   if (on && VERSE_OF[name]) return; // 이미 하는 중이면 다음 구절만
@@ -1171,7 +1174,9 @@ function frame(now) {
   if (owner.action !== 'vhand') owner.action = nearOwner && Math.sin(t * 0.8) > 0.2 ? 'wave' : null;
   if (owner.state !== 'walk') owner.face = nearOwner ? Math.atan2(me.x - owner.x, me.z - owner.z) : Math.PI;
   tut.step(dt);
+  training.step(dt, t);
   for (const n of npcs) { stepChar(n, dt); poseAvatar(n.av, n, t, dt); }
+  training.pin();
   together.step(dt, t);
   stepGifts(dt);
   barista.av.userData.book.visible = false;
@@ -1387,6 +1392,12 @@ character = initCharacter({
   onCreated: () => { character.showChip(); setTimeout(() => tut.start('cafe'), 500); },
   replay: (id) => tut.start(id),
 });
+training = initTraining({
+  scene, me, makeChar, npcs, profile, save: saveMe, toast, sfx, burst, fxSprite,
+  busy: () => !!tut?.active() || !!character?.isOpen(),
+  onChange: () => character.showChip(),
+});
+Object.assign(ACTIONS, training.actions);
 requestAnimationFrame(frame);
 if (window.__pick) choose(window.__pick);
 // 첫 화면이 뜬 뒤 소품 모델을 천천히 불러와 바꿔 끼움
@@ -1396,4 +1407,4 @@ setTimeout(() => {
   for (const n of npcs) if (n.av) upgradeCup(n.av);
 }, 300);
 
-window.__cafe = { profile, tut, character, camera, shot, together, me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs, placed, park, scrolls, renderer, map };
+window.__cafe = { profile, tut, character, training, camera, shot, together, me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs, placed, park, scrolls, renderer, map };

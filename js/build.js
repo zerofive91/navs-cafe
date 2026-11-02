@@ -1,7 +1,7 @@
 // 3D 공간 만들기: 높은 층고의 흰색 모던 카페, 수레바퀴 바닥, 전시물
 import * as THREE from 'three';
 import {
-  GATE, WALK_MAX, R_HALL, R_RIM_IN, TREES, terrainH, PARK, POOL, FLOWER_BEDS, R_WALK, R_HUB, SPOKE, CEIL, deg, polar, Q, PRAYER_POOL_R, WITNESS_POOL_R,
+  GATE, WALK_MAX, R_HALL, R_RIM_IN, TREES, terrainH, PARK, FLOWER_BEDS, R_WALK, R_HUB, SPOKE, CEIL, deg, polar, Q, PRAYER_POOL_R, WITNESS_POOL_R,
   columns, COUNTER, LONG_TABLE, BIBLE, planters, TRAY, stools, BOAT,
   BRIDGE,
 } from './layout.js';
@@ -112,15 +112,9 @@ export function buildWorld(scene) {
   const deco = { trees: [], machine: null, pastries: [], counterCups: [], plantLeaves: [], plantGroups: [] };
 
   // ---------- 바깥 ----------
-  // 잔디 (수영장 자리는 뚫어 둠)
+  // 잔디
   const gShape = new THREE.Shape();
   gShape.absarc(0, 0, Math.max(300, WALK_MAX + 30), 0, Math.PI * 2, false);
-  {
-    const zn = PARK.pool, h = new THREE.Path();
-    const c = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([a, b]) => zn.at(a * POOL.w / 2, b * POOL.d / 2));
-    h.moveTo(c[0].x, -c[0].z); for (const q of [c[3], c[2], c[1], c[0]]) h.lineTo(q.x, -q.z);
-    gShape.holes.push(h);
-  }
   {
     // 생명의 다리: 하나님과 사람 사이의 깊은 낭떠러지
     const B = BRIDGE, h = new THREE.Path();

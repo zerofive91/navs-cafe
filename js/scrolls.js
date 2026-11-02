@@ -24,8 +24,8 @@ void VERSES;
 // 숨겨 둘 자리: 구역 가장자리, 나무 사이, 길 끝 (걸을 수 있는 가까운 곳으로 맞춤)
 const SPOTS = () => [
   PARK.mustard.at(4.5, 3.5), PARK.sower.at(-7.5, 3), PARK.vine.at(5, 1), PARK.fold.at(5.5, 3),
-  PARK.well.at(-3.5, 2.5), PARK.camp.at(6.5, 3.5), PARK.ark.at(-12, 3), PARK.soccer.at(-12.5, 6),
-  PARK.tennis.at(9.5, 4), PARK.pool.at(-8, 3), PARK.meadow.at(9, 6), { x: 1.8, z: GATE.r + 2.5 },
+  PARK.well.at(-3.5, 2.5), PARK.t_obey.at(-8, 7), PARK.ark.at(-12, 3), PARK.t_word.at(-8.5, 5.5),
+  PARK.t_fellow.at(8.5, -5), PARK.t_witness.at(8, 5.5), PARK.meadow.at(9, 6), { x: 1.8, z: GATE.r + 2.5 },
   polar(R_WALK + 3.5, 255),
 ].slice(0, 12).map((p) => nearestFree(p) || p);
 

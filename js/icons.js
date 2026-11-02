@@ -40,6 +40,8 @@ export const ICONS = {
   // 앉기 / 일어서기
   sit: svg('<circle cx="13" cy="6" r="3"/><path d="M13 10v8h8v8M8 26V16"/><path d="M6 20h4"/>'),
   stand: svg('<circle cx="16" cy="5" r="3"/><path d="M16 9v10M11 14l5-2 5 2M12 28l4-9 4 9"/>'),
+  // 보따리 들기 (교제 훈련장)
+  bundle: svg('<path d="M10 12c0-3 2.5-5 6-5s6 2 6 5"/><path d="M8 12h16l-2 15H10z"/><path d="M13 17h6"/>'),
   // 전도: 빛을 건넴
   share: svg('<circle cx="8" cy="9" r="3"/><circle cx="24" cy="9" r="3"/><path d="M4 26v-6a4 4 0 0 1 8 0M20 26v-6a4 4 0 0 1 8 0"/><circle cx="16" cy="17" r="2.2" fill="currentColor"/><path d="M12 17h1.5M18.5 17H20"/>'),
   // 3인칭(캐릭터 뒤에서) / 1인칭(눈으로) 시점
