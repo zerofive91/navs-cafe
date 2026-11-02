@@ -22,6 +22,7 @@ import { initTutorial, nameTag } from './tutorial.js';
 import { initTraining } from './training.js';
 import { initDungeon } from './dungeon.js';
 import { initQuests } from './quests.js';
+import { initShop } from './shop.js';
 import { COURSE_META } from './courses.js';
 
 const canvas = document.getElementById('cafe');
@@ -141,7 +142,7 @@ function makeChar(look, x, z) {
 }
 
 const myLook = loadLook();
-let tut = null, character = null, training = null, dungeon = null, quests = null; // 안내와 캐릭터 창은 맨 아래에서 만듦
+let tut = null, character = null, training = null, dungeon = null, quests = null, shop = null; // 안내와 캐릭터 창은 맨 아래에서 만듦
 const profile = loadProfile(); // 닉네임·걸음·받은 것·안내 기록 (이 기기 안에만)
 if (profile.name) myLook.name = profile.name;
 const me = makeChar(myLook, SPAWN.x, SPAWN.z);
@@ -550,7 +551,7 @@ function availableActions() {
     me.action = null;
   }
   // 부탁·훈련의 그 자리 단추가 먼저 (E가 이것부터 누름)
-  if (me.state !== 'walk') { for (const v of quests?.available() || []) place(v[1]); for (const v of training?.available() || []) place(v[1]); }
+  if (me.state !== 'walk') { for (const v of shop?.available() || []) place(v[1]); for (const v of quests?.available() || []) place(v[1]); for (const v of training?.available() || []) place(v[1]); }
   for (const v of dungeon?.available() || []) place(v[1]); // 길 끝: 입구로 돌아가기
   if (signs.canCalm()) place('calm'); // 풍랑 속: 손을 들어 잠잠케
   if (me.state === 'walk') { if (me.slow) place(...park.available()); else list.push('jump'); list.push(...walkToggle); return list; } // 걷는 중에는 점프(와 걷기·달리기)만
@@ -1189,6 +1190,7 @@ function frame(now) {
   training.step(dt, t);
   dungeon.step(dt, t);
   quests.step(dt, t);
+  shop.step(dt, t);
   for (const n of npcs) { stepChar(n, dt); poseAvatar(n.av, n, t, dt); }
   training.pin();
   together.step(dt, t);
@@ -1370,6 +1372,7 @@ function goIn() {
 async function choose(mode, btn) {
   music.resume();
   await Promise.race([account.ready, new Promise((r) => setTimeout(r, 4000))]); // 계정이 있으면 서버 기록부터
+  account.claim(); // 같은 계정으로 다른 기기에 있던 캐릭터는 멈춤
   if (mode === 'solo') { together.start('solo'); return goIn(); }
   let code = inviteCodeFromUrl(); // 예전 초대 링크(?c=)로 온 사람은 그 방으로
   if (mode === 'invite' && !code) {
@@ -1387,6 +1390,16 @@ async function choose(mode, btn) {
 // 계정으로 이어 하기: 서버 기록과 합쳐 지금 캐릭터에 바로 반영
 const account = initAccount({
   toast,
+  // 같은 계정으로 다른 기기에서 들어옴: 여기 캐릭터는 함께 있는 방에서 빠지고 화면을 덮음
+  kicked: () => {
+    together.leave?.();
+    const d = document.createElement('div');
+    d.id = 'away';
+    d.innerHTML = '<div class="pad"><h3>다른 기기에서 들어왔어요</h3><p>같은 계정은 한 번에 한 기기에서만 할 수 있어요. 여기는 잠시 멈췄어요.</p><button class="go">여기서 이어 하기</button></div>';
+    d.addEventListener('pointerdown', (e) => e.stopPropagation());
+    d.querySelector('button').addEventListener('click', () => location.reload());
+    document.body.appendChild(d);
+  },
   apply: () => {
     Object.assign(profile, loadProfile());
     try { const l = JSON.parse(localStorage.getItem('navs-cafe-look3d') || 'null'); if (l && l.hoodie) { Object.assign(myLook, l); rebuildMe(); } } catch (e) { /* 무시 */ }
@@ -1398,7 +1411,7 @@ onProfileSave(() => account.schedule());
 for (const b of enter.querySelectorAll('.mode')) b.addEventListener('click', () => choose(b.dataset.mode, b));
 if (inviteCodeFromUrl()) inviteCodeFromUrl.arrived = true;
 window.__enterReady = true;
-const signs = initSigns({ scene, me, npcs, interactive, act, sfx, fxSprite, burst, sun, walkTo, faceTo });
+const signs = initSigns({ scene, me, npcs, interactive, act, sfx, fxSprite, burst, sun, walkTo, faceTo, onShekel: () => shop?.shekel() });
 const park = initPark({ scene, me, interactive, act, sfx, fxSprite, burst, walkTo, faceTo, standUp, shot });
 Object.assign(ACTIONS, park.actions);
 const leisure = initLeisure({ scene, me, camera, renderer, view, lights: [hemi, sun, warm], act, sfx, burst, walkTo, faceTo, standUp, nearestPerson, toast, ICONS, LIEABLE });
@@ -1415,27 +1428,33 @@ tut = initTutorial({
 character = initCharacter({
   me, look: myLook, profile, save: saveMe, rebuild: rebuildMe, view, toast,
   onCreated: () => { character.showChip(); setTimeout(() => tut.start('cafe'), 500); },
-  replay: (id) => (id === 'account' ? account.open() : tut.start(id)),
+  replay: (id) => (id === 'account' ? account.open() : id.startsWith('use:') ? shop.use(id.slice(4)) : tut.start(id)),
 });
 training = initTraining({
   scene, me, makeChar, npcs, profile, save: saveMe, toast, sfx, burst, fxSprite,
-  busy: () => !!tut?.active() || !!character?.isOpen() || !!dungeon?.active() || !!quests?.active(),
+  busy: () => !!tut?.active() || !!character?.isOpen() || !!dungeon?.active() || !!quests?.active() || !!shop?.active(),
   onChange: () => character.showChip(),
 });
 Object.assign(ACTIONS, training.actions);
 dungeon = initDungeon({
   scene, me, profile, save: saveMe, toast, sfx, burst, fxSprite,
-  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!quests?.active(),
+  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!quests?.active() || !!shop?.active(),
   onChange: () => character.showChip(),
   courseName: (id) => (COURSE_META[id] ? COURSE_META[id].name : id),
 });
 Object.assign(ACTIONS, dungeon.actions);
 quests = initQuests({
   scene, me, makeChar, npcs, profile, save: saveMe, toast, sfx, burst, fxSprite, lying, nearestFree,
-  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!dungeon?.active(),
+  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!dungeon?.active() || !!shop?.active(),
   onChange: () => character.showChip(),
 });
 Object.assign(ACTIONS, quests.actions);
+shop = initShop({
+  scene, me, makeChar, npcs, profile, save: saveMe, toast, sfx, burst, act,
+  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!dungeon?.active() || !!quests?.active(),
+  onChange: () => character.showChip(),
+});
+Object.assign(ACTIONS, shop.actions);
 requestAnimationFrame(frame);
 if (window.__pick) choose(window.__pick);
 // 첫 화면이 뜬 뒤 소품 모델을 천천히 불러와 바꿔 끼움
@@ -1445,4 +1464,4 @@ setTimeout(() => {
   for (const n of npcs) if (n.av) upgradeCup(n.av);
 }, 300);
 
-window.__cafe = { availableActions, profile, tut, character, training, dungeon, quests, camera, shot, together, me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs, placed, park, scrolls, renderer, map };
+window.__cafe = { get shop() { return shop; }, availableActions, profile, tut, character, training, dungeon, quests, camera, shot, together, me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs, placed, park, scrolls, renderer, map };

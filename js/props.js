@@ -2,7 +2,7 @@
 // 모델은 화면이 뜬 뒤 천천히 불러오고, 다 불러오면 임시 모양을 바꿔 끼움
 import * as THREE from 'three';
 import { GLTFLoader } from '../vendor/loaders/GLTFLoader.js';
-import { C, G, gr, R_GARDEN, Q, PRAYER_POOL_R, COUNTER, LONG_TABLE, LOUNGES, RESTS, FLOWER_BEDS, GARDEN_BENCHES, GARDEN_LAMPS, R_WALK, LANES, parkClear, polar, deg, floorY } from './layout.js';
+import { C, G, gr, R_GARDEN, Q, PRAYER_POOL_R, COUNTER, LONG_TABLE, LOUNGES, RESTS, FLOWER_BEDS, GARDEN_BENCHES, GARDEN_LAMPS, R_WALK, LANES, parkClear, PARK, polar, deg, floorY } from './layout.js';
 
 const loader = new GLTFLoader();
 const cache = new Map();
@@ -169,7 +169,7 @@ export function loadProps({ scene, deco, interactive, anim, renderer, occluders 
     if (nearEntry(a)) continue;
     const x = Math.cos(a) * r, z = Math.sin(a) * r;
     if (FLOWER_BEDS.some((b) => Math.hypot(b.x - x, b.z - z) < b.r + 0.4)) continue;
-    if (r > gr(40) && !parkClear(x, z, 0.5)) continue;
+    if (r > gr(40) ? !parkClear(x, z, 0.5) : Object.values(PARK).some((zn) => zn.inside(x, z, 0.5))) continue; // 훈련장 안에는 풀·돌을 두지 않음
     const kind = pick(MEADOW);
     const h = kind.startsWith('stump') || kind === 'log' ? 0.4 : kind.startsWith('rock') ? 0.25 : kind.startsWith('plant') ? 0.8 : 0.35 + rnd() * 0.25;
     many.add(N + kind + '.glb', { x, z, y: -0.5, rot: rnd() * 6, height: h });

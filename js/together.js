@@ -17,7 +17,7 @@ export const INVITE_CAP = 10;
 const MAX_CAFES = 30;
 
 let libPromise = null;
-function loadLib() {
+export function loadLib() {
   if (window.supabase) return Promise.resolve(window.supabase);
   if (!libPromise) {
     libPromise = new Promise((res, rej) => {
@@ -226,6 +226,12 @@ export function initTogether({ scene, me, look, makeChar, poseAvatar, upgradeCup
   }
 
   window.addEventListener('pagehide', () => { if (channel) { channel.untrack(); client.removeChannel(channel); } });
+  // 방에서 나옴 (같은 계정이 다른 기기에서 들어왔을 때)
+  function leave() {
+    if (channel) { channel.untrack(); client.removeChannel(channel); channel = null; }
+    for (const id of [...people.keys()]) removePerson(id);
+    st.mode = 'solo'; st.count = 1; st.onChange(st);
+  }
 
-  return { st, start, step, people, applyState }; // applyState: 시험용으로도 씀
+  return { st, start, leave, step, people, applyState }; // applyState: 시험용으로도 씀
 }

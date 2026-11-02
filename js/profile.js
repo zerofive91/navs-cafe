@@ -45,7 +45,54 @@ function fill(p = {}) {
     quests: p.quests && typeof p.quests === 'object' ? p.quests : {}, // 정원의 부탁 { sheep: 'done', ... }
     dungeon: p.dungeon && typeof p.dungeon === 'object' ? p.dungeon : {}, // 이긴 숲길 { exodus: 'clear', ... }
     since: p.since || null,
+    coins: Number.isFinite(p.coins) ? Math.max(0, p.coins | 0) : null, // 지갑 (데나리온 단위). null: 아직 지갑을 받기 전
+    bag: p.bag && typeof p.bag === 'object' ? p.bag : {}, // 소모품 { oil: 2, ... }
+    sold: Array.isArray(p.sold) ? p.sold : [], // 가게에 판 물품 (다른 기기 기록과 합칠 때 되살아나지 않게)
+    fishDay: typeof p.fishDay === 'string' ? p.fishDay : '', // 물고기 입의 한 세겔은 하루 한 번
+    walletAt: p.walletAt | 0, // 지갑·소모품이 마지막으로 바뀐 때 (두 기기 기록을 합칠 때 새것을 씀)
   };
+}
+
+// ---------- 화폐 (성경 시대의 돈) ----------
+// 지갑은 데나리온으로 셈. 1 데나리온 = 1 드라크마(하루 품삯, 마 20:2), 1 세겔 = 4, 1 므나 = 100, 1 달란트 = 6000
+export const MONEY = [
+  { name: '달란트', v: 6000, ref: '마태복음 25:15' },
+  { name: '므나', v: 100, ref: '누가복음 19:13' },
+  { name: '세겔', v: 4, ref: '마태복음 17:27' },
+  { name: '데나리온', v: 1, ref: '마태복음 20:2' },
+];
+export function fmtMoney(n) {
+  n = Math.max(0, n | 0);
+  if (!n) return '0 데나리온';
+  const out = [];
+  for (const m of MONEY) { const k = Math.floor(n / m.v); if (k) { out.push(`${k} ${m.name}`); n -= k * m.v; } }
+  return out.join(' ');
+}
+// 소모품: 가게(루디아)에서 사서 쓰면 없어짐
+export const GOODS = {
+  oil: { name: '등잔 기름', price: 2, use: '숲길 시험에서 틀린 말씀 하나를 걷어 내요', verse: ['슬기 있는 자들은 그릇에 기름을 담아 등과 함께 가져갔더니', '마태복음 25:4'] },
+  loaf: { name: '보리떡', price: 1, use: '숲길에서 넘어져도 그 자리에서 먹고 다시 일어나요', verse: ['여호와의 사자가 또 다시 와서 어루만지며 이르되 일어나서 먹으라 네가 길을 이기지 못할까 하노라 하는지라', '열왕기상 19:7'] },
+  spice: { name: '향 한 줌', price: 3, use: '기도할 때 피우면 기도 +1', verse: ['나의 기도가 주의 앞에 분향함과 같이 되며', '시편 141:2'] },
+};
+// 받은 물품을 가게에 팔 때 값 (광주리는 팔지 않음)
+export const SELL = (id) => (id === 'basket' ? 0 : ['manna', 'mustard'].includes(id) ? 1 : ['scroll', 'incense', 'bread', 'lamp', 'stake'].includes(id) ? 5 : 3);
+const touchWallet = (p) => { p.walletAt = Date.now(); };
+export function earn(p, n) { if (p.coins == null) p.coins = 0; p.coins += n; touchWallet(p); saveProfile(p); }
+export function spend(p, n) { if ((p.coins | 0) < n) return false; p.coins -= n; touchWallet(p); saveProfile(p); return true; }
+export function addGood(p, id, n = 1) { p.bag[id] = (p.bag[id] | 0) + n; touchWallet(p); saveProfile(p); }
+export function useGood(p, id) { if (!(p.bag[id] > 0)) return false; p.bag[id] -= 1; if (!p.bag[id]) delete p.bag[id]; touchWallet(p); saveProfile(p); return true; }
+export function sellItem(p, id) {
+  const v = SELL(id); const i = p.items.indexOf(id);
+  if (!v || i < 0) return 0;
+  p.items.splice(i, 1); if (!p.sold.includes(id)) p.sold.push(id); if (p.coins == null) p.coins = 0; p.coins += v; touchWallet(p); saveProfile(p);
+  return v;
+}
+// 지갑이 생기기 전에 한 일도 셈해서 처음 한 번 채워 줌
+export function openWallet(p) {
+  if (p.coins != null) return 0;
+  const n = 5 + Object.keys(p.train || {}).length * 5 + Object.keys(p.quests || {}).length * 3 + Object.keys(p.dungeon || {}).length * 5;
+  p.coins = n; touchWallet(p); saveProfile(p);
+  return n;
 }
 
 export function loadProfile() {
@@ -59,6 +106,7 @@ export function saveProfile(p) {
 }
 export function giveItem(p, id) {
   if (!p.items.includes(id)) p.items.push(id);
+  if (p.sold?.includes(id)) { p.sold = p.sold.filter((x) => x !== id); touchWallet(p); }
   saveProfile(p);
 }
 export function addStat(p, id, n) {

@@ -1,6 +1,6 @@
 // 정원의 수레바퀴 다섯 훈련장 (2026-11, 예전 운동장·캠핑장 자리)
 //   말씀: 에스라 (스 7:10) - 다섯 기둥(듣기·읽기·연구·묵상·적용)을 차례로 들러 한 구절씩
-//   기도: 다니엘 (단 6:10) - 찬양·고백·감사·간구 네 제단에서 손 모으기
+//   기도: 다니엘 (단 6:10) - 찬양·자백·감사·간구 네 제단에서 손 모으기
 //   교제: 아굴라와 브리스길라 (갈 6:2) - 짐 보따리 셋을 장막 짓는 탁자로 함께 나르기
 //   증거: 빌립 (행 8:30) - 길 가는 세 사람에게 다가가 빛 건네기
 //   순종: 아브라함 (창 12:4, 히 11:8) - 갈 바를 몰라도 앞서가는 등불을 따라 걷기
@@ -9,7 +9,7 @@ import * as THREE from 'three';
 import { TRAIN, floorY } from './layout.js';
 import { VERSES, showVerse } from './verses.js';
 import { nameTag } from './tutorial.js';
-import { addStat, addSteps, giveItem, ITEMS, STATS } from './profile.js';
+import { addStat, addSteps, giveItem, earn, ITEMS, STATS } from './profile.js';
 
 const V = (k, text, ref) => { VERSES[k] = [text, ref]; return k; };
 const STEP_REWARD = 20, STAT_REWARD = 10;
@@ -73,7 +73,7 @@ export function initTraining(K) {
   const R = TRAIN.pray;
   const PRAY = [
     ['찬양', V('t-p0', '여호와는 광대하시니 크게 찬양할 것이라 그의 광대하심을 측량치 못하리로다', '시편 145:3')],
-    ['고백', V('t-p1', '만일 우리가 우리 죄를 자백하면 저는 미쁘시고 의로우사 우리 죄를 사하시며 모든 불의에서 우리를 깨끗케 하실 것이요', '요한일서 1:9')],
+    ['자백', V('t-p1', '만일 우리가 우리 죄를 자백하면 저는 미쁘시고 의로우사 우리 죄를 사하시며 모든 불의에서 우리를 깨끗케 하실 것이요', '요한일서 1:9')],
     ['감사', V('t-p2', '범사에 감사하라 이는 그리스도 예수 안에서 너희를 향하신 하나님의 뜻이니라', '데살로니가전서 5:18')],
     ['간구', V('t-p3', '아무 것도 염려하지 말고 오직 모든 일에 기도와 간구로, 너희 구할 것을 감사함으로 하나님께 아뢰라', '빌립보서 4:6')],
   ];
@@ -165,7 +165,7 @@ export function initTraining(K) {
     },
     pray: {
       who: daniel, stat: 'prayer', item: 'incense', name: '기도 훈련장',
-      intro: '저는 다니엘이에요. 저는 하루 세 번 창을 열고 무릎을 꿇었어요. 네 제단에서 차례로 기도해 볼까요? 찬양, 고백, 감사, 간구예요.',
+      intro: '저는 다니엘이에요. 저는 하루 세 번 창을 열고 무릎을 꿇었어요. 네 제단에서 차례로 기도해 볼까요? 찬양, 자백, 감사, 간구예요.',
       verse: '그 방의 예루살렘으로 향하여 열린 창에서 전에 행하던대로 하루 세번씩 무릎을 꿇고 기도하며 그 하나님께 감사하였더라 (다니엘 6:10)',
       total: 4,
       hint: (i) => `${PRAY[i][0]}의 제단 앞에서 기도하세요 (X 또는 기도 단추).`,
@@ -280,13 +280,13 @@ export function initTraining(K) {
     if (!run.practice) {
       profile.train[d.stat] = 'basic';
       addStat(profile, d.stat, STAT_REWARD);
-      giveItem(profile, d.item);
+      giveItem(profile, d.item); earn(profile, 5);
       const up = addSteps(profile, STEP_REWARD);
       const st = STATS.find((x) => x.id === d.stat);
-      extra = ` (${st.name} +${STAT_REWARD}, 걸음 +${STEP_REWARD}, ${ITEMS[d.item].name})`;
+      extra = ` (${st.name} +${STAT_REWARD}, 걸음 +${STEP_REWARD}, ${ITEMS[d.item].name}, 5 데나리온)`;
       if (up) setTimeout(() => { toast(`${profile.name}님이 ${up.name}${/[가-힣]/.test(up.name.slice(-1)) && (up.name.charCodeAt(up.name.length - 1) - 0xac00) % 28 && (up.name.charCodeAt(up.name.length - 1) - 0xac00) % 28 !== 8 ? '으로' : '로'} 자랐어요! 내게 들은 바를 충성된 사람들에게 부탁하라 저희가 또 다른 사람들을 가르칠수 있으리라 (디모데후서 2:2)`, 7); burst(me.x, me.y + 1.4, me.z); sfx('orb', 0.3, 0.9); }, 2500);
       save(); onChange?.();
-    } else { addSteps(profile, 2); save(); onChange?.(); }
+    } else { addSteps(profile, 2); earn(profile, 1); save(); onChange?.(); }
     sfx('orb', 0.25, 1.1); burst(me.x, me.y + 1.2, me.z);
     show(whoName(run.id), d.done + extra, '', { n: d.name, next: '감사해요' });
   }

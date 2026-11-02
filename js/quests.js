@@ -7,7 +7,7 @@ import { PARK, floorY, isFree, polar, Q as WHEEL, WITNESS_POOL_R } from './layou
 import { VERSES, showVerse } from './verses.js';
 import { nameTag } from './tutorial.js';
 import { on } from './bus.js';
-import { addStat, addSteps, giveItem, ITEMS, STATS } from './profile.js';
+import { addStat, addSteps, giveItem, earn, ITEMS, STATS } from './profile.js';
 
 const STEP_REWARD = 20, STAT_REWARD = 10;
 const V = (k, text, ref) => { VERSES[k] = [text, ref]; return k; };
@@ -293,13 +293,13 @@ export function initQuests(K) {
     const q = run.q; run = null; updateChip();
     sfx('orb', 0.25, 1.1); burst(me.x, me.y + 1.2, me.z);
     thanks = q;
-    if (profile.quests[q.id] === 'done') { addSteps(profile, 2); save(); onChange?.(); show(q, `${q.done.split('.')[0]}. 또 도와줘서 고마워요! (걸음 +2)`, '', { next: '감사해요' }); return; }
+    if (profile.quests[q.id] === 'done') { addSteps(profile, 2); earn(profile, 1); save(); onChange?.(); show(q, `${q.done.split('.')[0]}. 또 도와줘서 고마워요! (걸음 +2, 1 데나리온)`, '', { next: '감사해요' }); return; }
     profile.quests[q.id] = 'done';
-    addStat(profile, q.stat, STAT_REWARD); giveItem(profile, q.item);
+    addStat(profile, q.stat, STAT_REWARD); giveItem(profile, q.item); earn(profile, 3);
     const up = addSteps(profile, STEP_REWARD);
     save(); onChange?.();
     const st = STATS.find((x) => x.id === q.stat);
-    show(q, `${q.done} (${st.name} +${STAT_REWARD}, 걸음 +${STEP_REWARD}, ${ITEMS[q.item].name})`, '', { next: '감사해요' });
+    show(q, `${q.done} (${st.name} +${STAT_REWARD}, 걸음 +${STEP_REWARD}, ${ITEMS[q.item].name}, 3 데나리온)`, '', { next: '감사해요' });
     if (up) setTimeout(() => toast(`${profile.name || '나'}님이 ${up.name}${josa(up.name)} 자랐어요!`, 5), 2500);
   }
   const josa = (w) => { const c = w.charCodeAt(w.length - 1) - 0xac00; return c >= 0 && c < 11172 && c % 28 && c % 28 !== 8 ? '으로' : '로'; };

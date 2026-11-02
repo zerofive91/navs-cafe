@@ -6,7 +6,7 @@
 import * as THREE from 'three';
 import { TRAILS, R_PARK, floorY } from './layout.js';
 import { VERSES, showVerse } from './verses.js';
-import { STAGES, stageOf, addSteps, addStat } from './profile.js';
+import { STAGES, stageOf, addSteps, addStat, earn, useGood, GOODS } from './profile.js';
 
 // 별 하나: 새싹부터, 별 둘: 제자부터, 별 셋: 일꾼부터
 export const TIER = {
@@ -117,7 +117,7 @@ export function initDungeon(K) {
   // ---------- 시험 말풍선 ----------
   const box = document.createElement('div');
   box.className = 'npcb trial'; box.id = 'trial'; box.hidden = true;
-  box.innerHTML = '<div class="who"><b></b><span class="n"></span></div><p class="say"></p><div class="opts"></div><div class="row"><button class="later">물러나기</button></div>';
+  box.innerHTML = '<div class="who"><b></b><span class="n"></span></div><p class="say"></p><div class="opts"></div><div class="row"><button class="later">물러나기</button><button class="oil" hidden></button></div>';
   document.body.appendChild(box);
   const $ = (s) => box.querySelector(s);
   let cur = null, closedFor = null, opts = [];
@@ -126,6 +126,7 @@ export function initDungeon(K) {
     const o = e.target.closest('.opt');
     if (o) return choose(Number(o.dataset.i));
     if (e.target.classList.contains('later')) { closedFor = cur; close(); }
+    if (e.target.classList.contains('oil')) pourOil();
   });
   addEventListener('keydown', (e) => {
     if (!cur || cur.wait) return;
@@ -147,6 +148,7 @@ export function initDungeon(K) {
     const sm = document.createElement('small'); sm.textContent = '어떤 말씀으로 대답할까요? (1·2·3, 막히면 X 기도)'; $('.say').append(sm);
     $('.opts').innerHTML = opts.map((k, i) => `<button class="opt" data-i="${i}"><kbd>${i + 1}</kbd><span>${W[k][0]} <em>${W[k][1]}</em></span></button>`).join('');
     box.hidden = false; box.classList.remove('ok');
+    S.oiled = false; oilBtn();
     document.body.classList.add('talking', 'trialing');
     sfx('impact/impactSoft_heavy_000', 0.2, 0.5);
   }
@@ -158,6 +160,12 @@ export function initDungeon(K) {
       sfx('orb', 0.3, 1.2); burst(S.x, gy(S) + 1.2, S.z);
       showVerse('dg-' + S.lie, { cooldown: 0, title: '말씀으로 물리쳤어요' });
       setTimeout(() => { S.wait = false; if (cur === S) close(); checkWin(S.id); }, 900);
+    } else if (useGood(profile, 'loaf')) {
+      // 보리떡이 있으면: 넘어져도 그 자리에서 먹고 다시 일어나 다른 말씀을 고름 (왕상 19:7)
+      const b = $(`.opt[data-i="${i}"]`); if (b) { b.classList.add('no'); b.disabled = true; }
+      sfx('impact/impactSoft_medium_000', 0.25, 0.7);
+      toast(`넘어졌지만 보리떡을 먹고 그 자리에서 다시 일어났어요 (남은 보리떡 ${profile.bag.loaf | 0})`, 4);
+      save(); onChange?.();
     } else {
       // 넘어짐: 화면이 잠깐 어두워지고 앞 정거장에서 다시 일어남
       S.wait = true;
@@ -173,6 +181,21 @@ export function initDungeon(K) {
       }, 1300);
     }
   }
+  // 등잔 기름: 틀린 말씀 하나를 걷어 냄 (한 속삭임에 한 번)
+  function oilBtn() {
+    const b = $('.oil'), n = (profile.bag && profile.bag.oil) | 0;
+    b.hidden = !cur || cur.oiled || !n;
+    b.textContent = `${GOODS.oil.name} 붓기 (${n})`;
+  }
+  function pourOil() {
+    if (!cur || cur.wait || cur.oiled) return;
+    const wrong = opts.map((k, i) => [k, i]).filter(([k, i]) => k !== cur.lie && !$(`.opt[data-i="${i}"]`)?.classList.contains('no'));
+    if (!wrong.length || !useGood(profile, 'oil')) return;
+    cur.oiled = true;
+    const b = $(`.opt[data-i="${wrong[0][1]}"]`); if (b) { b.classList.add('no'); b.disabled = true; }
+    sfx('orb', 0.2, 1.4); toast('등불이 밝아져 거짓 말씀 하나가 드러났어요', 3);
+    save(); onChange?.(); oilBtn();
+  }
   function hint() {
     if (!cur || cur.wait) return;
     const i = opts.indexOf(cur.lie);
@@ -184,15 +207,16 @@ export function initDungeon(K) {
     const left = list.filter((S) => !S.beaten).length;
     if (left) { toast(`이 길에 남은 속삭임 ${left}`, 2.5); return; }
     profile.dungeon = profile.dungeon || {};
-    if (profile.dungeon[id]) { addSteps(profile, 5); save(); onChange?.(); toast(`${courseName(id)}의 시험을 다시 이겼어요 (걸음 +5)`, 4); return; }
+    if (profile.dungeon[id]) { addSteps(profile, 5); earn(profile, 1); save(); onChange?.(); toast(`${courseName(id)}의 시험을 다시 이겼어요 (걸음 +5, 1 데나리온)`, 4); return; }
     profile.dungeon[id] = 'clear';
     const n = REWARD[TIER[id]];
     addStat(profile, 'word', 5); addStat(profile, 'obey', 5);
+    const pay = { 1: 3, 2: 5, 3: 8 }[TIER[id]] || 3; earn(profile, pay);
     const up = addSteps(profile, n);
     save(); onChange?.();
     setTimeout(() => {
       showVerse('dg-win', { cooldown: 0, title: `${courseName(id)} ${stars(id)} 이겼어요` });
-      toast(`걸음 +${n}, 말씀 +5, 순종 +5`, 5);
+      toast(`걸음 +${n}, 말씀 +5, 순종 +5, ${pay} 데나리온`, 5);
       for (let q = 0; q < 10; q++) setTimeout(() => burst(me.x + (Math.random() - 0.5) * 3, me.y + 1 + Math.random() * 2, me.z + (Math.random() - 0.5) * 3), q * 120);
       if (up) setTimeout(() => toast(`${profile.name || '나'}님이 ${up.name}${josa(up.name)} 자랐어요! 이제 ${stars2(up)} 길이 열려요`, 6), 4000);
     }, 2400);
