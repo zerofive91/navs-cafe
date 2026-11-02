@@ -2,6 +2,7 @@
 //   그 말씀대로 간단히 해 보면 풀리고, 인물에게서 성경 물품과 능력치·걸음을 받음
 //   목자(잃은 양) · 사마리아 여인(우물) · 여호수아(여리고) · 다윗(매끄러운 돌) · 룻과 나오미(이삭)
 //   엘리야(로뎀나무) · 노아(비둘기) / 카페 안: 베드로(증거의 물)
+//   2026-11 더함: 삭개오 · 사마리아인 · 안드레(오병이어) · 요나(요나의 바다) · 솔로몬(푸른 초장) · 이삭(겨자씨) · 요한(포도나무 그늘)
 import * as THREE from 'three';
 import { PARK, floorY, isFree, polar, Q as WHEEL, WITNESS_POOL_R, SYCAMORE } from './layout.js';
 import { VERSES, showVerse } from './verses.js';
@@ -13,6 +14,10 @@ const STEP_REWARD = 20, STAT_REWARD = 10;
 const V = (k, text, ref) => { VERSES[k] = [text, ref]; return k; };
 
 Object.assign(ITEMS, {
+  gourd: { name: '박넝쿨 그늘', verse: ['주께서는 은혜로우시며 자비로우시며 노하기를 더디하시며 인애가 크시사 뜻을 돌이켜 재앙을 내리지 아니하시는 하나님이신 줄을 내가 알았음이니이다', '요나 4:2'] },
+  lily: { name: '들의 백합화', verse: ['그러나 내가 너희에게 말하노니 솔로몬의 모든 영광으로도 입은 것이 이 꽃 하나만 같지 못하였느니라', '마태복음 6:29'] },
+  mustard: { name: '겨자씨 한 알', verse: ['이는 모든 씨보다 작은 것이로되 자란 후에는 나물보다 커서 나무가 되매 공중의 새들이 와서 그 가지에 깃들이느니라', '마태복음 13:32'] },
+  grapes: { name: '포도송이', verse: ['너희가 과실을 많이 맺으면 내 아버지께서 영광을 받으실 것이요 너희가 내 제자가 되리라', '요한복음 15:8'] },
   staff: { name: '목자의 지팡이', verse: ['주의 지팡이와 막대기가 나를 안위하시나이다', '시편 23:4'] },
   water: { name: '생수', verse: ['나를 믿는 자는 성경에 이름과 같이 그 배에서 생수의 강이 흘러나리라', '요한복음 7:38'] },
   horn: { name: '양각 나팔', verse: ['백성이 나팔 소리를 듣는 동시에 크게 소리질러 외치니 성벽이 무너져 내린지라', '여호수아 6:20'] },
@@ -177,6 +182,39 @@ export function initQuests(K) {
   ringL.position.set(netL.x, G(netL), netL.z); ringR.position.set(netR.x, G(netR), netR.z);
   const fishBurst = (p) => { for (let k = 0; k < 14; k++) setTimeout(() => burst(p.x + (Math.random() - 0.5) * 2.4, G(p) + 0.3 + Math.random() * 0.8, p.z + (Math.random() - 0.5) * 2.4), k * 90); };
 
+  // ---------- 빈 구역에도 사람을 (2026-11): 요나의 바다 · 푸른 초장 · 겨자씨 · 포도나무 그늘 ----------
+  const jonah = npc('요나', { hoodie: 0x5a6a8a, hair: 0x3b2a22 }, P.jonah.at(-6, 4.5), P.jonah);
+  const shore = freeAt(P.jonah.at(-4.5, 0));
+  const nineveh = freeAt(P.jonah.at(-8.5, -6.5));
+  {
+    const g = new THREE.Group();
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.5, 0.12), M(0x8a6a4a)); post.position.y = 0.75; g.add(post);
+    const board = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.42, 0.06), M(0xe8d8b0)); board.position.y = 1.35; g.add(board);
+    const cv = document.createElement('canvas'); cv.width = 256; cv.height = 96; const c2 = cv.getContext('2d');
+    c2.fillStyle = '#e8d8b0'; c2.fillRect(0, 0, 256, 96); c2.fillStyle = '#5a3e28'; c2.font = '700 44px "Noto Serif KR", serif'; c2.textAlign = 'center'; c2.textBaseline = 'middle'; c2.fillText('니느웨 →', 128, 50);
+    const tx = new THREE.CanvasTexture(cv); tx.colorSpace = THREE.SRGBColorSpace;
+    for (const z of [0.035, -0.035]) { const f = new THREE.Mesh(new THREE.PlaneGeometry(1.05, 0.38), new THREE.MeshBasicMaterial({ map: tx })); f.position.set(0, 1.35, z); if (z < 0) f.rotation.y = Math.PI; g.add(f); }
+    g.rotation.y = Math.atan2(-nineveh.x, -nineveh.z);
+    put(g, nineveh);
+  }
+  const solomon = npc('솔로몬', { hoodie: 0x8a5ab0, hair: 0x2b211c }, P.meadow.at(-9, -5), P.meadow);
+  const lilies = [];
+  {
+    const petal = new THREE.ConeGeometry(0.07, 0.2, 5, 1, true), white = M(0xfffaf0, 0.5, { emissive: 0x403c30, emissiveIntensity: 0.3, side: THREE.DoubleSide }), stem = M(0x5a9a4a, 0.9);
+    for (let k = 0; k < 5; k++) {
+      const p = freeAt(P.meadow.at(-6 + k * 3.2, k % 2 ? 4 : -2.5));
+      const g = new THREE.Group();
+      const st = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.42), stem); st.position.y = 0.21; g.add(st);
+      for (let j = 0; j < 5; j++) { const e = new THREE.Mesh(petal, white); e.position.set(Math.sin(j * 1.26) * 0.05, 0.47, Math.cos(j * 1.26) * 0.05); e.rotation.set(Math.cos(j * 1.26) * 0.5 + Math.PI, 0, -Math.sin(j * 1.26) * 0.5); g.add(e); }
+      put(g, p);
+      const glow = fxSprite('light_01', 0xfff0c0, 0.7); glow.position.y = 0.5; glow.visible = false; g.add(glow);
+      lilies.push({ g, glow, p, got: false, keep: true }); // 들여다보기만 하고 꺾지 않음
+    }
+  }
+  const isaac = npc('이삭', { hoodie: 0x9a8a5a, hair: 0x5a4030 }, P.mustard.at(-5, -4), P.mustard);
+  const johnA = npc('요한', { hoodie: 0x7a9ab8, hair: 0x4a3a2a }, P.vine.at(-5.5, -3), P.vine);
+  const vineSit = freeAt(P.vine.at(0, -3));
+
   // ---------- 부탁 정의 ----------
   const near = (p, d) => dist(p) < d;
   const Q = [
@@ -299,6 +337,46 @@ export function initQuests(K) {
       done: '그물이 터질 것 같아요! 말씀대로 했더니 일백 쉰 세 마리나! 이 그물을 가져가요. 이제 사람을 낚는 어부가 되어요.',
     },
   );
+  const onSeat = (kind) => !!me.seat && me.seat.kind === kind;
+  Q.push(
+    {
+      id: 'jonah', who: jonah, name: '요나', title: '일어나 니느웨로', stat: 'obey', item: 'gourd', back: false,
+      ask: '저는 하나님의 낯을 피해 다시스로 가는 배를 탔다가 큰 물고기 배 속에 들어갔어요. 그 속에서 기도했더니 말씀이 두 번째 임했어요. 이번에는 순종하려 해요. 물가에서 함께 기도하고, 니느웨 쪽 팻말 앞에서 손 흔들어 외쳐 줄래요?',
+      verse: V('q-jonah', '일어나 저 큰 성읍 니느웨로 가서 내가 네게 명한 바를 그들에게 선포하라 하신지라', '요나 3:2'),
+      steps: [
+        { hint: '물가 모래밭에서 기도해요 (X 또는 기도 단추, 잠시 손 모으기).', go: () => shore, where: '요나의 바다 물가', until: (r, dt) => { if (me.action === 'pray' && near(shore, 6)) r.t = (r.t || 0) + dt; else r.t = 0; return r.t > 3; } },
+        { hint: '니느웨 팻말 앞에서 손을 흔들어 외쳐요 (빛 건네기 또는 손 흔들기).', go: () => nineveh, where: '니느웨 팻말', until: () => near(nineveh, 3.2) && (me.action === 'wave' || me.action === 'share') },
+      ],
+      done: '니느웨 사람들이 말씀을 듣고 돌이켰대요! 하나님은 은혜로우시고 자비로우셔요. 이 박넝쿨 그늘을 가져가요.',
+    },
+    {
+      id: 'solomon', who: solomon, name: '솔로몬', title: '들의 백합화를 보라', stat: 'prayer', item: 'lily',
+      ask: '저는 온갖 영화를 누린 왕이었지만, 예수님은 들의 백합화 하나가 제 모든 영광보다 낫다고 하셨어요. 무엇을 입을까 염려하지 말고 들꽃이 어떻게 자라는지 들여다보래요. 초장에 핀 백합화 다섯 송이를 함께 들여다볼래요?',
+      verse: V('q-solomon', '또 너희가 어찌 의복을 위하여 염려하느냐 들의 백합화가 어떻게 자라는가 생각하여 보라 수고도 아니하고 길쌈도 아니하느니라', '마태복음 6:28'),
+      steps: [{ hint: (r) => `초장의 백합화 곁에서 들여다봐요 (E 또는 반짝이는 단추) ${r.n || 0}/5`, collect: lilies, place: 'q_pick' }],
+      done: '수고도 길쌈도 안 하는데 이렇게 곱죠. 하나님이 들풀도 이렇게 입히시는데 하물며 우리일까요. 염려는 기도로 맡겨요. 이 백합화를 가져가요.',
+    },
+    {
+      id: 'isaac', who: isaac, name: '이삭', title: '겨자씨 한 알', stat: 'fellow', item: 'mustard',
+      ask: '저는 흉년에도 그 땅에 농사해서 백 배를 거두었어요. 하나님이 복을 주셨지요. 여기 아주 작은 겨자씨가 있어요. 흙더미에 심고 어떻게 자라는지 함께 지켜볼래요? 새들이 깃들 만큼 큰 나무가 된대요.',
+      verse: V('q-isaac', '또 비유를 베풀어 가라사대 천국은 마치 사람이 자기 밭에 갖다 심은 겨자씨 한 알 같으니', '마태복음 13:31'),
+      steps: [
+        { hint: '흙더미의 반짝이는 씨앗을 심어요 (흙더미 곁에서 심기 단추 또는 씨앗 누르기).', ev: 'mustardPlant', go: () => P.mustard, where: '겨자씨 흙더미' },
+        { hint: '씨가 자라 새들이 깃드는 것을 지켜봐요...', ev: 'mustardGrown', go: () => P.mustard, where: '겨자씨 흙더미' },
+      ],
+      done: '보셨죠? 가장 작은 씨가 새들이 쉬는 나무가 되었어요. 작은 사랑과 섬김도 그렇게 자라 많은 사람이 깃들어요. 이 겨자씨를 가져가요.',
+    },
+    {
+      id: 'vine', who: johnA, name: '요한', title: '내 안에 거하라', stat: 'word', item: 'grapes',
+      ask: '저는 예수님 품에 기대어 말씀을 듣던 제자예요. 예수님은 "나는 포도나무요 너희는 가지라" 하셨어요. 가지는 애써 열매를 만들지 않고 붙어 있기만 하면 돼요. 포도나무 그늘에 앉아 잠시 머물러 볼래요?',
+      verse: V('q-vine', '나는 포도나무요 너희는 가지니 저가 내 안에, 내가 저 안에 있으면 이 사람은 과실을 많이 맺나니 나를 떠나서는 너희가 아무 것도 할 수 없음이라', '요한복음 15:5'),
+      steps: [
+        { hint: (r) => `포도나무 그늘 의자에 앉아 머물러요 (빈 자리 누르기) ${Math.min(5, Math.floor(r.t || 0))}/5`, go: () => vineSit, where: '포도나무 그늘', until: (r, dt) => { if (onSeat('vine')) r.t = (r.t || 0) + dt; else r.t = 0; return r.t > 5; } },
+        { hint: '이제 맺힌 포도송이를 눌러 봐요.', ev: 'vineFruit', go: () => vineSit, where: '포도나무 그늘' },
+      ],
+      done: '머물렀을 뿐인데 열매가 맺혔어요. 말씀 안에 거하는 것이 열매의 비결이에요. 이 포도송이를 가져가요.',
+    },
+  );
   const BY = Object.fromEntries(Q.map((q) => [q.id, q]));
   const doneCount = () => Q.filter((q) => profile.quests[q.id] === 'done').length;
 
@@ -368,7 +446,7 @@ export function initQuests(K) {
     if (up) setTimeout(() => toast(`${profile.name || '나'}님이 ${up.name}${josa(up.name)} 자랐어요!`, 5), 2500);
   }
   const josa = (w) => { const c = w.charCodeAt(w.length - 1) - 0xac00; return c >= 0 && c < 11172 && c % 28 && c % 28 !== 8 ? '으로' : '로'; };
-  for (const ev of ['sheepHome', 'jerichoFall', 'goliathFall']) on(ev, () => { if (run && run.q.steps[run.i] && run.q.steps[run.i].ev === ev) advance(); });
+  for (const ev of ['sheepHome', 'jerichoFall', 'goliathFall', 'mustardPlant', 'mustardGrown', 'vineFruit']) on(ev, () => { if (run && run.q.steps[run.i] && run.q.steps[run.i].ev === ev) advance(); });
 
   // ---------- 그 자리 단추 ----------
   const curStep = () => (run && run.i < run.q.steps.length ? run.q.steps[run.i] : null);
@@ -377,7 +455,7 @@ export function initQuests(K) {
     const s = curStep(); if (!s) return;
     if (s.collect) {
       const c = nearestItem(s.collect); if (!c) return;
-      c.got = true; (c.g || c.s).visible = false; run.n++; sfx('impact/impactSoft_medium_000', 0.2, 1.3); burst(c.p.x, G(c.p) + 0.4, c.p.z);
+      c.got = true; if (!c.keep) (c.g || c.s).visible = false; run.n++; sfx('impact/impactSoft_medium_000', 0.2, 1.3); burst(c.p.x, G(c.p) + 0.4, c.p.z);
       if (run.n >= s.collect.length) advance(); else updateChip();
       return;
     }
@@ -410,6 +488,7 @@ export function initQuests(K) {
     for (const c of brook) c.glow.visible = !!(s && s.collect === brook && !c.got);
     for (const c of ears) c.glow.visible = !!(s && s.collect === ears && !c.got);
     for (const c of crowd) c.glow.visible = !!(s && s.collect === crowd && !c.got);
+    for (const c of lilies) c.glow.visible = !!(s && s.collect === lilies && !c.got);
     ringL.visible = ringR.visible = !!(run && run.q.id === 'peter');
     // 비둘기: 방주에서 날아갔다가 돌아옴
     if (flight) {

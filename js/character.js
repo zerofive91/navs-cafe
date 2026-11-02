@@ -2,6 +2,7 @@
 // 만드는 동안 카메라가 캐릭터 앞으로 와서 바뀐 모습이 바로 보임
 import { stageOf, STAGES, ITEMS, STATS, GOODS, fmtMoney } from './profile.js';
 import { GEAR } from './gear.js';
+import { bibleMode, setBible, BIBLE_NAME } from './bible.js';
 import { PETS } from './pets.js';
 
 export const HOODIES = [0x8fb7e0, 0xf2a7a0, 0xa7d3a6, 0xf4d27a, 0xb9a6e0, 0xf5f0e6, 0x6f8fb0, 0xd98f6a];
@@ -105,6 +106,8 @@ export function initCharacter({ me, look, profile, save, rebuild, view, toast, o
       ${Object.keys(profile.bag || {}).length ? `<div class="items goods">${Object.entries(profile.bag).map(([id, n]) => `<button data-use="${id}">${GOODS[id] ? GOODS[id].name : id} ${n}${id === 'spice' ? ' · 피우기' : ''}</button>`).join('')}</div>` : ''}
       <p class="lb">받은 것</p>
       <div class="items">${profile.items.length ? profile.items.map((id) => `<button data-item="${id}">${ITEMS[id] ? ITEMS[id].name : id}</button>`).join('') : '<span class="none">아직 없어요</span>'}</div>
+      <p class="lb">말씀 번역 <span class="hint">이 기기에서 보는 말씀</span></p>
+      <div class="items bible">${Object.entries(BIBLE_NAME).map(([id, n]) => `<button data-bible="${id}" class="${bibleMode() === id ? 'on' : ''}">${n}${bibleMode() === id ? ' ✓' : ''}</button>`).join('')}<span class="none">AI 현대어는 개역한글을 오늘의 말로 풀어 쓴 것이에요 (공식 번역 아님)</span></div>
       <div class="row"><button data-do="look">모습 바꾸기</button><button data-do="cafe">카페 안내 다시</button><button data-do="garden">정원 안내 다시</button><button data-do="account">계정 · 다른 기기에서 이어 하기</button></div>
     </div>`;
     card.addEventListener('pointerdown', (e) => {
@@ -112,6 +115,8 @@ export function initCharacter({ me, look, profile, save, rebuild, view, toast, o
       if (e.target === card || e.target.classList.contains('close')) return closeCard();
       const pb = e.target.closest('[data-pet]');
       if (pb) { if ((profile.pets[pb.dataset.pet] | 0) >= 3) { replay('pet:' + pb.dataset.pet); closeCard(); openCard(); } else toast('들짐승 들판에서 꼴로 세 번 돌보면 길들어요', 3.5); return; }
+      const bb = e.target.closest('[data-bible]');
+      if (bb) { setBible(bb.dataset.bible).then(() => { closeCard(); openCard(); toast(bb.dataset.bible === 'modern' ? '이제 말씀을 AI 현대어로 보여 드려요. 원문은 개역한글이에요' : '이제 말씀을 개역한글로 보여 드려요', 4); }); return; }
       const gb = e.target.closest('[data-gear]');
       if (gb) { replay('gear:' + gb.dataset.gear); closeCard(); openCard(); return; }
       const g = e.target.closest('[data-use]');
