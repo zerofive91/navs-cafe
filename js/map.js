@@ -1,7 +1,7 @@
 // 전체 지도: 카페·정원·숲속 코스와 내 위치(화살표), 함께 있는 사람들
 // 찾은 코스는 길과 정거장(지나온 곳은 채운 점)까지 보이고, 아직 못 찾은 코스는 입구만 반짝임
 // 지도를 누르면 그곳으로 걸어감
-import { TRAILS, PARK, R_HALL, R_WALK, R_PARK, R_GARDEN, BRIDGE, FLOWER_BEDS, TERRAIN, JONAH_SEA, CITY, Q } from './layout.js';
+import { TRAILS, PARK, R_HALL, R_WALK, R_PARK, R_GARDEN, BRIDGE, FLOWER_BEDS, TERRAIN, JONAH_SEA, CITY, Q, WALK_MAX } from './layout.js';
 import { COURSE_META, COURSE_STATIONS as STN, foundCourses } from './courses.js';
 import { nearestFree, findPath } from './nav.js';
 
@@ -117,7 +117,7 @@ export function initMap({ me, people, walkTo, say, icon, placesEl, before }) {
     g.fillStyle = '#1d2a22'; g.fillRect(0, 0, W, Hh);
     const found = foundCourses();
     // 숲 (어둑한 초록) 과 정원
-    circle(0, 0, 298, '#243b2b');
+    circle(0, 0, WALK_MAX + 8, '#243b2b');
     circle(0, 0, R_GARDEN, '#3f6b45');
     circle(0, 0, R_PARK, null, 'rgba(230,220,190,0.55)', Math.max(1.5, 2.2 * V.k));
     circle(0, 0, R_WALK, null, 'rgba(230,220,190,0.45)', Math.max(1, 1.8 * V.k));

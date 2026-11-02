@@ -256,6 +256,10 @@ const ACTIONS = {
     me.jump = me.jumps;
   },
   recline: () => { // 가까이 선베드·리클라이너·빈백·침낭이 있으면 거기에 바로 눕고, 의자·통나무 곁이면 거기에 앉고, 아니면 그 자리에 누움
+    if (me.state === 'sit' && me.seat) { // 앉은 채로 눕기: 바닥이면 그 자리에, 의자·벤치면 일어나 곁에 누움
+      if (!me.seat.free) standUp(me);
+      return sitHere('lie');
+    }
     const s = nearSeat(true) || nearSeat(false, 1.6);
     if (s) return sitOn(me, s);
     sitHere('lie');
@@ -540,7 +544,9 @@ function availableActions() {
   // 어디서나 할 수 있는 일 (가까이 의자·벤치·통나무·선베드가 있으면 앉기·눕기도 반짝임)
   if (me.state === 'sit') list.push('stand');
   else if (nearSeat(false)) place('sit'); else list.push('sit');
-  if (me.state !== 'sit' && !inPool(me.x, me.z) && !me.slow) { if (nearSeat(true)) place('recline'); else list.push('recline'); }
+  // 앉아 있다가도 바로 눕기 (이미 누워 있으면 빼고)
+  const lyingNow = me.state === 'sit' && me.seat && (me.seat.kind === 'lie' || LIEABLE.has(me.seat.kind));
+  if (!lyingNow && !inPool(me.x, me.z) && !me.slow) { if (me.state !== 'sit' && nearSeat(true)) place('recline'); else list.push('recline'); }
   if (me.state !== 'sit' && !me.slow) list.push('jump');
   list.push('pray', 'read', 'praise');
   if (nearestPerson(6)) list.push('share');
@@ -774,7 +780,26 @@ const HOTKEYS = {
   Enter: () => nextVerse(),
   NumpadEnter: () => nextVerse(),
 };
+// 컴퓨터 단축키 안내: ? 또는 F1, 위쪽 키보드 단추 (터치 화면에서는 단추 숨김)
+const KEY_HELP = [
+  ['움직이기', [['↑ ↓ / W S', '앞으로 · 뒤로'], ['← → / A D', '몸 돌리기'], ['Space', '점프 (공중에서 또 누르면 2·3단)'], ['Shift', '걷기 ↔ 달리기 (정원·숲)'], ['M', '지도 (누른 곳으로 걸어감)'], ['Esc', '지도·안내 닫기']]],
+  ['수레바퀴', [['Z', '말씀 읽기'], ['X', '기도'], ['C', '교제 (카운터에서 주문)'], ['V', '증거 (곁의 사람에게 빛 건네기)'], ['B', '찬양']]],
+  ['쉬기', [['J', '앉기 · 일어서기'], ['K', '눕기 (앉은 채로도)'], ['L', '먹기 · 마시기']]],
+  ['체험', [['E', '그 자리 체험 (반짝이는 단추)'], ['Enter', '다음 말씀'], ['? / F1', '이 안내']]],
+];
+const keyHelp = document.createElement('div');
+keyHelp.id = 'keyhelp'; keyHelp.hidden = true;
+keyHelp.innerHTML = '<div class="pad"><h3>컴퓨터 단축키</h3>' + KEY_HELP.map(([t, rows]) => `<section><h4>${t}</h4>${rows.map(([k, d]) => `<p><kbd>${k}</kbd><span>${d}</span></p>`).join('')}</section>`).join('') + '<button class="close" aria-label="close">×</button></div>';
+document.body.appendChild(keyHelp);
+const toggleKeyHelp = (v = keyHelp.hidden) => { keyHelp.hidden = !v; };
+keyHelp.addEventListener('pointerdown', (e) => { e.stopPropagation(); if (e.target === keyHelp || e.target.classList.contains('close')) toggleKeyHelp(false); });
+HOTKEYS.Slash = () => toggleKeyHelp();
+HOTKEYS.F1 = () => toggleKeyHelp();
+{ const esc = HOTKEYS.Escape; HOTKEYS.Escape = () => { if (!keyHelp.hidden) toggleKeyHelp(false); else esc(); }; }
+let keyTipShown = false;
+try { keyTipShown = localStorage.getItem('navs-cafe-keytip') === '1'; } catch (e) { /* 저장 안 됨 */ }
 window.addEventListener('keydown', (e) => {
+  if (!keyTipShown) { keyTipShown = true; try { localStorage.setItem('navs-cafe-keytip', '1'); } catch (er) { /* 저장 안 됨 */ } setTimeout(() => toast('? 키를 누르면 단축키 안내가 열려요', 4), 300); }
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (HOTKEYS[e.code]) { if (!e.repeat) HOTKEYS[e.code](); e.preventDefault(); return; }
   if (e.code === 'Space') { ACTIONS.jump(); e.preventDefault(); return; }
@@ -902,6 +927,12 @@ viewBtn.addEventListener('pointerdown', (e) => {
 });
 showViewIcon();
 placesEl.appendChild(viewBtn);
+const keysBtn = document.createElement('button');
+keysBtn.className = 'place view keys';
+keysBtn.setAttribute('aria-label', 'keyboard shortcuts');
+keysBtn.innerHTML = ICONS.keys;
+keysBtn.addEventListener('pointerdown', (e) => { e.stopPropagation(); toggleKeyHelp(); });
+placesEl.appendChild(keysBtn);
 // 음악 켜기/끄기
 const musicBtn = document.createElement('button');
 musicBtn.className = 'place view music';
