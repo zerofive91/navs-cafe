@@ -316,7 +316,7 @@ export function initPark({ scene, me, interactive, act, sfx, fxSprite, burst, wa
     }
     shadow(g); mergeStatic(g);
     let glow = 0;
-    tapTo(grapes, () => zn.at(0, 0), () => { glow = 3; sfx('orb', 0.2); showVerse('vine', { cooldown: 20 }); }, 3.5);
+    tapTo(grapes, () => zn.at(0, 0), () => { glow = 3; sfx('orb', 0.2); showVerse('vine', { cooldown: 20 }); emit('vineFruit'); }, 3.5);
     steps.push((dt, t) => {
       glow = Math.max(0, glow - dt);
       grapeMat.emissiveIntensity = glow > 0 ? 0.6 + Math.sin(t * 6) * 0.3 : 0;
@@ -376,7 +376,7 @@ export function initPark({ scene, me, interactive, act, sfx, fxSprite, burst, wa
     for (let k = 0; k < 4; k++) { const b = makeBird(k); b.visible = false; g.add(b); birds.push(b); }
     let growT = -1;
     const spot = () => zn.at(0, -1.7);
-    actions.plant = () => go(spot, () => { faceTo(me, zn); act('plant', 1.6); growT = 0; sfx('orb', 0.2); camShot(zn, { dist: 12, el: 0.25, side: 0.6, dur: 16, mid: 0.7, y: 2.6 }); });
+    actions.plant = () => go(spot, () => { faceTo(me, zn); act('plant', 1.6); growT = 0; sfx('orb', 0.2); emit('mustardPlant'); camShot(zn, { dist: 12, el: 0.25, side: 0.6, dur: 16, mid: 0.7, y: 2.6 }); });
     avail.push(() => (dist(zn) < 3.5 && growT < 0 ? 'plant' : null));
     tapTo([mound, seed], spot, () => { if (growT < 0) actions.plant(); });
     steps.push((dt, t) => {
@@ -404,7 +404,7 @@ export function initPark({ scene, me, interactive, act, sfx, fxSprite, burst, wa
         flapBird(b, t);
         if (f < 1 && Math.random() < dt * 1.5) audio.chirp((Math.random() - 0.5), 0.04);
       });
-      if (growT > 13 && growT - dt <= 13) showVerse('mustard');
+      if (growT > 13 && growT - dt <= 13) { showVerse('mustard'); emit('mustardGrown'); }
       // 3분 뒤 다시 씨앗으로
       if (growT > 180) { growT = -1; tree.visible = false; birds.forEach((b) => { b.visible = false; }); }
       else if (growT > 175) tree.scale.setScalar(Math.max(0.001, 1 - ease((growT - 175) / 5)));

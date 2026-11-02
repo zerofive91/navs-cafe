@@ -2,6 +2,15 @@
 //   "그곳으로 가기"를 누르면 그 자리까지 걸어감
 import { nearestFree, findPath } from './nav.js';
 
+// 그 자리 가까이 빈 곳까지 걸어감 (길을 못 찾으면 false)
+export function walkToward(me, walkTo, t) {
+  const q = nearestFree({ x: t.x, z: t.z });
+  const path = q ? findPath(me, q) : [];
+  if (!q || (!path.length && Math.hypot(q.x - me.x, q.z - me.z) > 1.5)) return false;
+  walkTo(me, q, null, path);
+  return true;
+}
+
 export function initQuestLog({ me, quests, story, walkTo, toast }) {
   const box = document.createElement('div');
   box.id = 'questLog'; box.hidden = true;
@@ -35,11 +44,7 @@ export function initQuestLog({ me, quests, story, walkTo, toast }) {
     const it = kind === 'q' ? quests.info() : story.info();
     if (!it) return;
     if (me.climb) { toast('먼저 나무에서 내려와요', 3); return; }
-    const t = it.target;
-    const q = nearestFree(t);
-    const path = q ? findPath(me, q) : [];
-    if (!q || (!path.length && Math.hypot(q.x - me.x, q.z - me.z) > 1.5)) { toast('그곳으로 가는 길을 찾지 못했어요. 지도에서 가까운 곳으로 가 보세요', 4); return; }
-    walkTo(me, q, null, path);
+    if (!walkToward(me, walkTo, it.target)) { toast('그곳으로 가는 길을 찾지 못했어요. 지도에서 가까운 곳으로 가 보세요', 4); return; }
     close();
     toast(`그곳으로 걸어가요 · ${kind === 'q' ? it.where || it.name + '에게' : `큰 이야기 ${it.k}장 금빛 기둥`}`, 3);
   }

@@ -665,3 +665,7 @@ body.bigtrial #trial { box-shadow: 0 0 0 2px #6a4a9a, 0 10px 40px rgba(20, 10, 4
 @media (max-width: 760px), (max-height: 500px) { #questLog { top: calc(190px + env(safe-area-inset-top)); max-height: calc(100vh - 420px); min-height: 160px; } }
 /* 넓은 화면: 부탁·큰 이야기 표시 아래로 두루마리 수와 부탁 창을 내림 */
 @media (min-width: 761px) and (min-height: 501px) { #scrollChip { top: calc(134px + env(safe-area-inset-top)); } #questLog { top: calc(174px + env(safe-area-inset-top)); max-height: calc(100vh - 240px); } }
+.npcb .guide { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.npcb .guide[hidden] { display: none; }
+.npcb .guide button { border: 1px solid rgba(143, 103, 68, 0.3); border-radius: 12px; padding: 5px 11px; background: rgba(255, 246, 225, 0.9); color: #6b4c32; font: 600 12.5px "Noto Serif KR", serif; cursor: pointer; }
+.npcb .row .goq { background: #e8b860; color: #4a3010; padding: 0 14px; }
