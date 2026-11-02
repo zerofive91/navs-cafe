@@ -125,7 +125,7 @@ export function initMap({ me, people, walkTo, say, icon, placesEl, before }) {
     cx.putImageData(img, 0, 0);
     return { c, x0: -T.half, size: (M - 1) * S * T.cell };
   })();
-  const KOR = { sower: '씨 뿌리는 밭', mustard: '겨자씨', vine: '포도나무', fold: '잃은 양', well: '우물', ark: '노아의 방주', t_word: '말씀 훈련장', t_pray: '기도 훈련장', t_fellow: '교제 훈련장', t_witness: '증거 훈련장', t_obey: '순종 훈련장', meadow: '푸른 초장', jericho: '여리고 성', david: '다윗과 골리앗', jonah: '요나의 바다', market: '가게 · 루디아', zacc: '삭개오의 뽕나무', road: '여리고 길', wild: '들짐승 들판', bethsaida: '벳새다 들녘' };
+  const KOR = { sower: '씨 뿌리는 밭', mustard: '겨자씨', vine: '포도나무', fold: '잃은 양', well: '우물', ark: '노아의 방주', t_word: '말씀 훈련장', t_pray: '기도 훈련장', t_fellow: '교제 훈련장', t_witness: '증거 훈련장', t_obey: '순종 훈련장', meadow: '푸른 초장', jericho: '여리고 성', david: '다윗과 골리앗', jonah: '요나의 바다', market: '가게 · 루디아', zacc: '삭개오의 뽕나무', road: '여리고 길', wild: '들짐승 들판', bethsaida: '벳새다 들녘', warfare: '영적 전쟁 훈련소' };
   const label = (text, x, z, { size = 12, color = '#fff6e0', weight = 600, dy = 0 } = {}) => {
     g.font = `${weight} ${size}px system-ui, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
     g.lineWidth = 3; g.strokeStyle = /^#[0-6]/.test(color) ? 'rgba(255,250,235,0.7)' : 'rgba(0,0,0,0.6)'; g.strokeText(text, sx(x), sy(z) + dy);
