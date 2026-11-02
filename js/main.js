@@ -15,7 +15,8 @@ import { initScrolls } from './scrolls.js';
 import { initTogether, inviteCodeFromUrl, RANDOM_CAP, INVITE_CAP } from './together.js';
 import { makeWheelProxy } from './wheelproxy.js';
 import { initLeisure } from './leisure.js';
-import { loadProfile, saveProfile } from './profile.js';
+import { loadProfile, saveProfile, onProfileSave } from './profile.js';
+import { initAccount } from './account.js';
 import { initCharacter, HOODIES, HAIRS, BAGS } from './character.js';
 import { initTutorial, nameTag } from './tutorial.js';
 import { initTraining } from './training.js';
@@ -1365,6 +1366,7 @@ function goIn() {
 }
 async function choose(mode, btn) {
   music.resume();
+  await Promise.race([account.ready, new Promise((r) => setTimeout(r, 4000))]); // 계정이 있으면 서버 기록부터
   if (mode === 'solo') { together.start('solo'); return goIn(); }
   let code = inviteCodeFromUrl(); // 예전 초대 링크(?c=)로 온 사람은 그 방으로
   if (mode === 'invite' && !code) {
@@ -1379,6 +1381,16 @@ async function choose(mode, btn) {
   else if (mode === 'random' && together.st.cafe > 1) toast(`1호점이 가득 차서 ${together.st.cafe}호점으로 왔어요.`, 4);
   else if (mode === 'invite') setTimeout(roomToast, 800);
 }
+// 계정으로 이어 하기: 서버 기록과 합쳐 지금 캐릭터에 바로 반영
+const account = initAccount({
+  toast,
+  apply: () => {
+    Object.assign(profile, loadProfile());
+    try { const l = JSON.parse(localStorage.getItem('navs-cafe-look3d') || 'null'); if (l && l.hoodie) { Object.assign(myLook, l); rebuildMe(); } } catch (e) { /* 무시 */ }
+    character?.showChip();
+  },
+});
+onProfileSave(() => account.schedule());
 // 단추는 index.html에 미리 있음. 장면을 불러오기 전에 눌렀다면 지금 그 모드로 들어감
 for (const b of enter.querySelectorAll('.mode')) b.addEventListener('click', () => choose(b.dataset.mode, b));
 if (inviteCodeFromUrl()) inviteCodeFromUrl.arrived = true;
@@ -1400,7 +1412,7 @@ tut = initTutorial({
 character = initCharacter({
   me, look: myLook, profile, save: saveMe, rebuild: rebuildMe, view, toast,
   onCreated: () => { character.showChip(); setTimeout(() => tut.start('cafe'), 500); },
-  replay: (id) => tut.start(id),
+  replay: (id) => (id === 'account' ? account.open() : tut.start(id)),
 });
 training = initTraining({
   scene, me, makeChar, npcs, profile, save: saveMe, toast, sfx, burst, fxSprite,
