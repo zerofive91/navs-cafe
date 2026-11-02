@@ -8,7 +8,7 @@ import { place } from './props.js';
 import { fanfare } from './stories.js';
 import { setOutfit, ARMOR } from './avatar.js';
 import { NEW_COURSES, NEW_EXTRA, journeyScenes, journeyEffects, journeySetup, prepStation } from './journeys.js';
-import { CHRIST_COURSES, christScenes, christEffects } from './christ.js';
+import { CHRIST_COURSES, christScenes, christEffects, christSetup, ALWAYS_FX } from './christ.js';
 
 // 각 정거장: [이름, 말씀, 장면, 들어설 때, 이어지는 말씀들]
 const COURSES = {
@@ -740,6 +740,7 @@ export function addCourses(ctx) {
   }
   const darkSt = live.filter((S) => S.dark);
   journeySetup(Object.assign(J, { live, actions, avail, steps, go, showVerse, TRAILS, gy, scene }));
+  christSetup(J);
 
   // ---------- 동방박사: 앞서 인도하는 별 ----------
   const MT = TRAILS.magi;
@@ -845,7 +846,7 @@ export function addCourses(ctx) {
       if (inside && !S.near) {
         S.lit(true);
         markFound(S.course.id, S.i);
-        if (showVerse(S.key, { cooldown: 40, delay: 0.2, title: S.title, then: S.more.map((v, k) => S.key + '-m' + k), stay: () => Math.hypot(me.x - S.x, me.z - S.z) < 16 }) !== false || S.fx === 'burden' || S.fx === 'armor' || S.fx === 'unburden' || S.fx === 'crossfall' || S.fx === 'thunder' || S.fx === 'star') {
+        if (showVerse(S.key, { cooldown: 40, delay: 0.2, title: S.title, then: S.more.map((v, k) => S.key + '-m' + k), stay: () => Math.hypot(me.x - S.x, me.z - S.z) < 16 }) !== false || S.fx === 'burden' || S.fx === 'armor' || S.fx === 'unburden' || S.fx === 'crossfall' || S.fx === 'thunder' || S.fx === 'star' || ALWAYS_FX.has(S.fx)) {
           if (S.fx && effects[S.fx]) effects[S.fx](S, S.course);
           if (S.course.id === 'bridge' && S.i === 4) { /* 그리스도를 모셔야 함: 문을 두드림 → 열림 */ knocked.T = 0; wantOpen = true; if (!cross.down && cross.T < 0) effects.crossfall(); [0, 450, 900].forEach((dd) => setTimeout(() => hit('impactWood_light_000', 0.4, 0.75), 1500 + dd)); }
         }

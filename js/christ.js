@@ -91,21 +91,44 @@ export const CHRIST_COURSES = {
     ],
     after: ['한 사람의 순종치 아니함으로 많은 사람이 죄인 된것 같이 한 사람의 순종하심으로 많은 사람이 의인이 되리라', '로마서 5:19'],
   },
+  // 고난의 길: 잡히심에서 운명하심까지 (겟세마네 → 대제사장의 뜰 → 공회 → 가바다 → 브라이도리온 → 성문 밖 → 골고다)
   passion: {
     name: '예수님의 고난의 길', color: 0xc89090,
     st: [
-      ['호산나', ['앞에서 가고 뒤에서 따르는 무리가 소리질러 가로되 호산나 다윗의 자손이여 찬송하리로다 주의 이름으로 오시는이여 가장 높은 곳에서 호산나 하더라', '마태복음 21:9'], 'c_palms', 'joy'],
-      ['마지막 만찬', ['또 떡을 가져 사례하시고 떼어 저희에게 주시며 가라사대 이것은 너희를 위하여 주는 내 몸이라 너희가 이를 행하여 나를 기념하라 하시고', '누가복음 22:19'], 'c_supper'],
-      ['심히 고민하여', ['이에 말씀하시되 내 마음이 심히 고민하여 죽게 되었으니 너희는 여기 머물러 나와 함께 깨어 있으라 하시고', '마태복음 26:38'], 'c_olive'],
-      ['입맞춤으로', ['예수께 입을 맞추려고 가까이 하는지라 예수께서 이르시되 유다야 네가 입맞춤으로 인자를 파느냐 하시니', '누가복음 22:48'], 'c_torches'],
-      ['닭 울기 전에', ['주께서 돌이켜 베드로를 보시니 베드로가 주의 말씀 곧 오늘 닭 울기 전에 네가 세번 나를 부인하리라 하심이 생각나서 밖에 나가서 심히 통곡하니라', '누가복음 22:61-62'], 'c_rooster'],
-      ['가시 면류관', ['군병들이 가시로 면류관을 엮어 그의 머리에 씌우고 자색 옷을 입히고', '요한복음 19:2'], 'c_thorns', null,
-        [['그가 찔림은 우리의 허물을 인함이요 그가 상함은 우리의 죄악을 인함이라 그가 징계를 받음으로 우리가 평화를 누리고 그가 채찍에 맞음으로 우리가 나음을 입었도다', '이사야 53:5']]],
-      ['십자가를 지시고', ['저희가 예수를 맡으매 예수께서 자기의 십자가를 지시고 해골(히브리 말로 골고다)이라 하는 곳에 나오시니', '요한복음 19:17'], 'c_carry'],
-      ['저희를 사하여 주옵소서', ['이에 예수께서 가라사대 아버지여 저희를 사하여 주옵소서 자기의 하는 것을 알지 못함이니이다 하시더라', '누가복음 23:34'], 'calvary', 'darkness',
-        [['제 육시로부터 온 땅에 어두움이 임하여 제 구시까지 계속하더니', '마태복음 27:45'],
-          ['예수께서 큰 소리로 불러 가라사대 아버지여 내 영혼을 아버지 손에 부탁하나이다 하고 이 말씀을 하신 후 운명하시다', '누가복음 23:46']]],
-      ['살아나셨느니라', ['그가 여기 계시지 않고 그의 말씀하시던대로 살아나셨느니라 와서 그의 누우셨던 곳을 보라', '마태복음 28:6'], 'tomb', 'risen'],
+      ['붙잡히심', ['예수께서 가라사대 친구여 네가 무엇을 하려고 왔는지 행하라 하신대 이에 저희가 나아와 예수께 손을 대어 잡는지라', '마태복음 26:50'], 'p_arrest', 'seize',
+        [['예수께 입을 맞추려고 가까이 하는지라 예수께서 이르시되 유다야 네가 입맞춤으로 인자를 파느냐 하시니', '누가복음 22:48'],
+          ['이에 군대와 천부장과 유대인의 하속들이 예수를 잡아 결박하여', '요한복음 18:12']]],
+      ['제자들이 떠나고', ['제자들이 다 예수를 버리고 도망하니라', '마가복음 14:50'], 'p_flee', 'scatter',
+        [['만군의 여호와가 말하노라 칼아 깨어서 내 목자, 내 짝된 자를 치라 목자를 치면 양이 흩어지려니와 작은 자들 위에는 내가 내 손을 드리우리라', '스가랴 13:7']]],
+      ['베드로의 부인', ['저가 저주하며 맹세하여 가로되 내가 그 사람을 알지 못하노라 하니 닭이 곧 울더라', '마태복음 26:74'], 'p_courtyard', 'rooster',
+        [['주께서 돌이켜 베드로를 보시니 베드로가 주의 말씀 곧 오늘 닭 울기 전에 네가 세번 나를 부인하리라 하심이 생각나서 밖에 나가서 심히 통곡하니라', '누가복음 22:61-62']]],
+      ['심문', ['잠잠하고 아무 대답도 아니하시거늘 대제사장이 다시 물어 가로되 네가 찬송 받을 자의 아들 그리스도냐', '마가복음 14:61'], 'p_council', 'hush',
+        [['빌라도가 가로되 그러면 네가 왕이 아니냐 예수께서 대답하시되 네 말과 같이 내가 왕이니라 내가 이를 위하여 났으며 이를 위하여 세상에 왔나니 곧 진리에 대하여 증거하려 함이로라 무릇 진리에 속한 자는 내 소리를 듣느니라 하신대', '요한복음 18:37'],
+          ['그가 곤욕을 당하여 괴로울 때에도 그 입을 열지 아니하였음이여 마치 도수장으로 끌려가는 어린 양과 털 깎는 자 앞에 잠잠한 양 같이 그 입을 열지 아니하였도다', '이사야 53:7']]],
+      ['백성에게 버림받으심', ['총독이 대답하여 가로되 둘 중에 누구를 너희에게 놓아 주기를 원하느냐 가로되 바라바로소이다 빌라도가 가로되 그러면 그리스도라 하는 예수를 내가 어떻게 하랴 저희가 다 가로되 십자가에 못 박혀야 하겠나이다', '마태복음 27:21-22'], 'p_crowd', 'shout',
+        [['저희가 소리지르되 없이 하소서 없이 하소서 저를 십자가에 못 박게 하소서 빌라도가 가로되 내가 너희 왕을 십자가에 못 박으랴 대제사장들이 대답하되 가이사 외에는 우리에게 왕이 없나이다 하니', '요한복음 19:15'],
+          ['자기 땅에 오매 자기 백성이 영접지 아니하였으나', '요한복음 1:11']]],
+      ['채찍과 조롱', ['이에 바라바는 저희에게 놓아주고 예수는 채찍질하고 십자가에 못 박히게 넘겨주니라', '마태복음 27:26'], 'p_scourge', 'lash',
+        [['그의 옷을 벗기고 홍포를 입히며 가시 면류관을 엮어 그 머리에 씌우고 갈대를 그 오른손에 들리고 그 앞에서 무릎을 꿇고 희롱하여 가로되 유대인의 왕이여 평안할찌어다 하며 그에게 침 뱉고 갈대를 빼앗아 그의 머리를 치더라', '마태복음 27:28-30'],
+          ['그가 찔림은 우리의 허물을 인함이요 그가 상함은 우리의 죄악을 인함이라 그가 징계를 받음으로 우리가 평화를 누리고 그가 채찍에 맞음으로 우리가 나음을 입었도다', '이사야 53:5']]],
+      ['십자가를 지시고', ['저희가 예수를 맡으매 예수께서 자기의 십자가를 지시고 해골(히브리 말로 골고다)이라 하는 곳에 나오시니', '요한복음 19:17'], 'p_cross', 'carry',
+        [['이에 예수께서 제자들에게 이르시되 아무든지 나를 따라 오려거든 자기를 부인하고 자기 십자가를 지고 나를 좇을 것이니라', '마태복음 16:24']]],
+      ['골고다를 오르시고', ['저희가 예수를 끌고 갈 때에 시몬이라는 구레네 사람이 시골로서 오는 것을 잡아 그에게 십자가를 지워 예수를 좇게 하더라', '누가복음 23:26'], 'p_simon', 'simon',
+        [['또 백성과 및 그를 위하여 가슴을 치며 슬피 우는 여자의 큰 무리가 따라 오는지라 예수께서 돌이켜 그들을 향하여 가라사대 예루살렘의 딸들아 나를 위하여 울지 말고 너희와 너희 자녀를 위하여 울라', '누가복음 23:27-28']]],
+      ['십자가에 못 박히심', ['해골이라 하는 곳에 이르러 거기서 예수를 십자가에 못 박고 두 행악자도 그렇게 하니 하나는 우편에, 하나는 좌편에 있더라', '누가복음 23:33'], 'p_nails', 'nail',
+        [['이에 예수께서 가라사대 아버지여 저희를 사하여 주옵소서 자기의 하는 것을 알지 못함이니이다 하시더라 저희가 그의 옷을 나눠 제비 뽑을쌔', '누가복음 23:34'],
+          ['개들이 나를 에워쌌으며 악한 무리가 나를 둘러 내 수족을 찔렀나이다', '시편 22:16']]],
+      ['조롱당하심', ['지나가는 자들은 자기 머리를 흔들며 예수를 모욕하여 가로되 성전을 헐고 사흘에 짓는 자여 네가 만일 하나님의 아들이어든 자기를 구원하고 십자가에서 내려오라 하며', '마태복음 27:39-40'], 'p_mock', 'mock',
+        [['저가 남은 구원하였으되 자기는 구원할 수 없도다 저가 이스라엘의 왕이로다 지금 십자가에서 내려올찌어다 그러면 우리가 믿겠노라', '마태복음 27:42'],
+          ['함께 십자가에 못 박힌 강도들도 이와 같이 욕하더라', '마태복음 27:44'],
+          ['가로되 예수여 당신의 나라에 임하실 때에 나를 생각하소서 하니 예수께서 이르시되 내가 진실로 네게 이르노니 오늘 네가 나와 함께 낙원에 있으리라 하시니라', '누가복음 23:42-43']]],
+      ['고통당하심', ['제 육시로부터 온 땅에 어두움이 임하여 제 구시까지 계속하더니 제 구시 즈음에 예수께서 크게 소리질러 가라사대 엘리 엘리 라마 사박다니 하시니 이는 곧 나의 하나님, 나의 하나님, 어찌하여 나를 버리셨나이까 하는 뜻이라', '마태복음 27:45-46'], 'p_agony', 'darkness',
+        [['이 후에 예수께서 모든 일이 이미 이룬줄 아시고 성경으로 응하게 하려하사 가라사대 내가 목마르다 하시니', '요한복음 19:28'],
+          ['우리는 다 양 같아서 그릇 행하여 각기 제 길로 갔거늘 여호와께서는 우리 무리의 죄악을 그에게 담당시키셨도다', '이사야 53:6']]],
+      ['다 이루었다', ['예수께서 신 포도주를 받으신 후 가라사대 다 이루었다 하시고 머리를 숙이시고 영혼이 돌아가시니라', '요한복음 19:30'], 'p_finished', 'quake',
+        [['예수께서 큰 소리로 불러 가라사대 아버지여 내 영혼을 아버지 손에 부탁하나이다 하고 이 말씀을 하신 후 운명하시다', '누가복음 23:46'],
+          ['이에 성소 휘장이 위로부터 아래까지 찢어져 둘이 되고 땅이 진동하며 바위가 터지고', '마태복음 27:51'],
+          ['백부장과 및 함께 예수를 지키던 자들이 지진과 그 되는 일들을 보고 심히 두려워하여 가로되 이는 진실로 하나님의 아들이었도다 하더라', '마태복음 27:54']]],
     ],
     after: ['친히 나무에 달려 그 몸으로 우리 죄를 담당하셨으니 이는 우리로 죄에 대하여 죽고 의에 대하여 살게 하려 하심이라 저가 채찍에 맞음으로 너희는 나음을 얻었나니', '베드로전서 2:24'],
   },
@@ -378,59 +401,350 @@ export function christScenes(K) {
       spin(crown, 0.5); bob(crown, 0.12, 1); glowAt(g, 0xfff0c0, 4, -1.2, 2.4, 0, 0.8);
       for (let k = 0; k < 4; k++) { const f = new THREE.Group(); f.position.set(0.2, -0.3, -1.5 + k); g.add(f); fig(f, [0xc8a08a, 0x8aa0c8, 0xa0c08a, 0xc0a0c8][k], 0, 0, 1.3); } // 무릎 꿇은 사람들
     },
-    // ----- 고난 -----
-    c_palms(g) {
-      for (let k = 0; k < 6; k++) { const l = bx(0.3, 0.03, 1.4, C.leaf, -0.4 + (k % 2) * 0.3, 0.04, -2 + k * 0.8); l.rotation.y = (k % 2 ? 0.4 : -0.4); g.add(l); }
-      const donkey = new THREE.Group(); donkey.position.set(-1.2, 0, 0); g.add(donkey);
-      donkey.add(bx(0.4, 0.45, 0.9, M(0x8a7a6a, 1), 0, 0.75, 0)); donkey.add(bx(0.22, 0.3, 0.4, M(0x8a7a6a, 1), 0, 1.05, 0.55));
-      for (const [x, z] of [[-0.14, -0.3], [0.14, -0.3], [-0.14, 0.3], [0.14, 0.3]]) donkey.add(bx(0.08, 0.55, 0.08, M(0x6a5a4a, 1), x, 0.27, z));
-      fig(g, 0x8ab06a, -2.1, -0.8, 1.5); fig(g, 0xb08a6a, -2.1, 0.8, 1.5);
+    // ----- 고난 (12정거장) -----
+    p_arrest(g, S) { // 겟세마네: 감람나무, 기도하시던 바위, 횃불 든 무리
+      olive(g, -2.2, -1.6); olive(g, -2.6, 1.4); olive(g, -0.6, -2.4); olive(g, 0.2, 2.6);
+      const r = mesh(new THREE.DodecahedronGeometry(0.6, 0), C.grey, -1, 0.3, 0); r.scale.y = 0.55; g.add(r);
+      const band = new THREE.Group(); band.position.set(-3.6, 0, 0); g.add(band); band.userData.x0 = -3.6;
+      S.band = band; S.torches = [];
+      for (let k = 0; k < 4; k++) {
+        const z = -1.8 + k * 1.2;
+        fig(band, 0x4a4a52, 0, z, 1.5);
+        band.add(bx(0.04, 1.9, 0.04, C.woodDark, 0.25, 0.95, z + 0.25)); // 창·몽치
+        band.add(bx(0.05, 0.55, 0.05, C.woodDark, 0.3, 1.25, z - 0.2));
+        const f = glowAt(band, 0xff9a40, 0.8, 0.3, 1.62, z - 0.2, 0.85); S.torches.push(f);
+        anims.push((dt, t) => { f.material.opacity = (0.65 + Math.sin(t * 11 + k * 2) * 0.2) * (S.flare || 1); });
+      }
+      fig(band, 0x8a6a3a, 0.9, 0.1, 1.5); // 유다
     },
-    c_supper(g) {
-      g.add(bx(0.9, 0.7, 3.4, C.wood, -0.9, 0.35, 0));
-      for (let k = 0; k < 3; k++) g.add(mesh(new THREE.SphereGeometry(0.16, 10, 8), M(0xd8a060, 0.8), -0.9, 0.78, -1 + k));
-      g.add(mesh(new THREE.CylinderGeometry(0.1, 0.06, 0.24, 10), C.gold, -0.9, 0.82, 0.5));
-      for (let k = 0; k < 4; k++) fig(g, [0x8aa0c8, 0xc8a08a, 0xa0c08a, 0xc0a0c8][k], -1.8, -1.2 + k * 0.8, 1.4);
-      glowAt(g, 0xffd090, 1.4, -0.9, 1.4, 0.5, 0.6);
+    p_flee(g, S) { // 제자들이 흩어짐 (다가가면 숲으로 달아남)
+      S.flee = [];
+      [0x8aa0c8, 0xc8a08a, 0xa0c08a, 0xc0a0c8, 0xb0b0a0].forEach((c, k) => {
+        const f = new THREE.Group(); const x = -0.6 - (k % 2) * 0.9, z = -2 + k * 1;
+        f.position.set(x, 0, z); g.add(f); fig(f, c, 0, 0, 1.45);
+        f.userData.p0 = f.position.clone(); f.userData.dir = new THREE.Vector3(-1 - Math.random(), 0, (k - 2) * 0.7).normalize();
+        S.flee.push(f);
+      });
+      const linen = mesh(new THREE.PlaneGeometry(0.8, 0.5), M(0xf2efe6, 1), -1.2, 0.02, 1.4); linen.rotation.x = -Math.PI / 2; linen.rotation.z = 0.5; g.add(linen); // 막 14:52 베 홑이불
+      olive(g, -3, -1); olive(g, -3.2, 2.2);
     },
-    c_torches(g) {
-      fig(g, 0xf4f0e6, -0.3, -0.4, 1.6); fig(g, 0x8a6a3a, -0.3, 0.3, 1.55); // 유다
-      for (let k = 0; k < 3; k++) { const x = -1.6, z = -1.2 + k * 1.2; fig(g, 0x5a5a5a, x, z, 1.5); g.add(bx(0.05, 0.6, 0.05, C.woodDark, x + 0.3, 1.3, z)); const f = glowAt(g, 0xff9a40, 0.7, x + 0.3, 1.7, z, 0.9); anims.push((dt, t) => { f.material.opacity = 0.7 + Math.sin(t * 11 + k) * 0.2; }); }
-    },
-    c_rooster(g) {
-      const fire = glowAt(g, 0xff9a40, 1.2, -1, 0.4, 0, 0.9); anims.push((dt, t) => { fire.material.opacity = 0.7 + Math.sin(t * 9) * 0.2; });
-      for (let k = 0; k < 4; k++) { const l = bx(0.1, 0.1, 0.7, C.woodDark, -1, 0.06, 0); l.rotation.y = k * 0.8; g.add(l); }
-      const r = new THREE.Group(); r.position.set(-1.9, 1.1, 1.2); g.add(r);
+    p_courtyard(g, S) { // 대제사장의 집 뜰: 숯불, 여종, 닭
+      g.add(bx(0.3, 1.2, 6, C.stone, -3.2, 0.6, 0)); // 뜰 담
+      const fire = glowAt(g, 0xff9a40, 1.3, -1.2, 0.45, 0, 0.9); anims.push((dt, t) => { fire.material.opacity = 0.7 + Math.sin(t * 9) * 0.2; });
+      for (let k = 0; k < 4; k++) { const l = bx(0.1, 0.1, 0.7, C.woodDark, -1.2, 0.06, 0); l.rotation.y = k * 0.8; g.add(l); }
+      for (let k = 0; k < 8; k++) { const a = (k / 8) * Math.PI * 2; g.add(mesh(new THREE.DodecahedronGeometry(0.12, 0), C.grey, -1.2 + Math.cos(a) * 0.5, 0.08, Math.sin(a) * 0.5)); }
+      fig(g, 0xb08aa0, -2, -1, 1.35); // 여종
+      fig(g, 0x6a6a72, -2.1, 0.9, 1.45); fig(g, 0x6a6a72, -1.4, 1.3, 1.45); // 하속들
+      const peter = new THREE.Group(); peter.position.set(-0.4, 0, -0.7); g.add(peter); fig(peter, 0x6a7a9a, 0, 0, 1.45);
+      peter.userData.p0 = peter.position.clone(); S.peter = peter;
+      const r = new THREE.Group(); r.position.set(-2.6, 1.15, 2.2); g.add(r); S.rooster = r;
       r.add(mesh(new THREE.SphereGeometry(0.18, 10, 8), M(0xc85a3a, 0.8))); r.add(mesh(new THREE.SphereGeometry(0.1, 8, 6), M(0xc85a3a, 0.8), 0, 0.18, 0.12)); r.add(bx(0.04, 0.1, 0.06, M(0xe03030, 0.8), 0, 0.3, 0.12));
-      g.add(bx(0.1, 1, 0.1, C.woodDark, -1.9, 0.5, 1.2));
-      const p = new THREE.Group(); p.position.set(-0.2, -0.3, -0.6); g.add(p); fig(p, 0x6a7a9a, 0, 0, 1.4); // 통곡하는 베드로
+      S.wings = [-1, 1].map((s) => { const w = bx(0.04, 0.16, 0.26, M(0xa04a2a, 0.8), s * 0.17, 0.02, -0.02); r.add(w); return w; });
+      g.add(bx(0.1, 1, 0.1, C.woodDark, -2.6, 0.5, 2.2));
     },
-    c_thorns(g) {
-      g.add(mesh(new THREE.CylinderGeometry(0.35, 0.4, 1, 12), C.stone, -0.8, 0.5, 0));
-      const crown = mesh(new THREE.TorusGeometry(0.32, 0.06, 6, 20), M(0x6a5030, 1), -0.8, 1.05, 0); crown.rotation.x = Math.PI / 2; g.add(crown);
-      for (let k = 0; k < 14; k++) { const a = (k / 14) * Math.PI * 2; const s = mesh(new THREE.ConeGeometry(0.025, 0.16, 4), M(0x5a4020, 1), -0.8 + Math.cos(a) * 0.32, 1.08, Math.sin(a) * 0.32); s.rotation.set(Math.sin(a) * 1.2, 0, -Math.cos(a) * 1.2); g.add(s); }
-      g.add(bx(0.06, 0.02, 0.9, M(0x7a3a8a, 0.8), -0.8, 1.01, 0.6)); // 자색 옷 자락
+    p_council(g, S) { // 공회: 높은 단 위 대제사장, 둘러앉은 공회원, 돌기둥
+      const stone = M(0xe0d4bc, 0.8);
+      g.add(bx(2.6, 0.5, 3.2, stone, -2.2, 0.25, 0));
+      g.add(bx(0.7, 0.9, 0.8, C.wood, -2.9, 0.95, 0));
+      fig(g, 0xf0ecd8, -2.4, 0, 1.6, (f) => { f.add(bx(0.4, 0.3, 0.06, C.gold, 0.25, 1.0, 0)); f.rotation.y = Math.PI / 2; }); // 흉패
+      f2(g, 0.4); f2(g, -0.6);
+      function f2(gg, side) { for (let k = 0; k < 3; k++) fig(gg, 0xd0ccc0, -1.6 + k * 0.6, side < 0 ? -2.2 + k * 0.2 : 2.2 - k * 0.2, 1.4); }
+      for (const [x, z] of [[-3.4, -2.4], [-3.4, 2.4], [-0.6, -2.8], [-0.6, 2.8]]) { g.add(mesh(new THREE.CylinderGeometry(0.22, 0.26, 3.4, 10), stone, x, 1.7, z)); g.add(bx(0.6, 0.18, 0.6, stone, x, 3.45, z)); }
+      const lamp = glowAt(g, 0xffd090, 0.9, -0.8, 0.9, 0, 0.5); anims.push((dt, t) => { lamp.material.opacity = 0.4 + Math.sin(t * 5) * 0.08; }); // 서 계시던 자리
     },
-    c_carry(g) {
-      crossAt(g, -0.6, 0, 3, 0.9);
-      const f = new THREE.Group(); f.position.set(-0.2, 0, -0.4); f.rotation.x = 0.25; g.add(f); fig(f, 0xd8d0c0, 0, 0, 1.5);
-      for (let k = 0; k < 6; k++) g.add(mesh(new THREE.DodecahedronGeometry(0.14, 0), C.grey, -1.6 + Math.random() * 2, 0.1, -2 + Math.random() * 4));
+    p_crowd(g, S) { // 가바다(박석): 재판석의 빌라도, 대야, 소리치는 무리
+      const tile = [M(0xd8ccb4, 0.9), M(0xc8bca4, 0.9)];
+      for (let i = 0; i < 5; i++) for (let j = 0; j < 6; j++) g.add(bx(0.98, 0.04, 0.98, tile[(i + j) % 2], -4 + i, 0.02, -2.5 + j));
+      g.add(bx(1.4, 0.6, 1.4, M(0xe0d4bc, 0.8), -3.4, 0.3, -2)); g.add(bx(0.6, 0.6, 0.6, C.wood, -3.6, 0.9, -2));
+      fig(g, 0xa03030, -3.3, -2, 1.6); // 빌라도 (붉은 망토)
+      g.add(mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.8, 8), C.woodDark, -2.5, 0.4, -1.4)); g.add(mesh(new THREE.CylinderGeometry(0.28, 0.18, 0.12, 14), C.stone, -2.5, 0.84, -1.4)); // 손 씻은 대야 (마 27:24)
+      fig(g, 0x7a5a3a, -1, -2.4, 1.5); // 놓여난 바라바
+      S.arms = [];
+      for (let k = 0; k < 10; k++) {
+        const x = -1.2 - (k % 3) * 0.9 - Math.random() * 0.3, z = -0.4 + Math.floor(k / 3) * 0.95 + Math.random() * 0.3;
+        fig(g, [0x9a8a7a, 0x7a8a9a, 0x8a7a6a, 0xa09080][k % 4], x, z, 1.35 + Math.random() * 0.2, (f) => {
+          const a = bx(0.07, 0.5, 0.07, M(0xe8c4a0, 0.8), 0.18, 1.2, 0); a.geometry.translate(0, 0.25, 0); a.position.y = 1.0; f.add(a); S.arms.push(a);
+        });
+      }
+      S.shout = 0;
+      anims.push((dt, t) => { S.shout = Math.max(0, S.shout - dt * 0.12); S.arms.forEach((a, k) => { a.rotation.z = -0.3 - (0.5 + 0.5 * Math.sin(t * (3 + S.shout * 5) + k)) * (0.6 + S.shout * 1.6); }); });
+    },
+    p_scourge(g, S) { // 채찍질하던 돌기둥, 홍포, 가시 면류관, 갈대
+      g.add(mesh(new THREE.CylinderGeometry(0.22, 0.26, 1.8, 10), C.stone, -1.4, 0.9, 0));
+      const ring = mesh(new THREE.TorusGeometry(0.1, 0.025, 6, 12), C.grey, -1.18, 1.3, 0); ring.rotation.y = Math.PI / 2; g.add(ring);
+      for (let k = 0; k < 4; k++) { const w = bx(0.02, 0.02, 0.9, M(0x5a4030, 1), -0.6, 0.03, -1.2 + k * 0.08); w.rotation.y = 0.2 * k; g.add(w); } // 채찍
+      g.add(mesh(new THREE.CylinderGeometry(0.3, 0.35, 0.6, 12), C.stone, -1.6, 0.3, 1.6));
+      const crown = mesh(new THREE.TorusGeometry(0.28, 0.05, 6, 20), M(0x6a5030, 1), -1.6, 0.65, 1.6); crown.rotation.x = Math.PI / 2; g.add(crown);
+      for (let k = 0; k < 12; k++) { const a = (k / 12) * Math.PI * 2; const s = mesh(new THREE.ConeGeometry(0.022, 0.14, 4), M(0x5a4020, 1), -1.6 + Math.cos(a) * 0.28, 0.68, 1.6 + Math.sin(a) * 0.28); s.rotation.set(Math.sin(a) * 1.2, 0, -Math.cos(a) * 1.2); g.add(s); }
+      const robe = bx(0.9, 0.03, 1.1, M(0x8a2a4a, 0.85), -2.6, 0.05, 1.2); robe.rotation.y = 0.4; g.add(robe); // 홍포
+      const reed = bx(0.03, 0.03, 1.4, M(0xb8a868, 0.9), -2.2, 0.03, -0.9); reed.rotation.y = 0.8; g.add(reed);
+      for (const z of [-1.6, 0.4]) fig(g, 0x8a3a3a, -2.6, z, 1.5, (f) => { f.add(bx(0.4, 0.12, 0.42, C.grey, 0, 1.3, 0)); }); // 로마 군병
+      const k1 = new THREE.Group(); k1.position.set(-0.5, -0.35, 1.9); g.add(k1); fig(k1, 0x8a3a3a, 0, 0, 1.4); // 무릎 꿇고 희롱하는 군병
+    },
+    p_cross(g, S) { // 성 안에서 십자가를 받음 (가까이 가면 등에 짐)
+      const c = crossAt(g, -1, 0, 2.6, Math.PI / 2 - 0.08); c.position.y = 0.12; S.ground = c;
+      fig(g, 0x8a3a3a, -2.4, -1.2, 1.5, (f) => { f.add(bx(0.4, 0.12, 0.42, C.grey, 0, 1.3, 0)); f.add(bx(0.04, 2, 0.04, C.woodDark, 0.25, 1, 0.2)); });
+      fig(g, 0x8a3a3a, -2.4, 1.4, 1.5, (f) => { f.add(bx(0.4, 0.12, 0.42, C.grey, 0, 1.3, 0)); f.add(bx(0.04, 2, 0.04, C.woodDark, 0.25, 1, 0.2)); });
+      for (let k = 0; k < 5; k++) g.add(mesh(new THREE.DodecahedronGeometry(0.14, 0), C.grey, -1.6 + Math.random() * 1.6, 0.08, -2 + Math.random() * 4));
+    },
+    p_simon(g, S) { // 구레네 시몬, 가슴을 치며 우는 여인들
+      for (let k = 0; k < 4; k++) {
+        const w = new THREE.Group(); w.position.set(-1.4 - (k % 2) * 0.7, 0, -1.6 + k * 1.05); g.add(w);
+        fig(w, [0x9a7a8a, 0x7a8aa0, 0xa0907a, 0x8a7a9a][k], 0, 0, 1.35); w.rotation.x = 0.12;
+        const y0 = 0; anims.push((dt, t) => { w.rotation.x = 0.12 + Math.sin(t * 1.4 + k) * 0.05; w.position.y = y0; });
+      }
+      const basket = mesh(new THREE.CylinderGeometry(0.25, 0.2, 0.3, 10), M(0xb89058, 1), -0.6, 0.15, 1.8); g.add(basket); // 시골에서 오던 시몬의 바구니
+      S.simonAt = new THREE.Vector3(-0.4, 0, 1.4);
+    },
+    p_nails(g, S) { // 망치와 못, 제비 뽑는 군병들
+      g.add(bx(0.08, 0.06, 0.34, C.woodDark, -0.9, 0.04, -0.6)); g.add(bx(0.12, 0.1, 0.16, C.grey, -0.9, 0.06, -0.42)); // 망치
+      for (let k = 0; k < 3; k++) { const n = mesh(new THREE.ConeGeometry(0.03, 0.26, 4), C.grey, -0.6 + k * 0.12, 0.03, -0.2); n.rotation.z = Math.PI / 2; g.add(n); }
+      const cloth = mesh(new THREE.PlaneGeometry(1.2, 0.9), M(0xe8e0d0, 1), -2, 0.03, 0.8); cloth.rotation.x = -Math.PI / 2; g.add(cloth); // 호지 아니하고 통으로 짠 속옷 (요 19:23)
+      for (let k = 0; k < 2; k++) { const d = bx(0.09, 0.09, 0.09, C.white, -1.7 + k * 0.2, 0.08, 1.3); d.rotation.y = k; g.add(d); }
+      for (const [x, z] of [[-2.8, 0.4], [-2.3, 1.8], [-1.3, 1.9]]) { const s = new THREE.Group(); s.position.set(x, -0.3, z); g.add(s); fig(s, 0x8a3a3a, 0, 0, 1.4, (f) => { f.add(bx(0.4, 0.12, 0.42, C.grey, 0, 1.2, 0)); }); }
+    },
+    p_mock(g, S) { // 머리를 흔들며 모욕하는 사람들, 대제사장들
+      const heads = [];
+      for (let k = 0; k < 7; k++) {
+        const f = fig(g, [0x9a8a7a, 0x7a8a9a, 0xf0ecd8, 0x8a7a6a, 0xf0ecd8, 0xa09080, 0x8a3a3a][k], -1 - (k % 2) * 0.9, -2.4 + k * 0.8, 1.45);
+        heads.push(f);
+      }
+      anims.push((dt, t) => heads.forEach((f, k) => { f.rotation.z = Math.sin(t * (2.4 + (S.mocking || 0) * 3) + k * 1.3) * (0.06 + (S.mocking || 0) * 0.08); }));
+      anims.push((dt) => { S.mocking = Math.max(0, (S.mocking || 0) - dt * 0.15); });
+    },
+    p_agony(g, S) { // 어두움, 신 포도주 그릇과 우슬초에 맨 해융
+      S.dark = true;
+      g.add(mesh(new THREE.CylinderGeometry(0.22, 0.16, 0.5, 12), M(0x9a6a4a, 0.9), -1, 0.25, 0));
+      const st = bx(0.03, 1.8, 0.03, M(0x7a8a4a, 1), -0.8, 0.9, 0.3); st.rotation.z = 0.35; g.add(st);
+      g.add(mesh(new THREE.SphereGeometry(0.09, 8, 6), M(0xc8b890, 1), -0.2, 1.75, 0.3));
+      for (let k = 0; k < 3; k++) fig(g, [0x5a6a9a, 0x8a7a9a, 0x9a8a7a][k], -2.8, -0.9 + k * 0.9, 1.35); // 멀리 서서 바라보는 여자들 (요 19:25)
+    },
+    p_finished(g, S) { // 성소 휘장이 위로부터 찢어짐, 바위가 터짐, 백부장
+      const gold = C.gold, cloth = M(0x7a2a4a, 0.8, { side: THREE.DoubleSide });
+      g.add(bx(0.25, 4, 0.25, gold, -1.7, 2, 0)); g.add(bx(0.25, 4, 0.25, gold, 1.7, 2, 0)); g.add(bx(3.7, 0.25, 0.3, gold, 0, 4.05, 0));
+      S.veil = [-1, 1].map((s) => { const p = new THREE.Group(); p.position.set(s * 1.55, 3.9, 0); g.add(p); const c = mesh(new THREE.PlaneGeometry(1.55, 3.85), cloth, -s * 0.775, -1.93, 0); p.add(c); p.userData.dyn = true; return p; });
+      S.rock = [-1, 1].map((s) => { const r = mesh(new THREE.DodecahedronGeometry(0.8, 0), C.grey, -3.4 + s * 0.35, 0.55, -2.6); r.scale.set(0.55, 0.8, 0.9); r.userData.dyn = true; r.userData.x0 = r.position.x; g.add(r); return r; });
+      const c = new THREE.Group(); c.position.set(2.8, -0.35, -1.6); c.rotation.y = -0.6; g.add(c); fig(c, 0x8a3a3a, 0, 0, 1.45, (f) => { f.add(bx(0.4, 0.12, 0.42, C.gold, 0, 1.2, 0)); }); // 무릎 꿇은 백부장
     },
   };
 }
 
 // ---------- 들어설 때 효과 ----------
+// 말씀 카드가 잠시 쉬는 동안(다시 지나갈 때)에도 늘 일어나야 하는 체험
+export const ALWAYS_FX = new Set(['carry', 'simon', 'nail']);
+const PS = {}; // 고난의 길: christSetup이 채우는 체험 손잡이
 export function christEffects(K) {
   const { hit, sfx, shot } = K;
   // 어두움이 임하여 (마 27:45): 화면이 잠시 어두워졌다가 밝아짐
   const dark = document.createElement('div');
   dark.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:4;opacity:0;background:#05040a;transition:opacity 1.6s';
-  document.body.appendChild(dark);
+  // 채찍: 붉게 번쩍
+  const red = document.createElement('div');
+  red.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:4;opacity:0;background:radial-gradient(ellipse at center, rgba(120,0,0,0) 30%, rgba(110,0,0,0.85) 100%);transition:opacity .12s';
+  document.body.append(dark, red);
+  PS.dark = dark;
+  const call = (k) => (S) => PS[k] && PS[k](S);
   return {
     lightburst(st) { K.flash(1); sfx('orb', 0.3, 1.3); shot(st.g.position, { dist: 12, el: 0.25, side: 0.5, dur: 5, mid: 0.6, y: 2.4 }); },
-    darkness() {
-      dark.style.opacity = '0.78'; hit('impactSoft_heavy_000', 0.4, 0.4);
+    darkness(st) {
+      dark.style.opacity = '0.62'; hit('impactSoft_heavy_000', 0.4, 0.4);
+      if (st && st.course && st.course.id === 'passion') { PS.cry && PS.cry(); setTimeout(() => { dark.style.opacity = '0.35'; }, 9000); return; } // 제 구시까지 (다 이루었다에서 걷힘)
       setTimeout(() => { dark.style.opacity = '0'; }, 5000);
     },
+    lash() {
+      if (K.act) K.act('strain', 3);
+      [0, 650, 1300, 1950, 2600].forEach((d, k) => setTimeout(() => { red.style.opacity = String(0.55 + k * 0.06); hit('impactPunch_medium_000', 0.3, 0.55 + Math.random() * 0.15); setTimeout(() => { red.style.opacity = '0'; }, 160); }, d));
+    },
+    seize: call('seize'), scatter: call('scatter'), rooster: call('rooster'), hush: call('hush'), shout: call('shout'),
+    carry: call('carry'), simon: call('simon'), nail: call('nail'), mock: call('mock'), quake: call('quake'),
   };
+}
+
+// ---------- 고난의 길: 길 둘레의 성과 골고다, 십자가 지기 ----------
+export function christSetup(K) {
+  const { me, live, steps, hit, sfx, shot, showVerse, TRAILS, gy, scene, audio, act } = K;
+  const T = TRAILS.passion; if (!T) return;
+  const by = (i) => live.find((S) => S.course.id === 'passion' && S.i === i);
+  const M = (c, r = 0.9, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: r, ...o });
+  const at = (f, off) => { const p = T.sample(f); return { x: p.x - p.dir.z * off, z: p.z + p.dir.x * off, dir: p.dir }; }; // off: 길 오른쪽(+)
+  const holder = new THREE.Group(); scene.add(holder);
+  const near = (x, z, d) => T.samples.some((q) => Math.abs(q.x - x) < d && Math.abs(q.z - z) < d && Math.hypot(q.x - x, q.z - z) < d);
+  const stationNear = (x, z, d) => live.some((S) => Math.hypot(S.g.position.x - x, S.g.position.z - z) < d);
+  let seed = 7; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  const box = new THREE.BoxGeometry(1, 1, 1);
+  const inst = (geo, mat, list, cast = true) => {
+    const im = new THREE.InstancedMesh(geo, mat, list.length), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
+    list.forEach((o, k) => { e.set(o.rx || 0, o.ry || 0, o.rz || 0); q.setFromEuler(e); m4.compose(new THREE.Vector3(o.x, o.y, o.z), q, new THREE.Vector3(o.sx, o.sy, o.sz)); im.setMatrixAt(k, m4); });
+    im.castShadow = cast; im.receiveShadow = true; holder.add(im); return im;
+  };
+  // 성 안 거리: 길 양옆의 돌집 (기드론을 건너 성문으로 들어가 성문 밖으로 나감)
+  const [c0, c1] = [0.18, 0.6], houses = [], roofs = [];
+  for (let f = c0 + 0.01; f < c1 - 0.01; f += 3.2 / T.len) for (const s of [-1, 1]) {
+    if (rnd() < 0.22) continue;
+    const w = 2.6 + rnd() * 2.4, d = 3 + rnd() * 2, h = 2 + rnd() * 1.8, off = s * (3.4 + d / 2 + rnd() * 1.2);
+    const p = at(f, off); if (near(p.x, p.z, 2.6 + d / 2) || stationNear(p.x, p.z, 11)) continue;
+    const y = gy(p.x, p.z) - 0.3, ry = Math.atan2(p.dir.x, p.dir.z);
+    houses.push({ x: p.x, y: y + h / 2, z: p.z, sx: w, sy: h + 0.6, sz: d, ry });
+    roofs.push({ x: p.x, y: y + h + 0.38, z: p.z, sx: w + 0.2, sy: 0.16, sz: d + 0.2, ry });
+  }
+  inst(box, M(0xdccbab), houses); inst(box, M(0xbfae90), roofs);
+  // 성문 두 곳: 들어가는 문(양문 쪽)과 나가는 문(성문 밖 골고다로, 히 13:12)
+  const wallM = M(0xcdb998);
+  for (const f of [c0, c1]) {
+    const p = at(f, 0), ry = Math.atan2(p.dir.x, p.dir.z), y = gy(p.x, p.z);
+    const gate = new THREE.Group(); gate.position.set(p.x, y - 0.2, p.z); gate.rotation.y = ry; holder.add(gate);
+    const b = (w, h, d, x, yy, z) => { const m = new THREE.Mesh(box, wallM); m.scale.set(w, h, d); m.position.set(x, yy, z); m.castShadow = m.receiveShadow = true; gate.add(m); };
+    for (const s of [-1, 1]) { b(1.6, 5.2, 2.2, s * 2.6, 2.6, 0); b(12, 3.6, 1.2, s * 9.4, 1.8, 0); }
+    b(3.6, 1.2, 2.2, 0, 4.6, 0);
+    for (let k = -4; k <= 4; k++) b(0.5, 0.6, 2.3, k * 0.9, 5.5, 0);
+  }
+  // 성 안 길바닥: 돌 박석
+  {
+    const S = T.samples.filter((q) => q.s > c0 * T.len && q.s < c1 * T.len), pos = [], idx = [];
+    S.forEach((q, i) => {
+      const n = S[Math.min(i + 1, S.length - 1)], pv = S[Math.max(i - 1, 0)], dx = n.x - pv.x, dz = n.z - pv.z, l = Math.hypot(dx, dz) || 1, rx = -dz / l * 1.45, rz = dx / l * 1.45;
+      pos.push(q.x + rx, gy(q.x + rx, q.z + rz) + 0.085, q.z + rz, q.x - rx, gy(q.x - rx, q.z - rz) + 0.085, q.z - rz);
+      if (i) { const a = (i - 1) * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+    });
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals();
+    if (geo.attributes.normal.array[1] < 0) { idx.reverse(); geo.setIndex(idx); geo.computeVertexNormals(); }
+    const m = new THREE.Mesh(geo, M(0xbdb4a4, 1)); m.receiveShadow = true; holder.add(m);
+  }
+  // 골고다: 나무 없는 바위 언덕, 해골 모양 벼랑, 세 십자가
+  const rocks = [];
+  for (let f = 0.63; f < 1; f += 1.6 / T.len) for (const s of [-1, 1]) {
+    if (rnd() < 0.45) continue;
+    const off = s * (3 + rnd() * 16), p = at(f, off); if (near(p.x, p.z, 2.4) || stationNear(p.x, p.z, 3.6)) continue;
+    const r = 0.25 + rnd() * 0.7; rocks.push({ x: p.x, y: gy(p.x, p.z) - r * 0.3, z: p.z, sx: r * 1.3, sy: r, sz: r * 1.1, ry: rnd() * 3 });
+  }
+  inst(new THREE.DodecahedronGeometry(1, 0), M(0x9a948a, 1), rocks);
+  {
+    const p = at(0.7, -13), y = gy(p.x, p.z), sk = new THREE.Group(); sk.position.set(p.x, y - 1, p.z); sk.rotation.y = Math.atan2(p.dir.x, p.dir.z) + Math.PI / 2; holder.add(sk);
+    const face = new THREE.Mesh(new THREE.DodecahedronGeometry(4, 1), M(0xa8a092, 1)); face.scale.set(1.2, 0.9, 0.8); face.position.y = 2; sk.add(face);
+    for (const s of [-1, 1]) { const e = new THREE.Mesh(new THREE.SphereGeometry(0.75, 10, 8), M(0x2a2622, 1)); e.position.set(s * 1.5, 2.6, 3); e.scale.z = 0.5; sk.add(e); }
+    const mo = new THREE.Mesh(new THREE.SphereGeometry(0.5, 10, 8), M(0x2a2622, 1)); mo.position.set(0, 1.2, 3.05); mo.scale.set(2, 0.6, 0.4); sk.add(mo);
+  }
+  const hill = at(0.86, 10), hy = gy(hill.x, hill.z);
+  const crosses = new THREE.Group(); crosses.position.set(hill.x, hy - 0.1, hill.z); crosses.rotation.y = Math.atan2(hill.dir.x, hill.dir.z) - Math.PI / 2; holder.add(crosses);
+  const wood = M(0x5a3e28, 0.95);
+  const cross = (x, h, s) => { const c = new THREE.Group(); c.position.set(x, 0, 0); c.scale.setScalar(s); const v = new THREE.Mesh(box, wood); v.scale.set(0.3, h, 0.3); v.position.y = h / 2; const b = new THREE.Mesh(box, wood); b.scale.set(2.6, 0.26, 0.28); b.position.y = h * 0.78; c.add(v, b); c.traverse((m) => { if (m.isMesh) m.castShadow = true; }); crosses.add(c); return c; };
+  cross(-4.2, 5, 0.85); cross(4.2, 5, 0.85);
+  const mid = cross(0, 6.2, 1);
+  const linen = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.5, 0.05), M(0xf2efe6, 1)); linen.position.set(0, 4.85, 0.18); mid.add(linen);
+  const title = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.35, 0.05), M(0xeee4cc, 1)); title.position.set(0, 6.0, 0.18); mid.add(title); // 죄패 (요 19:19)
+  const halo = K.fxSprite ? K.fxSprite('light_01', 0xfff0d0, 3) : null; if (halo) { halo.position.set(0, 4.8, 0.3); halo.material.opacity = 0; mid.add(halo); }
+
+  // ----- 십자가 지기: 등에 메고 걸음이 무거워짐, 구레네 시몬이 함께 짐, 골고다 꼭대기에서 내려놓음 -----
+  const body = me.av.userData.body || me.av;
+  const carried = new THREE.Group(); carried.visible = false; body.add(carried);
+  { const v = new THREE.Mesh(box, wood); v.scale.set(0.12, 2.3, 0.12); v.position.y = 1.15; const b = new THREE.Mesh(box, wood); b.scale.set(1.2, 0.11, 0.11); b.position.y = 1.72; carried.add(v, b); carried.position.set(0.18, 0.02, -1.45); carried.rotation.x = 1.08; carried.traverse((m) => { if (m.isMesh) m.castShadow = true; }); }
+  const simon = new THREE.Group(); simon.visible = false; scene.add(simon);
+  K.fig(simon, 0x8a7a5a, 0, 0, 1.45);
+  const sCross = new THREE.Mesh(box, wood); sCross.scale.set(0.1, 0.1, 1.1); sCross.position.set(0.25, 1.0, 0.45); simon.add(sCross);
+  const P = { carrying: false, helped: false };
+  const setCarry = (on) => {
+    P.carrying = on; carried.visible = on;
+    const s0 = by(6); if (s0 && s0.ground) s0.ground.visible = !on;
+    if (!on) { P.helped = false; simon.visible = false; me.slow = 0; }
+    else me.slow = 0.45;
+  };
+  PS.carry = () => { if (P.carrying || P.done) return; setCarry(true); hit('impactPlank_medium_000', 0.4, 0.55); act && act('strain', 2.2); };
+  PS.simon = (S) => {
+    if (!P.carrying || P.helped) return;
+    P.helped = true; simon.visible = true;
+    const p = S.simonAt.clone(); S.g.localToWorld(p); simon.position.copy(p);
+    sfx('orb', 0.15, 0.8);
+  };
+  PS.nail = (S) => {
+    if (P.carrying) { setCarry(false); P.done = true; }
+    [700, 1500, 2300, 4200, 5000, 5800].forEach((d) => setTimeout(() => hit('impactMetal_light_000', 0.45, 0.45 + Math.random() * 0.05), d));
+    shot(crosses.position.clone().setY(hy + 3), { dist: 16, el: 0.2, side: 0.6, dur: 7, mid: 0.6, y: 0 });
+  };
+  // ----- 다른 정거장 체험 -----
+  const tone = (fn) => { const c = audio && audio.get && audio.get(); if (c) fn(c); };
+  const noiseHit = (c, freq, q, dur, vol) => {
+    const len = Math.floor(c.sampleRate * dur), buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    const src = c.createBufferSource(); src.buffer = buf; const f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = q;
+    const g = c.createGain(), t = c.currentTime; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + dur * 0.25); g.gain.linearRampToValueAtTime(0, t + dur);
+    src.connect(f).connect(g).connect(c.destination); src.start(); return src;
+  };
+  PS.seize = (S) => {
+    S.flare = 1.8; S.bandT = 0;
+    [300, 900, 1500].forEach((d) => setTimeout(() => hit('impactMetal_light_000', 0.25, 0.8 + Math.random() * 0.2), d));
+  };
+  PS.scatter = (S) => { if (!S.fleeT || S.fleeT < 0) S.fleeT = 0; hit('footstep_grass_000', 0.3, 1.3); setTimeout(() => hit('footstep_grass_002', 0.3, 1.4), 250); };
+  PS.rooster = (S) => {
+    S.crowT = 0; S.peterT = 0;
+    tone((c) => { // 꼬끼오: 톱니파를 위아래로
+      const t = c.currentTime + 0.8, o = c.createOscillator(), g = c.createGain(), f = c.createBiquadFilter();
+      o.type = 'sawtooth'; f.type = 'bandpass'; f.frequency.value = 1400; f.Q.value = 1.2;
+      [[0, 520], [0.16, 760], [0.3, 700], [0.5, 900], [0.95, 980], [1.2, 620]].forEach(([dt, fr]) => o.frequency.linearRampToValueAtTime(fr, t + dt));
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.09, t + 0.05); g.gain.setValueAtTime(0.09, t + 1.05); g.gain.linearRampToValueAtTime(0, t + 1.3);
+      o.connect(f).connect(g).connect(c.destination); o.start(t); o.stop(t + 1.4);
+    });
+  };
+  PS.hush = () => { hit('impactSoft_medium_000', 0.2, 0.5); };
+  PS.shout = (S) => { S.shout = 1; tone((c) => { for (let k = 0; k < 3; k++) setTimeout(() => noiseHit(c, 520 + Math.random() * 200, 1.4, 1.1, 0.35), k * 1300); }); };
+  PS.mock = (S) => { S.mocking = 1; tone((c) => { for (let k = 0; k < 4; k++) setTimeout(() => noiseHit(c, 380 + Math.random() * 300, 2, 0.7, 0.18), k * 700); }); };
+  PS.cry = () => { tone((c) => setTimeout(() => noiseHit(c, 300, 0.8, 2.4, 0.22), 1200)); };
+  PS.quake = (S) => {
+    S.quakeT = 0; hit('impactSoft_heavy_000', 0.5, 0.35);
+    tone((c) => { const src = noiseHit(c, 60, 0.6, 4, 0.9); src.playbackRate.value = 0.5; });
+    if (halo) halo.material.opacity = 0.0001;
+    setTimeout(() => { if (PS.dark) PS.dark.style.opacity = '0'; }, 6000); // 어두움이 걷힘
+    shot(S.g.position, { dist: 13, el: 0.25, side: 0.5, dur: 8, mid: 0.6, y: 2.2 });
+    if (S.course.after) setTimeout(() => showVerse('course-' + S.course.id + '-after', { cooldown: 0, title: S.course.name }), 22000);
+  };
+  // ----- 매 프레임 -----
+  const canvas = document.getElementById('cafe');
+  const fwd = new THREE.Vector3();
+  let offT = 0, cullT = 0;
+  const anchors = [0.3, 0.55, 0.8, 1].map((f) => T.sample(f));
+  steps.push((dt, t) => {
+    if ((cullT -= dt) < 0) { cullT = 0.5; holder.visible = anchors.some((p) => Math.hypot(me.x - p.x, me.z - p.z) < 170); if (PS.dark && PS.dark.style.opacity !== '0' && by(10) && Math.hypot(me.x - by(10).x, me.z - by(10).z) > 70) PS.dark.style.opacity = '0'; }
+    // 십자가: 고난의 길을 벗어나거나 정원으로 돌아오면 내려놓음 (다시 오면 처음부터)
+    if ((offT -= dt) < 0) {
+      offT = 0.5;
+      if (Math.hypot(me.x, me.z) < 104) P.done = false;
+      if (P.carrying && (!near(me.x, me.z, 8) || Math.hypot(me.x, me.z) < 104)) setCarry(false);
+    }
+    if (P.carrying) {
+      me.slow = P.helped ? 0.72 : 0.45;
+      carried.rotation.x = 1.08 + Math.sin(t * 6) * 0.02 * (me.state === 'walk' ? 1 : 0);
+      if (P.helped) { // 시몬이 뒤에서 십자가 끝을 들고 따라옴
+        fwd.set(Math.sin(me.face || 0), 0, Math.cos(me.face || 0));
+        const tx = me.x - fwd.x * 1.9, tz = me.z - fwd.z * 1.9, k = Math.min(1, dt * 4);
+        simon.position.x += (tx - simon.position.x) * k; simon.position.z += (tz - simon.position.z) * k; simon.position.y = gy(simon.position.x, simon.position.z);
+        simon.rotation.y = me.face || 0; carried.rotation.x = 1.25;
+      }
+    }
+    if (halo && halo.material.opacity > 0) halo.material.opacity = Math.min(0.85, halo.material.opacity + dt * 0.08);
+    // 겟세마네: 횃불 든 무리가 다가옴
+    const a = by(0); if (a && a.bandT >= 0) { a.bandT += dt; a.band.position.x = -3.6 + Math.min(1, a.bandT / 2.5) * 1.6; if (a.bandT > 40) { a.bandT = -1; a.band.position.x = -3.6; a.flare = 1; } }
+    // 제자들이 달아남 → 멀어지면 제자리로
+    const fl = by(1);
+    if (fl && fl.fleeT >= 0) {
+      fl.fleeT += dt;
+      fl.flee.forEach((f, k) => { const s = Math.max(0, fl.fleeT - k * 0.15) * 3.4; f.position.copy(f.userData.p0).addScaledVector(f.userData.dir, Math.min(s, 22)); f.position.y = Math.abs(Math.sin(fl.fleeT * 12 + k)) * 0.12; f.visible = s < 21; });
+      if (fl.fleeT > 8 && Math.hypot(me.x - fl.x, me.z - fl.z) > 30) { fl.fleeT = -1; fl.flee.forEach((f) => { f.position.copy(f.userData.p0); f.visible = true; }); }
+    }
+    // 닭이 홰를 치고, 베드로가 밖으로 나가 통곡함
+    const ro = by(2);
+    if (ro && ro.crowT >= 0) {
+      ro.crowT += dt; const on = ro.crowT > 0.7 && ro.crowT < 2.3;
+      ro.wings.forEach((w, i) => { w.rotation.z = on ? Math.sin(t * 30) * 0.9 * (i ? 1 : -1) : 0; }); ro.rooster.rotation.x = on ? -0.4 : 0;
+      ro.peter.position.x = ro.peter.userData.p0.x - Math.min(1, Math.max(0, ro.crowT - 2) / 4) * 1.6; ro.peter.rotation.x = Math.min(0.35, Math.max(0, ro.crowT - 2) * 0.1);
+      if (ro.crowT > 45) { ro.crowT = -1; ro.peter.position.copy(ro.peter.userData.p0); ro.peter.rotation.x = 0; }
+    }
+    // 다 이루었다: 땅이 진동하고 휘장이 찢어지고 바위가 터짐
+    const q = by(11);
+    if (q && q.quakeT >= 0) {
+      q.quakeT += dt; const k = Math.min(1, q.quakeT / 3.5), sh = q.quakeT < 4 ? (1 - q.quakeT / 4) * 7 : 0;
+      if (canvas) canvas.style.transform = sh > 0.05 ? `translate(${((Math.random() - 0.5) * sh).toFixed(1)}px, ${((Math.random() - 0.5) * sh).toFixed(1)}px)` : '';
+      q.veil.forEach((p, i) => { p.rotation.z = (i ? -1 : 1) * 0.5 * k * k; });
+      q.rock.forEach((r, i) => { r.position.x = r.userData.x0 + (i ? 1 : -1) * 0.5 * k; r.rotation.z = (i ? -1 : 1) * 0.25 * k; });
+      if (q.quakeT > 60 && Math.hypot(me.x - q.x, me.z - q.z) > 30) { q.quakeT = -1; q.veil.forEach((p) => { p.rotation.z = 0; }); q.rock.forEach((r) => { r.position.x = r.userData.x0; r.rotation.z = 0; }); if (halo) halo.material.opacity = 0; }
+    }
+  });
 }
