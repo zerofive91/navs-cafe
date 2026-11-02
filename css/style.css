@@ -462,3 +462,76 @@ body.photo-mode > *:not(canvas):not(#photo) { visibility: hidden !important; }
 #photo .flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
 #photo .flash.go { animation: snapflash 0.45s ease-out; }
 @keyframes snapflash { from { opacity: 0.85; } to { opacity: 0; } }
+
+/* 나의 캐릭터 만들기: 화면 아래쪽 카드, 위쪽에는 캐릭터가 보임 */
+#creator { position: fixed; left: 0; right: 0; bottom: 0; z-index: 62; display: flex; justify-content: center; padding: 0 12px max(12px, env(safe-area-inset-bottom)); pointer-events: none; }
+#creator .pad { pointer-events: auto; width: min(420px, 100%); max-height: 62vh; overflow: auto; padding: 16px 18px 14px; border-radius: 22px; background: rgba(255, 250, 238, 0.97); color: #5a4030; box-shadow: 0 10px 40px rgba(40, 30, 15, 0.3); font-family: "Noto Serif KR", serif; touch-action: pan-y; }
+#creator h3 { margin: 0 0 10px; font-size: 17px; text-align: center; word-break: keep-all; }
+#creator .nm { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 700; }
+#creator input { flex: 1; min-width: 0; height: 42px; padding: 0 12px; border: 2px solid #e2d2b4; border-radius: 12px; background: #fff; color: #5a4030; font: 600 17px "Noto Serif KR", serif; user-select: text; -webkit-user-select: text; outline: none; }
+#creator input:focus { border-color: #c9a15e; }
+#creator .lb { margin: 10px 0 5px; font-size: 12.5px; font-weight: 700; color: #a07a40; letter-spacing: 0.08em; }
+#creator .sw { display: flex; flex-wrap: wrap; gap: 8px; }
+#creator .sw button { width: 34px; height: 34px; border-radius: 50%; border: 3px solid #fff; background: var(--c); box-shadow: 0 1px 4px rgba(60, 40, 20, 0.3); cursor: pointer; padding: 0; }
+#creator .sw button.on { outline: 3px solid #c9a15e; outline-offset: 1px; }
+#creator .sw.st button { width: auto; height: 34px; padding: 0 14px; border-radius: 17px; background: #fff; color: #6b4c32; font: 600 13px "Noto Serif KR", serif; }
+#creator .sw.st button.on { background: #f1e2c4; }
+#creator .go { display: block; width: 100%; margin-top: 14px; height: 46px; border: 0; border-radius: 14px; background: #8f6744; color: #fffaf0; font: 700 15px "Noto Serif KR", serif; cursor: pointer; }
+#creator .go[disabled] { opacity: 0.4; }
+body:has(#creator) #actions, body:has(#creator) #stick, body:has(#creator) #meChip { visibility: hidden; }
+
+/* 위쪽 왼편 내 이름 · 칭호 (누르면 '나' 카드) */
+#meChip { position: fixed; left: calc(12px + env(safe-area-inset-left)); top: calc(12px + env(safe-area-inset-top)); z-index: 6; height: 34px; max-width: 40vw; padding: 0 12px; border: 0; border-radius: 17px; display: flex; align-items: center; gap: 6px; background: rgba(255, 250, 240, 0.8); color: #6b4c32; box-shadow: 0 2px 10px rgba(60, 40, 20, 0.14); font-family: "Noto Serif KR", serif; cursor: pointer; }
+#meChip[hidden] { display: none; }
+#meChip b { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#meChip small { flex: none; font-size: 11px; padding: 2px 7px; border-radius: 9px; background: #e6f0d4; color: #4f6b2f; font-weight: 700; }
+@media (max-width: 760px), (max-height: 500px) { #meChip { top: auto; bottom: calc(146px + env(safe-area-inset-bottom)); } }
+html.rot #meChip { top: auto; bottom: 120px; }
+#meCard { position: fixed; inset: 0; z-index: 56; display: grid; place-items: center; background: rgba(40, 30, 15, 0.35); font-family: "Noto Serif KR", serif; }
+#meCard .pad { position: relative; width: min(360px, 90vw); max-height: 84vh; overflow: auto; padding: 18px 18px 14px; border-radius: 20px; background: rgba(255, 250, 238, 0.97); color: #5a4030; box-shadow: 0 10px 40px rgba(40, 30, 15, 0.35); }
+#meCard h3 { margin: 0; font-size: 20px; text-align: center; }
+#meCard .stage { margin: 4px 0 10px; text-align: center; font-weight: 700; color: #4f6b2f; }
+#meCard .stage span { color: #a08868; font-weight: 500; font-size: 13px; }
+#meCard .bar { height: 8px; border-radius: 4px; background: #eadfca; overflow: hidden; }
+#meCard .bar i { display: block; height: 100%; background: linear-gradient(90deg, #b9d48a, #e8c46a); }
+#meCard .steps { margin: 5px 0 0; font-size: 12px; text-align: right; color: #a08868; }
+#meCard .lb { margin: 12px 0 6px; font-size: 12.5px; font-weight: 700; color: #a07a40; letter-spacing: 0.08em; }
+#meCard .items { display: flex; flex-wrap: wrap; gap: 6px; }
+#meCard .items button { border: 0; border-radius: 12px; padding: 7px 11px; background: #fff; color: #6b4c32; font: 600 13px "Noto Serif KR", serif; box-shadow: 0 1px 4px rgba(60, 40, 20, 0.15); cursor: pointer; }
+#meCard .none { font-size: 13px; color: #a08868; }
+#meCard .row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+#meCard .row button { flex: 1 1 auto; border: 0; border-radius: 12px; height: 38px; padding: 0 10px; background: #f1e6d2; color: #6b4c32; font: 600 13px "Noto Serif KR", serif; cursor: pointer; }
+#meCard .close { position: absolute; top: 8px; right: 10px; width: 32px; height: 32px; border: 0; border-radius: 16px; background: rgba(0, 0, 0, 0.06); font-size: 21px; color: #6b4c32; cursor: pointer; }
+
+/* 안내 말풍선: 컴퓨터는 아래 가운데, 휴대폰은 위쪽 */
+#tut { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 44; width: min(480px, calc(100vw - 320px)); padding: 12px 16px 10px; border-radius: 18px; background: rgba(255, 250, 238, 0.96); color: #5a4030; box-shadow: 0 6px 24px rgba(40, 30, 15, 0.25); font-family: "Noto Serif KR", serif; transition: box-shadow 0.3s; }
+#tut[hidden] { display: none; }
+#tut.ok { box-shadow: 0 0 0 3px #b9d48a, 0 6px 24px rgba(40, 30, 15, 0.25); }
+#tut .who { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+#tut .who b { font-size: 14px; color: #8f6744; }
+#tut .who .n { font-size: 11px; color: #b09878; font-family: system-ui, sans-serif; }
+#tut .say { margin: 0; font-size: 15px; line-height: 1.55; word-break: keep-all; }
+#tut .say small { display: block; margin-top: 6px; font-size: 12.5px; line-height: 1.5; color: #8f7458; }
+#tut .keys { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 8px; font: 500 13px system-ui, sans-serif; }
+#tut .keys:empty { display: none; }
+#tut .keys span { display: flex; align-items: center; gap: 6px; }
+#tut .keys .tt { font: 500 13.5px/1.5 "Noto Serif KR", serif; color: #7a5a3a; word-break: keep-all; }
+#tut kbd { min-width: 28px; padding: 2px 7px; border-radius: 7px; background: #fff; border: 1px solid #d8c8a8; box-shadow: 0 2px 0 #d8c8a8; font: 700 12px system-ui, sans-serif; text-align: center; }
+#tut .row { display: flex; justify-content: flex-end; gap: 6px; margin-top: 8px; }
+#tut .row button { border: 0; border-radius: 12px; height: 32px; padding: 0 12px; background: transparent; color: #a08868; font: 600 12.5px "Noto Serif KR", serif; cursor: pointer; }
+#tut .row button[hidden] { display: none; }
+#tut .row .next { background: #8f6744; color: #fffaf0; padding: 0 16px; }
+#tut.ok .row .skip { visibility: hidden; }
+@media (max-width: 760px), (max-height: 500px) {
+  #tut { bottom: auto; top: calc(62px + env(safe-area-inset-top)); width: calc(100vw - 24px); max-width: 480px; padding: 10px 14px 6px; }
+  #tut .say { font-size: 14px; }
+  #tut .row button { height: 30px; }
+  body.tutoring #verse { top: 46%; }
+  body.tutoring #toast { top: auto; bottom: calc(150px + env(safe-area-inset-bottom)); }
+}
+html.rot #tut { bottom: auto; top: 52px; width: min(60vh, 480px); }
+@media (min-width: 761px) and (min-height: 501px) {
+  #creator { top: 0; align-items: center; justify-content: flex-start; padding: 24px 32px; }
+  #creator .pad { width: 380px; max-height: 90vh; }
+}
+@media (max-width: 760px), (max-height: 500px) { #creator .pad { max-height: 56vh; } }
