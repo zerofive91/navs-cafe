@@ -1,7 +1,7 @@
 // 3D 공간 만들기: 높은 층고의 흰색 모던 카페, 수레바퀴 바닥, 전시물
 import * as THREE from 'three';
 import {
-  GATE, R_HALL, R_RIM_IN, TREES, terrainH, PARK, POOL, FLOWER_BEDS, R_WALK, R_HUB, SPOKE, CEIL, deg, polar, Q, PRAYER_POOL_R, WITNESS_POOL_R,
+  GATE, WALK_MAX, R_HALL, R_RIM_IN, TREES, terrainH, PARK, POOL, FLOWER_BEDS, R_WALK, R_HUB, SPOKE, CEIL, deg, polar, Q, PRAYER_POOL_R, WITNESS_POOL_R,
   columns, COUNTER, LONG_TABLE, BIBLE, planters, TRAY, stools, BOAT,
   BRIDGE,
 } from './layout.js';
@@ -114,7 +114,7 @@ export function buildWorld(scene) {
   // ---------- 바깥 ----------
   // 잔디 (수영장 자리는 뚫어 둠)
   const gShape = new THREE.Shape();
-  gShape.absarc(0, 0, 300, 0, Math.PI * 2, false);
+  gShape.absarc(0, 0, Math.max(300, WALK_MAX + 30), 0, Math.PI * 2, false);
   {
     const zn = PARK.pool, h = new THREE.Path();
     const c = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([a, b]) => zn.at(a * POOL.w / 2, b * POOL.d / 2));
