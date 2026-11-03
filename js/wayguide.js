@@ -2,6 +2,7 @@
 //   정원 안내를 아직 안 받았으면 가장 가까운 안내자가 정원 안내(tutorial.js의 'garden')를 해 줌
 //   안내를 받은 뒤에는 말을 걸면 "지금 가 보면 좋은 곳"을 골라 알려 주고, 누르면 그곳까지 걸어감
 //   고르는 차례: 하던 부탁 → 마치지 않은 훈련장 → 정원 말씀 체험 → 영적 전쟁 훈련소 → 성경 인물의 부탁 → 숲길 (가까운 곳 먼저)
+import { offerTalk } from './talkgate.js';
 import { R_HALL, polar, WARFARE } from './layout.js';
 import { nearestFree } from './nav.js';
 import { COURSE_META } from './courses.js';
@@ -107,8 +108,7 @@ export function initWayguide(K) {
     if (!profile.tut?.garden || tutActive?.() || busy()) return; // 정원 안내 전에는 tutorial.js가 말을 검
     let near = null;
     for (const n of tutors) if (Math.hypot(me.x - n.x, me.z - n.z) < 2.6) near = n;
-    if (near && near !== closedFor) talk(near);
-    if (!near) closedFor = null;
+    if (near) offerTalk('way:' + near.tutName, near, () => talk(near)); // 말 걸기 단추를 눌러야 열림
   }
   // 정원 안내 중에는 곁으로 다가와도 되고, 끝나면 제자리로 걸어 돌아감
   function pin() {

@@ -4,6 +4,7 @@
 //   네 시험돌 앞 빛나는 자리에 서면 그 갈래의 시험 셋이 차례로 옴. 바울에게 가면 네 갈래를 섞은 실전 연습(다섯)
 //   연습이므로 틀려도 넘어지지 않고, 왜 맞지 않는지 알려 준 뒤 다시 고름. 막히면 기도(X)하면 맞는 말씀이 떠오름
 //   처음 이긴 시험돌마다 말씀·순종이 자라고, 네 돌을 다 이기면 바울이 선한 싸움의 말씀을 들려줌
+import { offerTalk as offerTalkGate } from './talkgate.js';
 import * as THREE from 'three';
 import { WARFARE, floorY } from './layout.js';
 import { VERSES, showVerse } from './verses.js';
@@ -387,11 +388,10 @@ export function initWarfare(K) {
     if (dz > 26) called = false;
     else if (!called && dz < 16 && dp > 4.5 && me.state === 'walk' && !busy()) {
       called = true; paul.action = 'wave'; setTimeout(() => { if (paul.action === 'wave') paul.action = null; }, 2400);
-      toast(`바울: 영적 전쟁 훈련소에 온 걸 환영해요! 믿음의 선진들이 겪은 시험을 말씀으로 이기는 연습을 해요. 제 곁으로 오세요`, 5);
     }
     if (busy()) { if (offer) hideTalk(); return; }
     // 바울 곁
-    if (dp < 3.6) { if (!offer && !closedFor) offerTalk(); } else { closedFor = false; if (offer) hideTalk(); }
+    if (dp < 3.6) { if (!offer) offerTalkGate('warfare', paul, () => offerTalk()); } else if (offer) hideTalk(); // 말 걸기 단추를 눌러야 열림
     // 시험돌 앞 빛나는 자리
     let at = null;
     for (const s of stones) if (Math.hypot(me.x - s.p.stand.x, me.z - s.p.stand.z) < 1.2) at = s.c.id;

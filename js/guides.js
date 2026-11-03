@@ -2,6 +2,7 @@
 //   부탁: "이 길의 정거장을 모두 들러 말씀을 보기" (정거장 기록은 courses.js의 foundCourses)
 //   부탁을 받은 길은 정거장에 들를 때마다 진행을 알려 주고, 다 들르면 걸음·능력치·데나리온을 받음 (profile.trails)
 //   던전 길(별 표시)은 들어갈 수 있는 단계가 되어야 부탁을 줌
+import { offerTalk } from './talkgate.js';
 import { TRAILS, R_PARK, isFree } from './layout.js';
 import { COURSE_META, COURSE_STATIONS, foundCourses } from './courses.js';
 import { TIER, TIER_STAGE, stars } from './dungeon.js';
@@ -125,7 +126,6 @@ export function initGuides(K) {
       // 지나가면 손 흔들어 부름 (한 번)
       if (!g.said && d < 10 && d > 4 && me.state === 'walk' && !busy()) {
         g.said = true; g.n.action = 'wave'; setTimeout(() => { if (g.n.action === 'wave') g.n.action = null; }, 2400);
-        if (!rec()[g.id]) toast(`${g.name}: ${COURSE_META[g.id].name} 입구예요. 길을 알려 줄게요, 제 곁으로 오세요`, 4);
       }
       if (d > 30) g.said = false;
     }
@@ -135,8 +135,7 @@ export function initGuides(K) {
     if (busy()) return;
     let near = null;
     for (const g of list) if (Math.hypot(me.x - g.n.x, me.z - g.n.z) < 3.2) near = g;
-    if (near && near !== closedFor) talk(near);
-    if (!near) closedFor = null;
+    if (near) offerTalk('guide:' + near.id, near.n, () => talk(near)); // 말 걸기 단추를 눌러야 열림
   }
   function pin() { for (const g of list) if (g.n.state !== 'walk') { g.n.x = g.n.home.x; g.n.z = g.n.home.z; } }
 

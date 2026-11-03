@@ -3,6 +3,8 @@ const svg = (body) =>
   `<svg viewBox="0 0 32 32" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
 
 export const ICONS = {
+  // 말 걸기 (곁의 사람에게)
+  talk: svg('<path d="M5 8a3 3 0 0 1 3-3h16a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H13l-6 5v-5H8a3 3 0 0 1-3-3z"/><path d="M11 13h.01M16 13h.01M21 13h.01" stroke-width="3"/>'),
   keys: svg('<rect x="3" y="9" width="26" height="15" rx="2.5"/><path d="M8 14h1M12 14h1M16 14h1M20 14h1M24 14h1M10 19h12"/>'),
   map: svg('<path d="M4 8l7-3 10 3 7-3v19l-7 3-10-3-7 3z"/><path d="M11 5v19M21 8v19"/><circle cx="16" cy="14" r="1.6"/>'),
   gear: svg('<path d="M10 6h12l2 8-8 4-8-4z"/><path d="M8 14v8l8 5 8-5v-8"/><path d="M16 18v9"/>'),

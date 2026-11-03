@@ -1,6 +1,7 @@
 // 성경 큰 이야기 (2026-11): 창조에서 새 하늘과 새 땅까지 열두 장을 차례로 따라 걷는 긴 부탁
 //   카페의 누가(눅 1:3 "차례대로 써 보내는 것이")가 들려주고, 장마다 정원·숲길 입구·카페의 한 자리에 금빛 기둥이 섬
 //   그 자리에 가서(어떤 장은 기도·말씀·빛 바라보기·인사를 하면) 그 장의 말씀이 뜨고 다음 장으로
+import { offerTalk } from './talkgate.js';
 import * as THREE from 'three';
 import { PARK, TRAILS, SPOTS, Q, R_PARK, floorY } from './layout.js';
 import { nearestFree } from './nav.js';
@@ -111,7 +112,7 @@ export function initStory(K) {
     if (dL < 6 && me.state !== 'walk') luke.face = Math.atan2(me.x - luke.x, me.z - luke.z);
     if (shown && dL > 5) close();
     if (dL > 4) closedNear = false;
-    if (!shown && !closedNear && dL < 2.8 && me.state !== 'walk' && !busy()) talk();
+    if (!shown && dL < 2.8 && !busy()) offerTalk('luke', luke, () => talk()); // 말 걸기 단추를 눌러야 열림
     if ((T += dt) < 0.25) return; T = 0;
     if (!started() || n() >= CH.length) return;
     const c = CH[n()], p = c.at();

@@ -8,6 +8,7 @@ import * as THREE from 'three';
 import { GARDEN, floorY } from './layout.js';
 import { showVerse } from './verses.js';
 import { nameTag } from './tutorial.js';
+import { offerTalk } from './talkgate.js';
 import { addStat, addSteps, earn, STATS } from './profile.js';
 
 const P = {
@@ -38,7 +39,7 @@ const P = {
 };
 
 export function initGarden(K) {
-  const { scene, me, makeChar, npcs, profile, save, toast, sfx, burst, busy, onChange } = K;
+  const { scene, me, makeChar, npcs, profile, save, toast, sfx, burst, busy, onChange, walkTo } = K;
   const G = (p) => floorY(p.x, p.z);
   const M = (c, r = 0.8, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: r, ...o });
   const rec = () => { profile.garden = profile.garden || {}; return profile.garden; };
@@ -55,9 +56,13 @@ export function initGarden(K) {
     sp.scale.set(size * 2.5, size * 0.5, 1);
     return sp;
   };
-  const ring = (p, color = 0xffe7a0) => {
+  const ring = (p, color = 0xffe7a0, y = 0.06) => {
     const m = new THREE.Mesh(new THREE.RingGeometry(0.62, 0.85, 36), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.5, depthWrite: false, side: THREE.DoubleSide }));
-    m.rotation.x = -Math.PI / 2; m.position.set(p.x, G(p) + 0.06, p.z); scene.add(m); return m;
+    m.rotation.x = -Math.PI / 2; m.position.set(p.x, G(p) + y, p.z); scene.add(m);
+    // 멀리서도 보이는 빛기둥 (사용자: 빛나는 자리가 어딘지 구분이 안 됨)
+    const glow = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 2.6, 24, 1, true), new THREE.MeshBasicMaterial({ color: 0xfff0b8, transparent: true, opacity: 0.16, depthWrite: false, side: THREE.DoubleSide }));
+    glow.position.set(p.x, G(p) + 1.3, p.z); scene.add(glow); m.userData.glow = glow;
+    return m;
   };
   const sign = (Z, text) => {
     const p = Z.at(-Z.w / 2 + 1.2, -Z.d / 2 + 0.6);
@@ -119,9 +124,12 @@ export function initGarden(K) {
     for (let k = -0.6; k <= 0.61; k += 0.3) { const b = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.0, 6), mat); b.position.set(k + 0.6, 1.0, 0); b.castShadow = true; door.add(b); }
     const hp = Z.at(lc.u + 0.4, lc.v - 1.5); door.position.set(hp.x, G(hp), hp.z); door.rotation.y = Z.rot + Math.PI / 2; scene.add(door); Pr.doorG = door;
     const beam = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.12, 0.12), mat); const bp = Z.at(lc.u, lc.v + 1.5); beam.position.set(bp.x, G(bp) + 2.2, bp.z); beam.rotation.y = Z.rot + Math.PI / 2; scene.add(beam); Pr.bars.push({ g: beam, fall: 0, dir: 1, beam: true, y0: beam.position.y });
-    // 차꼬 (실라 발 앞)
-    const stocks = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.18, 0.22), M(0x6a4a30)); stocks.position.set(Pr.npc.x, G(Pr.npc) + 0.1, Pr.npc.z); stocks.rotation.y = Z.rot; scene.add(stocks); Pr.stocks = stocks;
-    Pr.ring = ring(Pr.stand, 0xcfd8ff);
+    // 차꼬 (실라와 바울 발 앞, 행 16:24)
+    const stocks = new THREE.Group();
+    for (const q of [Pr.npc, Pr.npc2]) { const s = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.18, 0.22), M(0x6a4a30)); s.position.set(q.x, G(q) + 0.17, q.z); s.rotation.y = Z.rot; stocks.add(s); }
+    scene.add(stocks); Pr.stocks = stocks;
+    // 빛나는 자리: 돌바닥(0.08m) 위로 올리고, 어두운 옥에서도 보이게 금빛 + 위로 비치는 빛기둥
+    Pr.ring = ring(Pr.stand, 0xffe7a0, 0.11);
     sign(Z, '빌립보 감옥');
   }
   // ---------- 실로: 성막 장막과 엘리의 자리 ----------
@@ -157,7 +165,7 @@ export function initGarden(K) {
   // ---------- 말풍선 ----------
   const box = document.createElement('div');
   box.className = 'npcb'; box.id = 'xtalk'; box.hidden = true;
-  box.innerHTML = '<div class="who"><b></b><span class="n"></span></div><p class="say"></p><p class="how"></p><div class="row"><button class="later">나중에</button><button class="go" hidden>함께 걷기</button></div>';
+  box.innerHTML = '<div class="who"><b></b><span class="n"></span></div><p class="say"></p><p class="how"></p><div class="row"><button class="later">나중에</button><button class="go">해 보기</button></div>';
   document.body.appendChild(box);
   const $ = (s) => box.querySelector(s);
   let cur = null, closedFor = null;
@@ -167,7 +175,7 @@ export function initGarden(K) {
     if (!cur) return;
     const c = e.target.classList;
     if (c.contains('later')) { closedFor = cur; hide(); }
-    else if (c.contains('go')) { const x = cur; closedFor = x; hide(); walkEmmaus(x); }
+    else if (c.contains('go')) { const x = cur; closedFor = x; hide(); begin(x); }
   });
   const hide = () => { box.hidden = true; cur = null; document.body.classList.remove('talking'); };
   const statName = (s) => STATS.find((x) => x.id === s)?.name || '';
@@ -178,8 +186,19 @@ export function initGarden(K) {
     const done = rec()[x.id];
     $('.say').textContent = x.d.about;
     $('.how').textContent = x.d.how + (done ? ' (이미 체험했어요. 언제든 다시 묵상해요)' : ` 처음 마치면 걸음 +3, ${statName(x.d.stat)} +2, 1 데나리온.`);
-    $('.go').hidden = x.id !== 'emmaus' || emm.on;
+    // 체험 시작 단추: 엠마오는 함께 걷기, 나머지는 빛나는 자리로 걸어감
+    $('.go').textContent = x.id === 'emmaus' ? '함께 걷기' : '빛나는 자리로';
+    $('.go').hidden = x.id === 'emmaus' && emm.on;
     box.hidden = false; document.body.classList.add('talking');
+  }
+
+  // ---------- 체험 시작 ----------
+  const TODO = { mount: '잠시 서 있으면 팔복이 들려요', prison: '기도(X)나 찬양(B) 단추를 눌러요', shiloh: '기도(X) 단추를 눌러요' };
+  function begin(x) {
+    if (x.id === 'emmaus') return walkEmmaus(x);
+    const s = x.g.stand;
+    hinted[x.id] = 1; // 도착 알림은 아래 한 번만
+    walkTo?.(me, { x: s.x, z: s.z }, () => { me.face = Math.atan2(x.g.zone.x - s.x, x.g.zone.z - s.z); toast(`${x.d.who}: ${TODO[x.id]}`, 4); });
   }
 
   // ---------- 체험 마침 ----------
@@ -238,18 +257,23 @@ export function initGarden(K) {
       if (x.n.state !== 'walk') x.n.face = d < 6 ? Math.atan2(me.x - x.n.x, me.z - x.n.z) : x.n.face0;
       if (!x.said && d < 9 && d > 4 && me.state === 'walk' && !busy() && !cur) {
         x.said = true; x.n.action = 'wave'; setTimeout(() => { if (x.n.action === 'wave') x.n.action = null; }, 2400);
-        if (!rec()[x.id]) toast(`${x.d.who}: 여기는 ${x.d.name}이에요. 말씀을 함께 경험해 봐요, 제 곁으로 오세요`, 3.5);
       }
       if (d > 26) x.said = false;
     }
     if (!near) return;
-    for (const r of [E.ring, Mt.ring, Pr.ring, Sh.ring]) r.material.opacity = 0.35 + 0.25 * Math.sin(performance.now() / 400);
+    const at = (p, r = 0.95) => Math.hypot(me.x - p.x, me.z - p.z) < r;
+    const pulse = Math.sin(performance.now() / 400);
+    for (const r of [E.ring, Mt.ring, Pr.ring, Sh.ring]) { r.material.opacity = 0.45 + 0.3 * pulse; r.userData.glow.material.opacity = 0.13 + 0.07 * pulse; }
+    // 이미 서 있으면(또는 감옥이 열렸으면) 빛기둥은 거둠, 엠마오는 함께 걷는 동안만
+    E.ring.userData.glow.visible = emm.on;
+    Mt.ring.userData.glow.visible = !at(Mt.stand, 1.2);
+    Pr.ring.userData.glow.visible = !quake.on && !quake.reset && !at(Pr.stand, 1.2);
+    Sh.ring.userData.glow.visible = !at(Sh.stand, 1.2);
     // 실라·바울은 기도하는 자세, 엘리는 앉아 있음
     if (!quake.on && silas.state !== 'walk') silas.action = 'pray';
     if (!quake.on) paul.action = 'pray';
     eli.face = Math.hypot(me.x - eli.x, me.z - eli.z) < 5 ? Math.atan2(me.x - eli.x, me.z - eli.z) : eli.face0;
 
-    const at = (p, r = 0.95) => Math.hypot(me.x - p.x, me.z - p.z) < r;
     // 엠마오
     if (emm.on) {
       emm.t += dt;
@@ -297,13 +321,19 @@ export function initGarden(K) {
     let nx = null;
     if ([E.stand, Mt.stand, Pr.stand, Sh.stand].some((q) => at(q, 1.3))) return; // 빛나는 자리에서 체험 중엔 말을 걸지 않음
     for (const x of L) if (Math.hypot(me.x - x.n.x, me.z - x.n.z) < 2.8 && !(x.id === 'emmaus' && emm.on)) nx = x;
-    if (nx && nx !== closedFor) talk(nx);
-    if (!nx) closedFor = null;
+    if (nx) offerTalk('garden:' + nx.id, nx.n, () => talk(nx)); // 말 걸기 단추를 눌러야 열림
   }
   function pin() {
     if (!pinOn) return;
     for (const n of [...L.map((x) => x.n), ...extras]) if (n.state !== 'walk' && !(n === emX.n)) { n.x = n.home.x; n.z = n.home.z; }
   }
 
-  return { step, pin, active: () => !!cur, list: L, places: P };
+  // 빛나는 자리에 서 있으면 반짝일 단추 (main.js availableActions)
+  function wants() {
+    const at = (p) => Math.hypot(me.x - p.x, me.z - p.z) < 1.3;
+    if (!quake.on && !quake.reset && at(Pr.stand)) return ['pray', 'praise'];
+    if (at(Sh.stand)) return ['pray'];
+    return [];
+  }
+  return { step, pin, wants, active: () => !!cur, list: L, places: P };
 }

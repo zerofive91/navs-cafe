@@ -3,6 +3,7 @@
 //   정원: 정원지기 아담이 걷기·달리기, 점프, 지도로 코스 찾기, 반짝이는 체험(E), 별 보기, 사진을 알려 줌
 // 한 단계씩 말풍선으로 부탁하고, 그 키나 단추를 실제로 눌러 보면 다음으로 넘어감.
 // 휴대폰에서는 키 대신 같은 자리의 단추를 알려 줌. 언제든 넘기거나 끝낼 수 있고, '나' 카드에서 다시 볼 수 있음
+import { offerTalk } from './talkgate.js';
 import * as THREE from 'three';
 import { giveItem, addSteps, ITEMS } from './profile.js';
 import { ICONS } from './icons.js';
@@ -174,8 +175,8 @@ export function initTutorial(K) {
     // 아담: 정원 안내를 아직 안 받았으면 금빛 말풍선, 가까이 오면 말을 검
     // 입구마다 선 안내자도 같은 정원 안내를 해 줌 (가장 가까운 안내자가 말을 검)
     if (!run && profile.name && profile.tut.cafe && !profile.tut.garden && outdoors()) {
-      const t = tutors().find((n) => Math.hypot(me.x - n.x, me.z - n.z) < 6);
-      if (t) start('garden', t);
+      const t = tutors().find((n) => Math.hypot(me.x - n.x, me.z - n.z) < 3.6);
+      if (t) offerTalk('tut:' + (t.tutName || 'adam'), t, () => start('garden', t)); // 말 걸기 단추를 눌러야 시작
     }
     for (const n of [barnabas, ...tutors()]) {
       const d = Math.hypot(me.x - n.x, me.z - n.z);

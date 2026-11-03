@@ -199,14 +199,16 @@ export const GARDEN = (() => {
   const E = PARK.emmaus, Mt = PARK.mount, P = PARK.prison, S = PARK.shiloh;
   return {
     emmaus: { zone: E, npc: E.at(-6.2, -2.4), road: [E.at(-6.5, 0), E.at(6.5, 0)], table: E.at(5.6, 2.6), stand: E.at(5.6, 1.2) },
-    mount: { zone: Mt, npc: Mt.at(-4.6, -3.2), top: Mt.at(0, 0.8), stand: Mt.at(0, -1.2) },
-    prison: { zone: P, npc: P.at(-0.8, 1.2), cell: P.at(0, 1.2), stand: P.at(0.9, 1.0), npc2: P.at(-5.2, -3) },
+    mount: { zone: Mt, npc: Mt.at(-4.6, -3.2), top: Mt.at(0, 0.8), stand: Mt.at(0, -3.1) }, // 서는 자리는 언덕 앞 (언덕 안으로 파묻히지 않게)
+    prison: { zone: P, npc: P.at(-0.9, 1.4), cell: P.at(0, 1.2), stand: P.at(0.8, 0.9), npc2: P.at(-0.1, 2.2) }, // 바울(npc2)도 실라와 함께 옥 안에
     shiloh: { zone: S, npc: S.at(-3.2, -2.8), tent: S.at(0, 2.6), stand: S.at(0, -0.3), eli: S.at(2.6, 0.4) },
   };
 })();
 export const TRAIN_BLOCKS = [
   { ...GARDEN.emmaus.table, r: 0.7, h: 0.8 },
   { ...GARDEN.shiloh.tent, r: 1.8 },
+  // 산 위의 가르침 언덕 (타원 2.6×3.4m): 캐릭터가 언덕 속으로 들어가지 않게
+  ...[-1.3, 0, 1.3].map((v) => ({ ...PARK.mount.at(0, 0.8 + v), r: 2.2, h: 1.1 })),
   ...WARFARE.stones.map((p) => ({ x: p.x, z: p.z, r: 0.75, h: 1.1 })),
   ...TRAIN.word.pillars.map((p) => ({ x: p.x, z: p.z, r: 0.4 })),
   ...TRAIN.pray.altars.map((p) => ({ x: p.x, z: p.z, r: 0.55, h: 0.95 })),

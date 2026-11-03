@@ -34,6 +34,7 @@ import { initPets } from './pets.js';
 import { TIER } from './dungeon.js';
 import { COURSE_META } from './courses.js';
 import { initQuestLog, walkToward } from './questlog.js';
+import { talkOffer, pressTalk } from './talkgate.js';
 
 const canvas = document.getElementById('cafe');
 const bar = document.getElementById('actions');
@@ -245,6 +246,7 @@ function nearestSeat(kind, near) {
 }
 
 const ACTIONS = {
+  talk: () => pressTalk(me), // 곁의 사람에게 말 걸기 (talkgate.js)
   light: () => walkTo(me, { x: 0.4, z: 0.9 }, () => { act('gaze'); }),
   pray: () => {
     // 기도 구역에서는 방석에, 다른 곳에서는 그 자리에 무릎 꿇고 기도
@@ -564,6 +566,7 @@ function availableActions() {
   if (me.state !== 'walk') { for (const v of shop?.available() || []) place(v[1]); for (const v of pets?.available() || []) place(v[1]); for (const v of quests?.available() || []) place(v[1]); for (const v of training?.available() || []) place(v[1]); }
   for (const v of dungeon?.available() || []) place(v[1]); // 길 끝: 입구로 돌아가기
   if (signs.canCalm()) place('calm'); // 풍랑 속: 손을 들어 잠잠케
+  if (talkOffer(me)) place('talk'); // 곁에 말 걸 사람이 있으면 (누르거나 E)
   if (me.state === 'walk') { if (me.slow) place(...park.available()); else list.push('jump'); list.push(...walkToggle); return list; } // 걷는 중에는 점프(와 걷기·달리기)만
   const near = (s) => Math.hypot(me.x - s.x, me.z - s.z) < s.r;
   // 그 장소에서만 할 수 있는 일
@@ -591,7 +594,8 @@ function availableActions() {
   const lyingNow = me.state === 'sit' && me.seat && (me.seat.kind === 'lie' || LIEABLE.has(me.seat.kind));
   if (!lyingNow && !inPool(me.x, me.z) && !me.slow) { if (me.state !== 'sit' && nearSeat(true)) place('recline'); else list.push('recline'); }
   if (me.state !== 'sit' && !me.slow) list.push('jump');
-  list.push('pray', 'read', 'praise');
+  const gw = garden?.wants() || []; // 정원 빛나는 자리(빌립보 감옥·실로)에서는 기도·찬양이 반짝임
+  for (const n of ['pray', 'read', 'praise']) { list.push(n); if (gw.includes(n)) P.add(n); }
   if (nearestPerson(6)) list.push('share');
   list.push('wave');
   return list;
@@ -796,8 +800,9 @@ canvas.addEventListener('pointermove', (e) => {
     const d = Math.hypot(a.x - b.x, a.y - b.y);
     view.dist = clamp(pinch.dist * (pinch.d / d), 4.5, 16);
   } else if (drag) {
-    const dx = q.x - drag.x, dy = q.y - drag.y;
+    let dx = q.x - drag.x, dy = q.y - drag.y;
     drag.moved = Math.max(drag.moved, Math.hypot(dx, dy));
+    if (drag.how !== 'any') dy = -dy; // 마우스로 끌면 위아래만 손가락과 반대로 (사용자 요청 2026-11-03)
     if (drag.moved > 6) {
       if (view.mode === 'first') {
         // 화면을 손으로 잡아 끄는 느낌: 오른쪽으로 밀면 시선은 왼쪽으로
@@ -835,11 +840,32 @@ rippleMesh.rotation.x = -Math.PI / 2;
 rippleMesh.visible = false;
 scene.add(rippleMesh);
 
+// 사람(NPC)을 누르면: 곁이면 바로 말 걸기, 멀면 그 사람 앞까지 걸어가서 말 걸기
+function tapPerson(maxD) {
+  let hit = null, hd = maxD;
+  for (const n of npcs) {
+    if (!n.av.visible) continue;
+    const h = ray.intersectObject(n.av, true)[0];
+    if (h && h.distance < hd) { hd = h.distance; hit = n; }
+  }
+  if (!hit) return false;
+  sfx('tap', 0.15);
+  if (pressTalk(me, hit)) return true;
+  const d = Math.hypot(me.x - hit.x, me.z - hit.z);
+  const k = Math.max(0, (d - 1.6) / d);
+  walkTo(me, { x: me.x + (hit.x - me.x) * k, z: me.z + (hit.z - me.z) * k }, () => {
+    faceTo(me, hit);
+    // 도착한 뒤 그 사람이 말 걸기를 내밀 때까지 잠깐 기다림 (모듈은 매 프레임 확인)
+    let n = 0; const tryTalk = () => { if (!pressTalk(me, hit) && ++n < 8) setTimeout(tryTalk, 120); }; tryTalk();
+  });
+  return true;
+}
 // how: 'pick' 마우스 왼쪽(고르기·말 걸기·앉기만), 'move' 마우스 오른쪽(누른 곳으로 걷기만), 'any' 터치(둘 다)
 function tap(sx, sy, how = 'any') {
   ndc.set((sx / vw()) * 2 - 1, -(sy / vh()) * 2 + 1);
   ray.setFromCamera(ndc, camera);
   const hits = how === 'move' ? [] : ray.intersectObjects(interactive, false);
+  if (how !== 'move' && tapPerson(hits.length ? hits[0].distance : 60)) return;
   if (hits.length && hits[0].distance < 60) {
     const o = hits[0].object;
     if (o.userData.onTap) { sfx('orb', 0.2); return o.userData.onTap(); }
@@ -1623,7 +1649,7 @@ warfare = initWarfare({
   onChange: () => character.showChip(),
 });
 garden = initGarden({
-  scene, me, makeChar, npcs, profile, save: saveMe, toast, sfx, burst,
+  scene, me, makeChar, npcs, profile, save: saveMe, toast, sfx, burst, walkTo,
   busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!dungeon?.active() || !!guides?.active() || !!wayguide?.active() || !!warfare?.active() || !!quests?.active() || !!shop?.active() || !!story?.active?.(),
   onChange: () => character.showChip(),
 });
