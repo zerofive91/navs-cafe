@@ -206,7 +206,8 @@ export function initWarfare(K) {
   document.body.appendChild(talk);
   const $t = (s) => talk.querySelector(s);
   let offer = false, closedFor = false;
-  talk.addEventListener('pointerdown', (e) => {
+  talk.addEventListener('pointerdown', (e) => e.stopPropagation()); // 끌어서 내려 보기(스크롤)가 되도록, 고르기는 click에서
+  talk.addEventListener('click', (e) => {
     e.stopPropagation();
     const g = e.target.closest('[data-g]');
     if (g) return guide(g.dataset.g);
@@ -243,7 +244,8 @@ export function initWarfare(K) {
   document.body.appendChild(box);
   const $ = (s) => box.querySelector(s);
   let run = null, opts = [];
-  box.addEventListener('pointerdown', (e) => {
+  box.addEventListener('pointerdown', (e) => e.stopPropagation()); // 끌어서 내려 보기(스크롤)가 되도록, 고르기는 click에서
+  box.addEventListener('click', (e) => {
     e.stopPropagation();
     const o = e.target.closest('.opt');
     if (o) return choose(Number(o.dataset.i));

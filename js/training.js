@@ -232,7 +232,8 @@ export function initTraining(K) {
   document.body.appendChild(box);
   const $ = (s) => box.querySelector(s);
   let offer = null, run = null, closedFor = null;
-  box.addEventListener('pointerdown', (e) => {
+  box.addEventListener('pointerdown', (e) => e.stopPropagation()); // 끌어서 내려 보기(스크롤)가 되도록, 고르기는 click에서
+  box.addEventListener('click', (e) => {
     e.stopPropagation();
     const c = e.target.classList;
     const g = e.target.closest('[data-g]');

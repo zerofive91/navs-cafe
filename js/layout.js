@@ -96,9 +96,12 @@ for (const h of HISTORY) block(h.x, h.z, 0.75);
 export const CYCLE = [285, 335, 25, 75, 135].map((a) => ({ ...polar(c(24.2), a), a }));
 
 // 순종: 둘레 화분, 쟁반 반납대
+// 카페 입구 넷 (2026-11-03): 수레바퀴 살을 따라 동(교제)·남(말씀)·서(증거)·북(기도). 각도 0 = 동, 90 = 남
+export const DOORS = [0, 90, 180, 270];
+const DOOR_HALF = 1.15; // 문 너비의 절반 (m)
 export const planters = [];
 for (let a = 0; a < 360; a += 30) {
-  if (a === 90) continue; // 입구
+  if (DOORS.includes(a)) continue; // 입구
   const p = polar(c(25.5), a);
   planters.push({ ...p, a });
   block(p.x, p.z, 0.7);
@@ -164,6 +167,11 @@ export const PARK = {
   jonah: zone('jonah', gr(46), 164, 12, 11),    // 요나와 큰 물고기 (욘 1-2)
   // 영적 전쟁 훈련소 (2026-11): 전신갑주 길 입구 곁. 믿음의 선진들이 겪은 시험을 말씀으로 이기는 연습 (누구나)
   warfare: zone('warfare', gr(64), 173, 20, 12),
+  // 카페 가까운 정원의 말씀 체험 (2026-11-03): 산책길 바로 바깥, 네 입구 쪽
+  emmaus: zone('emmaus', gr(38.5), 0, 16, 10),    // 엠마오로 가는 길: 글로바 (눅 24:13-32)
+  mount: zone('mount', gr(38.5), 70, 14, 10),     // 산 위의 가르침: 마태 (마 5:1-10)
+  prison: zone('prison', gr(38.5), 180, 14, 10),  // 빌립보 감옥의 찬송: 실라 (행 16:25-31)
+  shiloh: zone('shiloh', gr(38.5), 197, 12, 10),  // 실로 성막의 기도: 한나와 엘리 (삼상 1)
 };
 // 수레바퀴 다섯 훈련장의 자리 (u: 둘레 방향, v: 바깥 방향. 카페 쪽이 -v)
 export const TRAIN = (() => {
@@ -186,7 +194,19 @@ export const WARFARE = (() => {
   const Z = PARK.warfare;
   return { zone: Z, npc: Z.at(0, -4.2), center: Z.at(0, 0.6), stones: [-7, -2.4, 2.4, 7].map((u) => ({ ...Z.at(u, 2.6), stand: Z.at(u, 0.5) })) };
 })();
+// 말씀 체험 자리 (u: 둘레 방향, v: 바깥 방향)
+export const GARDEN = (() => {
+  const E = PARK.emmaus, Mt = PARK.mount, P = PARK.prison, S = PARK.shiloh;
+  return {
+    emmaus: { zone: E, npc: E.at(-6.2, -2.4), road: [E.at(-6.5, 0), E.at(6.5, 0)], table: E.at(5.6, 2.6), stand: E.at(5.6, 1.2) },
+    mount: { zone: Mt, npc: Mt.at(-4.6, -3.2), top: Mt.at(0, 0.8), stand: Mt.at(0, -1.2) },
+    prison: { zone: P, npc: P.at(-0.8, 1.2), cell: P.at(0, 1.2), stand: P.at(0.9, 1.0), npc2: P.at(-5.2, -3) },
+    shiloh: { zone: S, npc: S.at(-3.2, -2.8), tent: S.at(0, 2.6), stand: S.at(0, -0.3), eli: S.at(2.6, 0.4) },
+  };
+})();
 export const TRAIN_BLOCKS = [
+  { ...GARDEN.emmaus.table, r: 0.7, h: 0.8 },
+  { ...GARDEN.shiloh.tent, r: 1.8 },
   ...WARFARE.stones.map((p) => ({ x: p.x, z: p.z, r: 0.75, h: 1.1 })),
   ...TRAIN.word.pillars.map((p) => ({ x: p.x, z: p.z, r: 0.4 })),
   ...TRAIN.pray.altars.map((p) => ({ x: p.x, z: p.z, r: 0.55, h: 0.95 })),
@@ -232,6 +252,7 @@ const onPaths = (x, z) => {
     if (r > R_WALK && r < R_PARK + 1 && d * (Math.PI / 180) * r < 2.6) return true;
   }
   if (Math.abs(x) < 4 && z > 0) return true; // 입구 길
+  if (r < R_WALK + 1 && (Math.abs(x) < 2.5 || Math.abs(z) < 2.5)) return true; // 동·서·북 입구에서 산책길까지
   return false;
 };
 // 자동으로 걸어갈 때 길(산책길·둘레길·오솔길·입구 길·숲길)을 따라가도록 잔디는 비싸게 침
@@ -241,6 +262,7 @@ function onWalkway(x, z) {
   const r = Math.hypot(x, z);
   if (Math.abs(r - R_PARK) < 1.05 || Math.abs(r - R_WALK) < 0.7) return true;
   if (Math.abs(x) < 1.5 && z > 0 && r < R_GARDEN) return true; // 입구 길 (폭 4m)
+  if (r > R_HALL && r < R_WALK && (Math.abs(x) < 1.2 || Math.abs(z) < 1.2)) return true; // 동·서·북 입구 길 (폭 3m)
   const a = (Math.atan2(z, x) * 180) / Math.PI;
   for (const la of LANES) {
     const d = Math.abs(((a - la + 540) % 360) - 180) * (Math.PI / 180) * r;
@@ -771,8 +793,8 @@ export function isFree(x, z, hop = 0, baseY = null) {
   }
   if (Math.abs(r - PARK.jonah.r) < 12 && JONAH_SEA.inside(x, z, BODY)) return false; // 요나의 바다
   if (r > R_HALL - 0.7 && r < R_HALL + 1.1) {
-    // 유리벽은 입구로만 드나듦
-    if (!(z > 0 && Math.abs(x) < 1.15)) return false;
+    // 유리벽은 네 입구로만 드나듦
+    if (!DOORS.some((a) => { const c = Math.cos(deg(a)), s = Math.sin(deg(a)); return x * c + z * s > 0 && Math.abs(-x * s + z * c) < DOOR_HALF; })) return false;
   }
   // 장애물은 4m 칸으로 나눠 가까운 것만 검사 (넓은 정원에서도 빠르게)
   if (!buckets) buildBuckets();

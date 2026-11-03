@@ -388,7 +388,8 @@ export function initQuests(K) {
   const chip = document.createElement('div'); chip.id = 'questChip'; chip.hidden = true; document.body.appendChild(chip);
   const $ = (s) => box.querySelector(s);
   let run = null, shown = null, closedFor = null, thanks = null;
-  box.addEventListener('pointerdown', (e) => {
+  box.addEventListener('pointerdown', (e) => e.stopPropagation()); // 끌어서 내려 보기(스크롤)가 되도록, 고르기는 click에서
+  box.addEventListener('click', (e) => {
     e.stopPropagation();
     const c = e.target.classList;
     if (c.contains('next')) { if (thanks) { thanks = null; closedFor = shown; hide(); } else if (shown && !run) begin(shown); else hide(); }

@@ -49,7 +49,8 @@ export function initQuestLog({ me, quests, story, walkTo, toast }) {
     toast(`그곳으로 걸어가요 · ${kind === 'q' ? it.where || it.name + '에게' : `큰 이야기 ${it.k}장 금빛 기둥`}`, 3);
   }
 
-  box.addEventListener('pointerdown', (e) => {
+  box.addEventListener('pointerdown', (e) => e.stopPropagation()); // 끌어서 내려 보기(스크롤)가 되도록, 고르기는 click에서
+  box.addEventListener('click', (e) => {
     e.stopPropagation();
     const b = e.target.closest('button');
     if (!b) return;

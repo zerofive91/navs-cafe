@@ -1,7 +1,7 @@
 // 3D 공간 만들기: 높은 층고의 흰색 모던 카페, 수레바퀴 바닥, 전시물
 import * as THREE from 'three';
 import {
-  GATE, WALK_MAX, R_HALL, R_RIM_IN, TREES, terrainH, PARK, FLOWER_BEDS, R_WALK, R_HUB, SPOKE, CEIL, deg, polar, Q, PRAYER_POOL_R, WITNESS_POOL_R,
+  GATE, WALK_MAX, DOORS, R_HALL, R_RIM_IN, TREES, terrainH, PARK, FLOWER_BEDS, R_WALK, R_HUB, SPOKE, CEIL, deg, polar, Q, PRAYER_POOL_R, WITNESS_POOL_R,
   columns, COUNTER, LONG_TABLE, BIBLE, planters, TRAY, stools, BOAT,
   BRIDGE,
 } from './layout.js';
@@ -142,12 +142,21 @@ export function buildWorld(scene) {
     scene.add(shadowy(trunk, true, false), shadowy(crown, true, false));
     deco.trees.push({ x, z, h, parts: [trunk, crown] });
   }
-  // 입구 앞 길
+  // 입구 앞 길 (남쪽은 테마파크 입구까지, 동·서·북은 산책길까지)
   const path = new THREE.Mesh(new THREE.PlaneGeometry(4, GATE.r - 1 - R_HALL), mat.stone);
   path.rotation.x = -Math.PI / 2;
   path.position.set(0, -0.49, (R_HALL + GATE.r - 1) / 2);
   path.receiveShadow = true;
   scene.add(path);
+  for (const a of DOORS) {
+    if (a === 90) continue;
+    const len = R_WALK - 1 - R_HALL, p = polar((R_HALL + R_WALK - 1) / 2, a);
+    const side = new THREE.Mesh(new THREE.PlaneGeometry(3, len), mat.stone);
+    side.rotation.set(-Math.PI / 2, 0, -deg(a) + Math.PI / 2);
+    side.position.set(p.x, -0.49, p.z);
+    side.receiveShadow = true;
+    scene.add(side);
+  }
 
   // 건물을 한 바퀴 도는 정원 산책길 + 둥근 꽃밭(흙과 돌 테두리)
   const gravel = new THREE.MeshStandardMaterial({ color: 0xe9e1d2, roughness: 1 });
@@ -183,9 +192,13 @@ export function buildWorld(scene) {
   baseTop.rotation.x = -Math.PI / 2;
   baseTop.position.y = -0.005;
   scene.add(baseTop);
-  const step = new THREE.Mesh(new THREE.BoxGeometry(4, 0.25, 2), mat.stone);
-  step.position.set(0, -0.37, R_HALL + 1.4);
-  scene.add(step);
+  for (const a of DOORS) { // 네 입구의 디딤돌
+    const step = new THREE.Mesh(new THREE.BoxGeometry(4, 0.25, 2), mat.stone);
+    const p = polar(R_HALL + 1.4, a);
+    step.position.set(p.x, -0.37, p.z);
+    step.rotation.y = -deg(a) + Math.PI / 2;
+    scene.add(step);
+  }
 
   // ---------- 바닥 ----------
   const terr = terrazzoTexture();
@@ -278,7 +291,7 @@ export function buildWorld(scene) {
   // 유리 멀리언과 바닥 띠
   const mull = new THREE.BoxGeometry(0.12, CEIL, 0.18);
   for (let a = 0; a < 360; a += 7.5) {
-    if (Math.abs(a - 90) < 4) continue;
+    if (DOORS.some((d) => Math.abs(a - d) < 4)) continue;
     const p = polar(R_HALL, a);
     const m = new THREE.Mesh(mull, mat.frame);
     m.position.set(p.x, CEIL / 2, p.z);
@@ -291,16 +304,20 @@ export function buildWorld(scene) {
     band.position.y = y;
     scene.add(band);
   }
-  // 입구 문틀
-  for (const sgn of [-1, 1]) {
-    const p = polar(R_HALL, 90 + sgn * 3.2);
-    const post = new THREE.Mesh(new THREE.BoxGeometry(0.25, 3.2, 0.25), mat.frame);
-    post.position.set(p.x, 1.6, p.z);
-    scene.add(post);
+  // 입구 문틀 (넷)
+  for (const a of DOORS) {
+    for (const sgn of [-1, 1]) {
+      const p = polar(R_HALL, a + sgn * 3.2);
+      const post = new THREE.Mesh(new THREE.BoxGeometry(0.25, 3.2, 0.25), mat.frame);
+      post.position.set(p.x, 1.6, p.z);
+      scene.add(post);
+    }
+    const lintel = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.25, 0.3), mat.frame);
+    const p = polar(R_HALL, a);
+    lintel.position.set(p.x, 3.3, p.z);
+    lintel.rotation.y = -deg(a) + Math.PI / 2;
+    scene.add(lintel);
   }
-  const lintel = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.25, 0.3), mat.frame);
-  lintel.position.set(0, 3.3, R_HALL);
-  scene.add(lintel);
 
   // 천장: 천창 구멍이 있는 흰 원판 + 바퀴살 보 8개 + 둘레 간접조명
   const ceiling = slab(ringShape(R_HALL + 0.5, 4.2), 0.4, mat.white, CEIL);

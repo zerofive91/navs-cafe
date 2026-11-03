@@ -671,7 +671,7 @@ body.bigtrial #trial { box-shadow: 0 0 0 2px #6a4a9a, 0 10px 40px rgba(20, 10, 4
 .npcb .row .goq { background: #e8b860; color: #4a3010; padding: 0 14px; }
 #meCard .items.bible .none { flex-basis: 100%; font-size: 11.5px; }
 /* 영적 전쟁 훈련소 (2026-11): 성경 속 장면 + 속삭임 + 이긴 이야기 */
-#wtrial { max-height: calc(100vh - 120px); overflow-y: auto; }
+#wtrial { max-height: calc(100dvh - 96px); overflow-y: auto; }
 #wtrial .scene { margin: 0 0 6px; font: 500 13px/1.5 "Noto Serif KR", serif; color: #cdbfe0; word-break: keep-all; }
 #wtrial .why { margin: 8px 0 0; padding: 8px 10px; border-radius: 10px; background: rgba(255, 250, 238, 0.12); font: 500 13px/1.55 "Noto Serif KR", serif; color: #f3ecf8; word-break: keep-all; }
 #wtrial .why[hidden] { display: none; }
@@ -697,3 +697,30 @@ body.bigtrial #trial { box-shadow: 0 0 0 2px #6a4a9a, 0 10px 40px rgba(20, 10, 4
 #trip .list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 #trip .list button { border: 0; border-radius: 12px; padding: 9px 8px; background: #fff; color: #6b4c32; font: 600 13px "Noto Serif KR", serif; box-shadow: 0 1px 4px rgba(60, 40, 20, 0.15); cursor: pointer; word-break: keep-all; }
 #trip .close { position: absolute; top: 10px; right: 12px; border: 0; background: none; font-size: 22px; color: #a08868; cursor: pointer; }
+/* 2026-11-03 가로 화면: 창이 화면보다 길면 손가락으로 끌어 내려 볼 수 있게 (고르기는 click이라 끌어도 눌리지 않음) */
+.npcb { max-height: calc(100dvh - 96px - env(safe-area-inset-bottom)); overflow-y: auto; touch-action: pan-y; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+#meCard .pad, #shop .pad, #trip .pad, #dress .pad, #creator .pad, #keyhelp .pad { touch-action: pan-y; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+#meCard .pad { max-height: calc(100dvh - 24px); }
+#shop .pad, #trip .pad { max-height: calc(100dvh - 24px); }
+@media (max-height: 500px) and (orientation: landscape) {
+  .npcb { bottom: calc(8px + env(safe-area-inset-bottom)); max-height: calc(100dvh - 70px); }
+  .npcb .say { font-size: 14px; line-height: 1.45; }
+  /* 시험 창: 세 말씀을 나란히 */
+  .npcb.trial .opts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .npcb.trial .opt { font-size: 12.5px; line-height: 1.4; padding: 6px 8px; }
+  #wtrial .scene { font-size: 12px; }
+  #wtrial, #trial { width: min(760px, calc(100vw - 230px)); max-height: calc(100dvh - 70px); }
+  #meCard .pad { width: min(560px, 92vw); }
+  #trip .list { grid-template-columns: repeat(3, 1fr); }
+  #dress .pad { max-height: 60vh; }
+}
+#questLog { touch-action: pan-y; overscroll-behavior: contain; }
+@media (max-height: 500px) and (orientation: landscape) { #questLog { top: calc(60px + env(safe-area-inset-top)); max-height: calc(100dvh - 76px); min-height: 0; left: calc(130px + env(safe-area-inset-left)); } }
+/* 말풍선과 겹칠 때 말씀 카드를 작게 (main.js placeOverlays) */
+#verse { transition: opacity 1.6s ease, transform 1.6s ease, top 0.35s ease; }
+#verse.tight { padding: 10px 14px; }
+#verse.tight p { font-size: clamp(15px, 3.6vw, 19px); margin-bottom: 4px; }
+#verse.tight cite { font-size: 11.5px; }
+/* 첫 화면(혼자·다같이·모임)에서는 게임 화면의 단추·알림이 비치지 않게 (2026-11-03) */
+body.at-door > :not(#enter):not(canvas):not(#acct):not(#roomkey):not(script) { visibility: hidden !important; }
+body.at-door #enter { z-index: 100; }

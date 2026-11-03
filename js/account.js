@@ -56,6 +56,7 @@ function mergeProfile(a, b) {
     tut: obj(a.tut, b.tut), train: obj(a.train, b.train), quests: obj(a.quests, b.quests), dungeon: obj(a.dungeon, b.dungeon),
     trails: Object.fromEntries([...new Set([...Object.keys(a.trails || {}), ...Object.keys(b.trails || {})])].map((k) => [k, a.trails?.[k] === 'done' || b.trails?.[k] === 'done' ? 'done' : 'on'])),
     warfare: Object.fromEntries([...new Set([...Object.keys(a.warfare || {}), ...Object.keys(b.warfare || {})])].map((k) => [k, Math.max(a.warfare?.[k] | 0, b.warfare?.[k] | 0)])),
+    garden: Object.fromEntries([...new Set([...Object.keys(a.garden || {}), ...Object.keys(b.garden || {})])].map((k) => [k, 1])),
     since: [a.since, b.since].filter(Boolean).sort()[0] || null,
     // 지갑과 소모품은 더하거나 큰 쪽을 고르면 쓴 돈이 되살아나므로, 마지막으로 바뀐 쪽을 그대로 씀
     ...((b.walletAt | 0) >= (a.walletAt | 0) ? { coins: b.coins ?? a.coins ?? null, bag: b.bag || {}, sold: b.sold || [], walletAt: b.walletAt | 0 } : { coins: a.coins ?? null, bag: a.bag || {}, sold: a.sold || [], walletAt: a.walletAt | 0 }),

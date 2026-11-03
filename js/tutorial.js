@@ -51,7 +51,8 @@ export function initTutorial(K) {
   box.innerHTML = '<div class="who"><b></b><span class="n"></span></div><p class="say"></p><div class="keys"></div><div class="row"><button class="end">안내 끝내기</button><button class="skip">넘기기</button><button class="next">다음</button></div>';
   document.body.appendChild(box);
   const $ = (s) => box.querySelector(s);
-  box.addEventListener('pointerdown', (e) => {
+  box.addEventListener('pointerdown', (e) => e.stopPropagation()); // 끌어서 내려 보기(스크롤)가 되도록, 고르기는 click에서
+  box.addEventListener('click', (e) => {
     e.stopPropagation();
     if (e.target.classList.contains('next') || e.target.classList.contains('skip')) advance();
     else if (e.target.classList.contains('end')) stop('skip');
