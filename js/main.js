@@ -667,25 +667,105 @@ function endShot() {
   view.az = view.shot.az; // 돌아올 때 옆으로 휙 돌지 않도록 방향은 그대로 둠
   view.shot = null;
 }
-// 휴대폰이 세로로 잠겨 있어도(카카오톡 안 브라우저 등) 버튼으로 화면 전체를 눕혀 가로로 볼 수 있음
-const rot = { on: false };
+// 휴대폰이 세로로 잠겨 있어도(카카오톡 안 브라우저 등) 화면 전체를 눕혀 가로로 볼 수 있음
+// dir 1: 왼쪽으로 눕힘(화면 위쪽이 휴대폰 오른쪽 가장자리), -1: 오른쪽으로 눕힘
+const rot = { on: false, dir: 1 };
 const vw = () => (rot.on ? window.innerHeight : window.innerWidth);
 const vh = () => (rot.on ? window.innerWidth : window.innerHeight);
 // 화면 좌표 → 눕힌 화면 안의 좌표
-const pt = (e) => (rot.on ? { x: e.clientY, y: window.innerWidth - e.clientX } : { x: e.clientX, y: e.clientY });
-function setRotated(v) {
-  rot.on = v;
+const pt = (e) => (!rot.on ? { x: e.clientX, y: e.clientY }
+  : rot.dir > 0 ? { x: e.clientY, y: window.innerWidth - e.clientX }
+  : { x: window.innerHeight - e.clientY, y: e.clientX });
+// 화면에 보이는 상자의 위·아래(눕힌 화면 기준)
+function localBox(el) {
+  const r = el.getBoundingClientRect();
+  if (!rot.on) return { top: r.top, bottom: r.bottom, height: r.height };
+  return rot.dir > 0 ? { top: innerWidth - r.right, bottom: innerWidth - r.left, height: r.width } : { top: r.left, bottom: r.right, height: r.width };
+}
+function setRotated(v, dir = rot.dir) {
+  rot.on = v; rot.dir = dir;
   document.documentElement.classList.toggle('rot', v);
+  document.documentElement.classList.toggle('rot-r', v && dir < 0);
   resize();
 }
 function resize() {
   // 진짜로 가로가 되었으면 눕히기는 풀기
-  if (rot.on && window.innerWidth > window.innerHeight) { rot.on = false; document.documentElement.classList.remove('rot'); }
+  if (rot.on && window.innerWidth > window.innerHeight) { rot.on = false; document.documentElement.classList.remove('rot', 'rot-r'); }
   const w = vw(), h = vh();
+  // 가로 화면 배치(진짜 가로이든 눕힌 화면이든 같은 모양): css의 html.land
+  document.documentElement.classList.toggle('land', w > h && h <= 500);
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
   camera.fov = w < h ? 62 : 50;
   camera.updateProjectionMatrix();
+}
+// 눕힌 화면에서는 브라우저가 손가락 방향을 돌려 주지 않아 창이 스크롤되지 않음 → 끄는 방향을 바꿔 직접 내림 (2026-11-03)
+{
+  let sc = null;
+  const scroller = (el) => {
+    for (; el && el !== document.body; el = el.parentElement) {
+      const o = getComputedStyle(el).overflowY;
+      if ((o === 'auto' || o === 'scroll') && el.scrollHeight > el.clientHeight + 1) return el;
+    }
+    return null;
+  };
+  document.addEventListener('touchstart', (e) => {
+    sc = null;
+    if (!rot.on || e.touches.length !== 1) return;
+    const el = scroller(e.target);
+    if (el) { const q = pt(e.touches[0]); sc = { el, y: q.y, top: el.scrollTop, moved: 0, v: 0, ly: q.y, lt: performance.now() }; }
+  }, { capture: true, passive: true });
+  document.addEventListener('touchmove', (e) => {
+    if (!sc || e.touches.length !== 1) return;
+    const q = pt(e.touches[0]);
+    sc.moved = Math.max(sc.moved, Math.abs(q.y - sc.y));
+    sc.el.scrollTop = sc.top - (q.y - sc.y);
+    const now = performance.now();
+    sc.v = (q.y - sc.ly) / Math.max(1, now - sc.lt); sc.ly = q.y; sc.lt = now;
+    e.preventDefault();
+  }, { capture: true, passive: false });
+  document.addEventListener('touchend', () => {
+    if (!sc) return;
+    const { el, moved } = sc;
+    let v = sc.v * 16; // 손을 뗀 뒤 조금 더 미끄러짐
+    if (moved > 8) {
+      const glide = () => { if (Math.abs(v) < 0.5) return; el.scrollTop -= v; v *= 0.92; requestAnimationFrame(glide); };
+      requestAnimationFrame(glide);
+      // 끌어서 내린 것은 누른 것으로 치지 않음
+      const stop = (ev) => { ev.stopPropagation(); ev.preventDefault(); };
+      document.addEventListener('click', stop, { capture: true, once: true });
+      setTimeout(() => document.removeEventListener('click', stop, { capture: true }), 400);
+    }
+    sc = null;
+  }, { capture: true, passive: true });
+}
+// 휴대폰을 눕히면 저절로 가로 화면으로 (2026-11-03). 화면 회전이 잠겨 있어도 기울기로 알아챔.
+// 브라우저가 스스로 돌려 주면(잠금 꺼짐) 그대로 두고, 돌려 주지 않을 때만 눕힘. 단추로 바꾼 것은 다음에 기울기가 바뀔 때까지 그대로
+{
+  let seen = null, applied = null, timer = null;
+  const settle = () => {
+    timer = null;
+    if (seen === applied) return;
+    applied = seen;
+    if (seen === 'up') { if (rot.on) setRotated(false); }
+    else if (window.innerWidth < window.innerHeight) setRotated(true, seen === 'left' ? 1 : -1);
+  };
+  window.addEventListener('deviceorientation', (e) => {
+    if (e.beta == null || e.gamma == null) return;
+    const b = (e.beta * Math.PI) / 180, g = (e.gamma * Math.PI) / 180;
+    // 휴대폰 기준 중력 방향 (x: 오른쪽, y: 위쪽)
+    const gx = Math.sin(g) * Math.cos(b), gy = -Math.sin(b);
+    let st = null;
+    if (Math.abs(gx) > 0.6 && Math.abs(gx) > Math.abs(gy) + 0.25) st = gx < 0 ? 'left' : 'right'; // 왼쪽 가장자리가 아래 → 왼쪽으로 눕힘
+    else if (Math.abs(gy) > 0.6 && Math.abs(gy) > Math.abs(gx) + 0.25) st = 'up';
+    if (!st) return; // 바닥에 놓았거나 어중간하면 그대로
+    if (applied === null) applied = st === 'up' ? 'up' : null; // 처음에 세워 들고 있으면 그대로 시작
+    if (st !== seen) { seen = st; clearTimeout(timer); timer = setTimeout(settle, 800); }
+  });
+  // 아이폰은 기울기를 쓰려면 한 번 허락을 받아야 함: 처음 누를 때(입장 단추) 물어봄
+  if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+    document.addEventListener('click', () => { DeviceOrientationEvent.requestPermission().catch(() => {}); }, { capture: true, once: true });
+  }
 }
 window.addEventListener('resize', resize);
 window.addEventListener('orientationchange', () => setTimeout(resize, 250));
@@ -698,7 +778,9 @@ canvas.addEventListener('pointerdown', (e) => {
   canvas.setPointerCapture(e.pointerId);
   const q = pt(e);
   pointers.set(e.pointerId, q);
-  if (pointers.size === 1) drag = { x: q.x, y: q.y, t: performance.now(), moved: 0, az: view.az, el: view.el, pitch: view.pitch };
+  // 마우스(2026-11-03): 왼쪽 단추는 고르기·말 걸기, 오른쪽 단추는 그곳으로 걷기. 끌면 둘 다 시점 돌리기. 터치는 둘 다
+  const how = e.pointerType === 'mouse' ? (e.button === 2 ? 'move' : 'pick') : 'any';
+  if (pointers.size === 1) drag = { x: q.x, y: q.y, t: performance.now(), moved: 0, az: view.az, el: view.el, pitch: view.pitch, how };
   if (pointers.size === 2) {
     const [a, b] = [...pointers.values()];
     pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), dist: view.dist };
@@ -730,12 +812,13 @@ canvas.addEventListener('pointermove', (e) => {
 function endPointer(e) {
   if (!pointers.has(e.pointerId)) return;
   pointers.delete(e.pointerId);
-  if (drag && drag.moved <= 6 && performance.now() - drag.t < 600) { const q = pt(e); tap(q.x, q.y); }
+  if (drag && drag.moved <= 6 && performance.now() - drag.t < 600) { const q = pt(e); tap(q.x, q.y, drag.how); }
   if (pointers.size < 2) pinch = null;
   drag = null;
 }
 canvas.addEventListener('pointerup', endPointer);
 canvas.addEventListener('pointercancel', endPointer);
+canvas.addEventListener('contextmenu', (e) => e.preventDefault()); // 오른쪽 단추는 걷기
 canvas.addEventListener('wheel', (e) => {
   e.preventDefault();
   view.dist = clamp(view.dist * Math.exp(e.deltaY * 0.001), 4.5, 16);
@@ -752,10 +835,11 @@ rippleMesh.rotation.x = -Math.PI / 2;
 rippleMesh.visible = false;
 scene.add(rippleMesh);
 
-function tap(sx, sy) {
+// how: 'pick' 마우스 왼쪽(고르기·말 걸기·앉기만), 'move' 마우스 오른쪽(누른 곳으로 걷기만), 'any' 터치(둘 다)
+function tap(sx, sy, how = 'any') {
   ndc.set((sx / vw()) * 2 - 1, -(sy / vh()) * 2 + 1);
   ray.setFromCamera(ndc, camera);
-  const hits = ray.intersectObjects(interactive, false);
+  const hits = how === 'move' ? [] : ray.intersectObjects(interactive, false);
   if (hits.length && hits[0].distance < 60) {
     const o = hits[0].object;
     if (o.userData.onTap) { sfx('orb', 0.2); return o.userData.onTap(); }
@@ -776,13 +860,14 @@ function tap(sx, sy) {
   }
   const p = new THREE.Vector3();
   if (!ray.ray.intersectPlane(floorPlane, p)) return;
-  let best = null, bd = 0.9;
+  let best = null, bd = how === 'move' ? 0 : 0.9;
   for (const s of seats) {
     if (s.taken && s !== me.seat) continue;
     const d = Math.hypot(s.x - p.x, s.z - p.z);
     if (d < bd) { bd = d; best = s; }
   }
   if (best) { if (best !== me.seat) sitOn(me, best); }
+  else if (how === 'pick') return;
   else walkTo(me, { x: p.x, z: p.z });
   ripple = { x: p.x, z: p.z, t: 0 };
 }
@@ -848,6 +933,7 @@ const HOTKEYS = {
 };
 // 컴퓨터 단축키 안내: ? 또는 F1, 위쪽 키보드 단추 (터치 화면에서는 단추 숨김)
 const KEY_HELP = [
+  ['마우스', [['오른쪽 클릭', '그곳으로 걷기'], ['왼쪽 클릭', '사람에게 말 걸기 · 물건 고르기 · 앉기'], ['끌기 / 휠', '시점 돌리기 / 가까이 · 멀리']]],
   ['움직이기', [['↑ ↓ / W S', '앞으로 · 뒤로'], ['← → / A D', '몸 돌리기'], ['Space', '점프 (공중에서 또 누르면 2·3단)'], ['Shift', '걷기 ↔ 달리기 (정원·숲)'], ['M', '지도 (누른 곳으로 걸어감)'], ['Esc', '지도·안내 닫기']]],
   ['수레바퀴', [['Z', '말씀 읽기'], ['X', '기도'], ['C', '교제 (카운터에서 주문)'], ['V', '증거 (곁의 사람에게 빛 건네기)'], ['B', '찬양']]],
   ['쉬기', [['J', '앉기 · 일어서기'], ['K', '눕기 (앉은 채로도)'], ['N', '누운 채로 별 보기'], ['L', '먹기 · 마시기'], ['P', '사진 찍기 (Space 찰칵)']]],
@@ -1372,12 +1458,12 @@ function toast(msg, sec = 3) {
 const verseEl = document.getElementById('verse');
 function placeOverlays() {
   if (!verseEl) return;
-  const vh = innerHeight;
-  const tb = toastEl.hidden ? 0 : toastEl.getBoundingClientRect().bottom;
-  let floor = vh;
-  for (const b of document.querySelectorAll('.npcb:not([hidden])')) { const r = b.getBoundingClientRect(); if (r.height) floor = Math.min(floor, r.top); }
+  const H = vh();
+  const tb = toastEl.hidden ? 0 : localBox(toastEl).bottom;
+  let floor = H;
+  for (const b of document.querySelectorAll('.npcb:not([hidden])')) { const r = localBox(b); if (r.height) floor = Math.min(floor, r.top); }
   verseEl.classList.remove('tight');
-  let top = Math.max(vh * 0.3, tb ? tb + 10 : 0);
+  let top = Math.max(H * 0.3, tb ? tb + 10 : 0);
   if (!verseEl.hidden) {
     let h = verseEl.offsetHeight;
     if (top + h > floor - 8) { top = Math.max(tb ? tb + 6 : 60, floor - 8 - h); }

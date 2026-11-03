@@ -1,4 +1,8 @@
 * { box-sizing: border-box; }
+/* 화면 크기: 눕힌 화면(html.rot)에서는 가로·세로가 바뀜. 창 크기는 100vh 대신 이것을 씀 (2026-11-03) */
+:root { --vh: 100vh; --vw: 100vw; }
+@supports (height: 100dvh) { :root { --vh: 100dvh; } }
+html.rot { --vh: 100vw; --vw: 100vh; }
 html, body {
   margin: 0;
   height: 100%;
@@ -21,7 +25,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
   flex-wrap: wrap-reverse;
   align-content: flex-end;
   gap: 10px;
-  max-height: calc(100vh - 150px - env(safe-area-inset-top));
+  max-height: calc(var(--vh) - 150px - env(safe-area-inset-top));
   padding: 6px;
   border-radius: 34px;
   background: rgba(255, 250, 240, 0.55);
@@ -77,8 +81,8 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
   position: absolute;
   left: 0;
   right: 0;
-  top: calc(9vh + env(safe-area-inset-top));
-  font-size: clamp(40px, 12vw, 72px);
+  top: calc(calc(var(--vh) * 0.09) + env(safe-area-inset-top));
+  font-size: clamp(40px, calc(var(--vw) * 0.12), 72px);
   font-weight: 600;
   line-height: 1.25;
   letter-spacing: 0.04em;
@@ -99,10 +103,10 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
   position: absolute;
   left: 0;
   right: 0;
-  bottom: calc(8vh + env(safe-area-inset-bottom));
+  bottom: calc(calc(var(--vh) * 0.08) + env(safe-area-inset-bottom));
   display: flex;
   justify-content: center;
-  gap: clamp(18px, 7vw, 40px);
+  gap: clamp(18px, calc(var(--vw) * 0.07), 40px);
 }
 #enter .mode {
   border: 0;
@@ -138,9 +142,9 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 #enter .mode[disabled] .ring svg { animation: spin 1.4s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (min-aspect-ratio: 1/1) {
-  #enter .title { top: calc(7vh + env(safe-area-inset-top)); font-size: clamp(28px, 4.6vw, 54px); }
+  #enter .title { top: calc(calc(var(--vh) * 0.07) + env(safe-area-inset-top)); font-size: clamp(28px, 4.6vw, 54px); }
   #enter .title br { display: none; }
-  #enter .modes { bottom: calc(6vh + env(safe-area-inset-bottom)); }
+  #enter .modes { bottom: calc(calc(var(--vh) * 0.06) + env(safe-area-inset-bottom)); }
 }
 #enter.gone { opacity: 0; pointer-events: none; }
 @keyframes drift { from { transform: scale(1.04); } to { transform: scale(1.12) translateY(-1.5%); } }
@@ -233,26 +237,26 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 @media (prefers-reduced-motion: reduce) { #hint { animation: none; } }
 
 /* 가로로 눕힌 휴대폰: 위아래 공간이 좁으니 버튼을 작게, 조이스틱은 왼쪽 아래 그대로 */
-@media (max-height: 500px) and (orientation: landscape) {
-  #places { top: calc(8px + env(safe-area-inset-top)); padding: 4px; gap: 4px; }
-  .place { width: 36px; height: 36px; }
-  #stick { width: 96px; height: 96px; left: calc(16px + env(safe-area-inset-left)); bottom: calc(14px + env(safe-area-inset-bottom)); }
-  #knob { width: 42px; height: 42px; margin: -21px 0 0 -21px; }
-  #hint { left: calc(16px + 48px - 20px + env(safe-area-inset-left)); bottom: calc(14px + 48px - 28px + env(safe-area-inset-bottom)); }
-  #actions { bottom: calc(12px + env(safe-area-inset-bottom)); gap: 6px; max-height: calc(100vh - 70px); }
-  .act { width: 44px; height: 44px; }
-  /* 말씀은 캐릭터를 가리지 않게 위쪽에 작게 */
-  body #verse { top: 64px; width: min(62vw, 560px); padding: 12px 18px; }
-  body #verse p { font-size: 19px; line-height: 1.45; margin-bottom: 6px; }
-  body #verse cite { font-size: 12px; }
-}
+/* 가로 화면 (진짜 가로 또는 눕힌 화면, main.js resize가 html.land를 붙임) */
+/* 말씀은 캐릭터를 가리지 않게 위쪽에 작게 */
+  html.land #places { top: calc(8px + env(safe-area-inset-top)); padding: 4px; gap: 4px; }
+  html.land .place { width: 36px; height: 36px; }
+  html.land #stick { width: 96px; height: 96px; left: calc(16px + env(safe-area-inset-left)); bottom: calc(14px + env(safe-area-inset-bottom)); }
+  html.land #knob { width: 42px; height: 42px; margin: -21px 0 0 -21px; }
+  html.land #hint { left: calc(16px + 48px - 20px + env(safe-area-inset-left)); bottom: calc(14px + 48px - 28px + env(safe-area-inset-bottom)); }
+  html.land #actions { bottom: calc(12px + env(safe-area-inset-bottom)); gap: 6px; max-height: calc(var(--vh) - 70px); }
+  html.land .act { width: 44px; height: 44px; }
+  html.land body #verse { top: 64px; width: min(calc(var(--vw) * 0.62), 560px); padding: 12px 18px; }
+  html.land body #verse p { font-size: 19px; line-height: 1.45; margin-bottom: 6px; }
+  html.land body #verse cite { font-size: 12px; }
+
 
 /* 표적 체험 뒤 떠오르는 말씀 한 구절 */
 #verse {
   position: fixed;
   left: 50%;
   top: 30%;
-  width: min(84vw, 520px);
+  width: min(calc(var(--vw) * 0.84), 520px);
   transform: translate(-50%, 8px);
   text-align: center;
   color: #fffaf0;
@@ -280,8 +284,8 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
   top: calc(64px + env(safe-area-inset-top));
   left: 50%;
   transform: translateX(-50%);
-  width: min(320px, calc(100vw - 32px));
-  max-height: calc(100vh - 200px);
+  width: min(320px, calc(var(--vw) - 32px));
+  max-height: calc(var(--vh) - 200px);
   overflow-y: auto;
   padding: 8px;
   border-radius: 20px;
@@ -305,9 +309,9 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 #musicPanel .mtrack small { font-size: 12px; opacity: 0.65; }
 #musicPanel .mtrack.now { background: #f1e4cf; }
 #musicPanel button:active { background: #efe3cf; }
-@media (max-height: 500px) and (orientation: landscape) {
-  #musicPanel { top: calc(52px + env(safe-area-inset-top)); max-height: calc(100vh - 64px); }
-}
+/* 가로 화면 (진짜 가로 또는 눕힌 화면, main.js resize가 html.land를 붙임) */
+  html.land #musicPanel { top: calc(52px + env(safe-area-inset-top)); max-height: calc(var(--vh) - 64px); }
+
 
 /* 화면 눕히기: 세로로 잠긴 휴대폰에서도 가로 화면처럼 */
 #rotBtn {
@@ -347,17 +351,8 @@ html.rot body {
   transform: translateX(100vw) rotate(90deg);
   overflow: hidden;
 }
+html.rot-r body { transform: translateY(100vh) rotate(-90deg); }
 html.rot #rotBtn { top: calc(8px + env(safe-area-inset-top)); left: 12px; }
-/* 눕힌 화면은 위아래가 좁으므로 가로모드와 같은 크기로 */
-html.rot #places { top: 8px; padding: 4px; gap: 4px; }
-html.rot .place { width: 36px; height: 36px; }
-html.rot #stick { width: 96px; height: 96px; left: 16px; bottom: 14px; }
-html.rot #knob { width: 42px; height: 42px; margin: -21px 0 0 -21px; }
-html.rot #actions { bottom: 12px; gap: 6px; max-height: calc(100vw - 70px); }
-html.rot .act { width: 44px; height: 44px; }
-html.rot body #verse { top: 64px; width: min(62vh, 560px); padding: 12px 18px; }
-html.rot body #verse p { font-size: 19px; line-height: 1.45; margin-bottom: 6px; }
-html.rot #musicPanel { max-height: calc(100vw - 64px); }
 #verse .vt { display: block; font-size: 13px; font-weight: 600; letter-spacing: 0.18em; color: #ffe2a8; margin-bottom: 8px; }
 #verse .vt[hidden] { display: none; }
 
@@ -368,7 +363,7 @@ html.rot #musicPanel { max-height: calc(100vw - 64px); }
   opacity: 0; transition: opacity 0.8s ease;
   pointer-events: none;
   display: flex; align-items: flex-end; justify-content: center; gap: 18px;
-  padding-bottom: 22vh;
+  padding-bottom: calc(var(--vh) * 0.22);
 }
 #belly.on { opacity: 1; }
 #belly i {
@@ -387,7 +382,7 @@ html.rot #musicPanel { max-height: calc(100vw - 64px); }
   top: calc(70px + env(safe-area-inset-top));
   transform: translateX(-50%);
   width: max-content;
-  max-width: calc(100vw - 32px);
+  max-width: calc(var(--vw) - 32px);
   word-break: keep-all;
   padding: 10px 16px;
   border-radius: 18px;
@@ -412,7 +407,7 @@ html.rot #musicPanel { max-height: calc(100vw - 64px); }
 
 /* 모임 번호: 같은 네 자리 번호를 넣은 사람끼리만 한 카페에 */
 #roomkey { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; background: rgba(40, 30, 15, 0.35); font-family: "Noto Serif KR", serif; }
-#roomkey .pad { width: min(300px, 86vw); padding: 20px 18px 16px; border-radius: 22px; background: rgba(255, 250, 238, 0.97); color: #6b4c32; box-shadow: 0 10px 40px rgba(40, 30, 15, 0.35); text-align: center; }
+#roomkey .pad { width: min(300px, calc(var(--vw) * 0.86)); padding: 20px 18px 16px; border-radius: 22px; background: rgba(255, 250, 238, 0.97); color: #6b4c32; box-shadow: 0 10px 40px rgba(40, 30, 15, 0.35); text-align: center; }
 #roomkey .hint { font-size: 14px; opacity: 0.8; margin-bottom: 12px; word-break: keep-all; }
 #roomkey .digits { display: flex; justify-content: center; gap: 10px; margin-bottom: 14px; }
 #roomkey .digits span { width: 46px; height: 56px; border-radius: 12px; background: #f1e6d2; display: grid; place-items: center; font: 600 30px/1 Georgia, serif; }
@@ -441,7 +436,7 @@ html.rot #musicPanel { max-height: calc(100vw - 64px); }
 /* 컴퓨터 단축키 안내 */
 #keyhelp { position: fixed; inset: 0; z-index: 55; display: grid; place-items: center; background: rgba(40, 30, 15, 0.35); }
 #keyhelp[hidden] { display: none; }
-#keyhelp .pad { position: relative; width: min(560px, 92vw); max-height: 86vh; overflow: auto; padding: 18px 20px 14px; border-radius: 20px; background: rgba(255, 250, 238, 0.97); color: #5a4030; box-shadow: 0 10px 40px rgba(40, 30, 15, 0.35); display: grid; grid-template-columns: 1fr 1fr; gap: 6px 22px; font-family: system-ui, sans-serif; }
+#keyhelp .pad { position: relative; width: min(560px, calc(var(--vw) * 0.92)); max-height: calc(var(--vh) * 0.86); overflow: auto; padding: 18px 20px 14px; border-radius: 20px; background: rgba(255, 250, 238, 0.97); color: #5a4030; box-shadow: 0 10px 40px rgba(40, 30, 15, 0.35); display: grid; grid-template-columns: 1fr 1fr; gap: 6px 22px; font-family: system-ui, sans-serif; }
 #keyhelp h3 { grid-column: 1 / -1; margin: 0 0 4px; font: 700 17px "Noto Serif KR", serif; text-align: center; }
 #keyhelp h4 { margin: 8px 0 4px; font-size: 13px; color: #a07a40; letter-spacing: 0.1em; }
 #keyhelp p { display: flex; gap: 10px; align-items: center; margin: 4px 0; font-size: 13.5px; }
@@ -463,7 +458,7 @@ body.photo-mode > *:not(canvas):not(#photo) { visibility: hidden !important; }
 
 /* 나의 캐릭터 만들기: 화면 아래쪽 카드, 위쪽에는 캐릭터가 보임 */
 #creator { position: fixed; left: 0; right: 0; bottom: 0; z-index: 62; display: flex; justify-content: center; padding: 0 12px max(12px, env(safe-area-inset-bottom)); pointer-events: none; }
-#creator .pad { pointer-events: auto; width: min(420px, 100%); max-height: 62vh; overflow: auto; padding: 16px 18px 14px; border-radius: 22px; background: rgba(255, 250, 238, 0.97); color: #5a4030; box-shadow: 0 10px 40px rgba(40, 30, 15, 0.3); font-family: "Noto Serif KR", serif; touch-action: pan-y; }
+#creator .pad { pointer-events: auto; width: min(420px, 100%); max-height: calc(var(--vh) * 0.62); overflow: auto; padding: 16px 18px 14px; border-radius: 22px; background: rgba(255, 250, 238, 0.97); color: #5a4030; box-shadow: 0 10px 40px rgba(40, 30, 15, 0.3); font-family: "Noto Serif KR", serif; touch-action: pan-y; }
 #creator h3 { margin: 0 0 10px; font-size: 17px; text-align: center; word-break: keep-all; }
 #creator .nm { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 700; }
 #creator input { flex: 1; min-width: 0; height: 42px; padding: 0 12px; border: 2px solid #e2d2b4; border-radius: 12px; background: #fff; color: #5a4030; font: 600 17px "Noto Serif KR", serif; user-select: text; -webkit-user-select: text; outline: none; }
@@ -479,14 +474,13 @@ body.photo-mode > *:not(canvas):not(#photo) { visibility: hidden !important; }
 body:has(#creator) #actions, body:has(#creator) #stick, body:has(#creator) #meChip { visibility: hidden; }
 
 /* 위쪽 왼편 내 이름 · 칭호 (누르면 '나' 카드) */
-#meChip { position: fixed; left: calc(12px + env(safe-area-inset-left)); top: calc(12px + env(safe-area-inset-top)); z-index: 6; height: 34px; max-width: 40vw; padding: 0 12px; border: 0; border-radius: 17px; display: flex; align-items: center; gap: 6px; background: rgba(255, 250, 240, 0.8); color: #6b4c32; box-shadow: 0 2px 10px rgba(60, 40, 20, 0.14); font-family: "Noto Serif KR", serif; cursor: pointer; }
+#meChip { position: fixed; left: calc(12px + env(safe-area-inset-left)); top: calc(12px + env(safe-area-inset-top)); z-index: 6; height: 34px; max-width: calc(var(--vw) * 0.4); padding: 0 12px; border: 0; border-radius: 17px; display: flex; align-items: center; gap: 6px; background: rgba(255, 250, 240, 0.8); color: #6b4c32; box-shadow: 0 2px 10px rgba(60, 40, 20, 0.14); font-family: "Noto Serif KR", serif; cursor: pointer; }
 #meChip[hidden] { display: none; }
 #meChip b { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #meChip small { flex: none; font-size: 11px; padding: 2px 7px; border-radius: 9px; background: #e6f0d4; color: #4f6b2f; font-weight: 700; }
 @media (max-width: 760px), (max-height: 500px) { #meChip { top: auto; bottom: calc(146px + env(safe-area-inset-bottom)); } }
-html.rot #meChip { top: auto; bottom: 120px; }
 #meCard { position: fixed; inset: 0; z-index: 56; display: grid; place-items: center; background: rgba(40, 30, 15, 0.35); font-family: "Noto Serif KR", serif; }
-#meCard .pad { position: relative; width: min(360px, 90vw); max-height: 84vh; overflow: auto; padding: 18px 18px 14px; border-radius: 20px; background: rgba(255, 250, 238, 0.97); color: #5a4030; box-shadow: 0 10px 40px rgba(40, 30, 15, 0.35); }
+#meCard .pad { position: relative; width: min(360px, calc(var(--vw) * 0.9)); max-height: calc(var(--vh) * 0.84); overflow: auto; padding: 18px 18px 14px; border-radius: 20px; background: rgba(255, 250, 238, 0.97); color: #5a4030; box-shadow: 0 10px 40px rgba(40, 30, 15, 0.35); }
 #meCard h3 { margin: 0; font-size: 20px; text-align: center; }
 #meCard .stage { margin: 4px 0 10px; text-align: center; font-weight: 700; color: #4f6b2f; }
 #meCard .stage span { color: #a08868; font-weight: 500; font-size: 13px; }
@@ -508,7 +502,7 @@ html.rot #meChip { top: auto; bottom: 120px; }
 #meCard .close { position: absolute; top: 8px; right: 10px; width: 32px; height: 32px; border: 0; border-radius: 16px; background: rgba(0, 0, 0, 0.06); font-size: 21px; color: #6b4c32; cursor: pointer; }
 
 /* 안내 말풍선: 컴퓨터는 아래 가운데, 휴대폰은 위쪽 */
-.npcb { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 44; width: min(480px, calc(100vw - 320px)); padding: 12px 16px 10px; border-radius: 18px; background: rgba(255, 250, 238, 0.96); color: #5a4030; box-shadow: 0 6px 24px rgba(40, 30, 15, 0.25); font-family: "Noto Serif KR", serif; transition: box-shadow 0.3s; }
+.npcb { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 44; width: min(480px, calc(var(--vw) - 320px)); padding: 12px 16px 10px; border-radius: 18px; background: rgba(255, 250, 238, 0.96); color: #5a4030; box-shadow: 0 6px 24px rgba(40, 30, 15, 0.25); font-family: "Noto Serif KR", serif; transition: box-shadow 0.3s; }
 .npcb[hidden] { display: none; }
 .npcb.ok { box-shadow: 0 0 0 3px #b9d48a, 0 6px 24px rgba(40, 30, 15, 0.25); }
 .npcb .who { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
@@ -533,7 +527,7 @@ html.rot #meChip { top: auto; bottom: 120px; }
 .npcb .row .next { background: #8f6744; color: #fffaf0; padding: 0 16px; }
 .npcb.ok .row .skip { visibility: hidden; }
 @media (max-width: 760px), (max-height: 500px) {
-  .npcb { bottom: auto; top: calc(62px + env(safe-area-inset-top)); width: calc(100vw - 24px); max-width: 480px; padding: 10px 14px 6px; }
+  .npcb { bottom: auto; top: calc(62px + env(safe-area-inset-top)); width: calc(var(--vw) - 24px); max-width: 480px; padding: 10px 14px 6px; }
   .npcb .say { font-size: 14px; }
   .npcb .row button { height: 30px; }
   body.tutoring #verse { top: 46%; }
@@ -541,12 +535,11 @@ html.rot #meChip { top: auto; bottom: 120px; }
   body.talking #verse { top: 46%; }
   body.talking #toast { top: auto; bottom: calc(150px + env(safe-area-inset-bottom)); }
 }
-html.rot .npcb { bottom: auto; top: 52px; width: min(60vh, 480px); }
 @media (min-width: 761px) and (min-height: 501px) {
   #creator { top: 0; align-items: center; justify-content: flex-start; padding: 24px 32px; }
-  #creator .pad { width: 380px; max-height: 90vh; }
+  #creator .pad { width: 380px; max-height: calc(var(--vh) * 0.9); }
 }
-@media (max-width: 760px), (max-height: 500px) { #creator .pad { max-height: 56vh; } }
+@media (max-width: 760px), (max-height: 500px) { #creator .pad { max-height: calc(var(--vh) * 0.56); } }
 
 /* 숲길 던전: 어둠의 속삭임과 말씀 고르기 */
 .npcb.trial { background: rgba(40, 32, 52, 0.95); color: #f3ecf8; }
@@ -566,16 +559,16 @@ body.trialing #verse { visibility: hidden; } /* 고르는 동안은 시험 창�
 #map .courses button small { color: #e8b84a; font-size: 0.85em; }
 
 /* 정원의 부탁: 지금 하는 부탁 */
-#questChip { position: fixed; left: calc(12px + env(safe-area-inset-left)); top: calc(54px + env(safe-area-inset-top)); z-index: 6; max-width: min(360px, 60vw); padding: 7px 12px; border-radius: 14px; background: rgba(255, 246, 220, 0.9); color: #6b4c32; box-shadow: 0 2px 10px rgba(60, 40, 20, 0.14); font: 600 12.5px/1.45 "Noto Serif KR", serif; word-break: keep-all; pointer-events: auto; cursor: pointer; }
+#questChip { position: fixed; left: calc(12px + env(safe-area-inset-left)); top: calc(54px + env(safe-area-inset-top)); z-index: 6; max-width: min(360px, calc(var(--vw) * 0.6)); padding: 7px 12px; border-radius: 14px; background: rgba(255, 246, 220, 0.9); color: #6b4c32; box-shadow: 0 2px 10px rgba(60, 40, 20, 0.14); font: 600 12.5px/1.45 "Noto Serif KR", serif; word-break: keep-all; pointer-events: auto; cursor: pointer; }
 #questChip::before { content: "📜 "; }
 #questChip[hidden] { display: none; }
-@media (max-width: 760px), (max-height: 500px) { #questChip { top: auto; bottom: calc(186px + env(safe-area-inset-bottom)); max-width: calc(100vw - 110px); } }
+@media (max-width: 760px), (max-height: 500px) { #questChip { top: auto; bottom: calc(186px + env(safe-area-inset-bottom)); max-width: calc(var(--vw) - 110px); } }
 
 /* 계정으로 이어 하기 */
 #enter .acct { position: absolute; right: calc(14px + env(safe-area-inset-right)); top: calc(14px + env(safe-area-inset-top)); z-index: 3; border: 0; border-radius: 16px; padding: 7px 14px; background: rgba(255, 250, 240, 0.85); color: #6b4c32; font: 600 13px "Noto Serif KR", serif; box-shadow: 0 2px 10px rgba(40, 30, 15, 0.2); cursor: pointer; }
 #acct { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; background: rgba(40, 30, 15, 0.4); font-family: "Noto Serif KR", serif; }
 #acct[hidden] { display: none; }
-#acct .pad { position: relative; width: min(360px, 90vw); padding: 20px 18px 16px; border-radius: 20px; background: rgba(255, 250, 238, 0.98); color: #5a4030; box-shadow: 0 10px 40px rgba(40, 30, 15, 0.35); }
+#acct .pad { position: relative; width: min(360px, calc(var(--vw) * 0.9)); padding: 20px 18px 16px; border-radius: 20px; background: rgba(255, 250, 238, 0.98); color: #5a4030; box-shadow: 0 10px 40px rgba(40, 30, 15, 0.35); }
 #acct h3 { margin: 0 0 6px; font-size: 19px; text-align: center; }
 #acct .sub { margin: 0 0 12px; font-size: 13px; line-height: 1.55; color: #8f7458; word-break: keep-all; }
 #acct .who { margin: 6px 0; text-align: center; font-size: 15px; }
@@ -590,7 +583,7 @@ body.trialing #verse { visibility: hidden; } /* 고르는 동안은 시험 창�
 
 /* 같은 계정이 다른 기기에서 들어와 여기는 멈춤 */
 #away { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; background: rgba(40, 30, 15, 0.55); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
-#away .pad { width: min(340px, calc(100vw - 32px)); background: #fffaf0; border-radius: 18px; padding: 20px; text-align: center; color: #4a3626; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25); }
+#away .pad { width: min(340px, calc(var(--vw) - 32px)); background: #fffaf0; border-radius: 18px; padding: 20px; text-align: center; color: #4a3626; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25); }
 #away h3 { margin: 0 0 8px; font: 700 18px "Noto Serif KR", serif; }
 #away p { margin: 0 0 16px; font: 500 14px/1.6 "Noto Serif KR", serif; word-break: keep-all; }
 #away .go { border: 0; border-radius: 22px; padding: 10px 20px; background: #8a6a50; color: #fffaf0; font: 600 15px system-ui, sans-serif; cursor: pointer; }
@@ -606,7 +599,7 @@ body.trialing #verse { visibility: hidden; } /* 고르는 동안은 시험 창�
 /* 루디아의 가게 */
 #shop { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; background: rgba(40, 30, 15, 0.4); font-family: "Noto Serif KR", serif; }
 #shop[hidden] { display: none; }
-#shop .pad { position: relative; width: min(380px, calc(100vw - 32px)); max-height: calc(100vh - 40px); overflow: auto; padding: 20px 18px 14px; border-radius: 20px; background: rgba(255, 250, 238, 0.98); color: #5a4030; box-shadow: 0 10px 40px rgba(40, 30, 15, 0.35); }
+#shop .pad { position: relative; width: min(380px, calc(var(--vw) - 32px)); max-height: calc(var(--vh) - 40px); overflow: auto; padding: 20px 18px 14px; border-radius: 20px; background: rgba(255, 250, 238, 0.98); color: #5a4030; box-shadow: 0 10px 40px rgba(40, 30, 15, 0.35); }
 #shop h3 { margin: 0 0 6px; font-size: 19px; text-align: center; color: #6a2a6a; }
 #shop .sub { margin: 0 0 10px; font-size: 13px; line-height: 1.55; color: #8f7458; word-break: keep-all; }
 #shop .purse { margin: 0 0 10px; text-align: center; font-size: 14px; }
@@ -637,16 +630,16 @@ body.bigtrial #trial { box-shadow: 0 0 0 2px #6a4a9a, 0 10px 40px rgba(20, 10, 4
 #meCard .items.pets button.locked, #meCard .items.gear button.locked { opacity: 0.55; }
 
 /* 성경 큰 이야기 진행 */
-#storyChip { position: fixed; left: calc(12px + env(safe-area-inset-left)); top: calc(92px + env(safe-area-inset-top)); z-index: 6; max-width: min(360px, 60vw); padding: 7px 12px; border-radius: 14px; background: rgba(255, 240, 200, 0.92); color: #7a5a20; box-shadow: 0 2px 10px rgba(60, 40, 20, 0.14); font: 600 12.5px/1.45 "Noto Serif KR", serif; word-break: keep-all; pointer-events: auto; cursor: pointer; }
+#storyChip { position: fixed; left: calc(12px + env(safe-area-inset-left)); top: calc(92px + env(safe-area-inset-top)); z-index: 6; max-width: min(360px, calc(var(--vw) * 0.6)); padding: 7px 12px; border-radius: 14px; background: rgba(255, 240, 200, 0.92); color: #7a5a20; box-shadow: 0 2px 10px rgba(60, 40, 20, 0.14); font: 600 12.5px/1.45 "Noto Serif KR", serif; word-break: keep-all; pointer-events: auto; cursor: pointer; }
 #storyChip::before { content: "✦ "; color: #d8a020; }
 #storyChip[hidden] { display: none; }
-@media (max-width: 760px), (max-height: 500px) { #storyChip { top: calc(150px + env(safe-area-inset-top)); max-width: calc(100vw - 110px); } }
+@media (max-width: 760px), (max-height: 500px) { #storyChip { top: calc(150px + env(safe-area-inset-top)); max-width: calc(var(--vw) - 110px); } }
 
 /* 부탁 창: 왼쪽 진행 표시를 누르면 열림 */
 /* 한 줄로 줄이고 자세한 내용은 부탁 창에서 */
 #questChip, #storyChip { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #questChip::after, #storyChip::after { content: " ›"; opacity: 0.6; }
-#questLog { position: fixed; left: calc(12px + env(safe-area-inset-left)); top: calc(130px + env(safe-area-inset-top)); z-index: 8; width: min(360px, calc(100vw - 24px)); max-height: calc(100vh - 220px); overflow-y: auto; padding: 12px 14px 10px; border-radius: 16px; background: rgba(255, 250, 238, 0.97); color: #5a3e28; box-shadow: 0 4px 22px rgba(60, 40, 20, 0.22); font: 500 13px/1.55 "Noto Serif KR", serif; word-break: keep-all; }
+#questLog { position: fixed; left: calc(12px + env(safe-area-inset-left)); top: calc(130px + env(safe-area-inset-top)); z-index: 8; width: min(360px, calc(var(--vw) - 24px)); max-height: calc(var(--vh) - 220px); overflow-y: auto; padding: 12px 14px 10px; border-radius: 16px; background: rgba(255, 250, 238, 0.97); color: #5a3e28; box-shadow: 0 4px 22px rgba(60, 40, 20, 0.22); font: 500 13px/1.55 "Noto Serif KR", serif; word-break: keep-all; }
 #questLog[hidden] { display: none; }
 #questLog .x { position: absolute; right: 8px; top: 6px; border: 0; background: none; font-size: 20px; color: #8a6a4a; cursor: pointer; padding: 2px 8px; }
 #questLog section + section { margin-top: 10px; padding-top: 10px; border-top: 1px dashed rgba(140, 100, 60, 0.3); }
@@ -662,16 +655,16 @@ body.bigtrial #trial { box-shadow: 0 0 0 2px #6a4a9a, 0 10px 40px rgba(20, 10, 4
 #questLog .row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
 #questLog .row button { border: 0; border-radius: 12px; padding: 7px 14px; font: 600 13px "Noto Serif KR", serif; cursor: pointer; background: rgba(140, 100, 60, 0.12); color: #6b4c32; }
 #questLog .row .go { background: #e8b860; color: #4a3010; }
-@media (max-width: 760px), (max-height: 500px) { #questLog { top: calc(190px + env(safe-area-inset-top)); max-height: calc(100vh - 420px); min-height: 160px; } }
+@media (max-width: 760px), (max-height: 500px) { #questLog { top: calc(190px + env(safe-area-inset-top)); max-height: calc(var(--vh) - 420px); min-height: 160px; } }
 /* 넓은 화면: 부탁·큰 이야기 표시 아래로 두루마리 수와 부탁 창을 내림 */
-@media (min-width: 761px) and (min-height: 501px) { #scrollChip { top: calc(134px + env(safe-area-inset-top)); } #questLog { top: calc(174px + env(safe-area-inset-top)); max-height: calc(100vh - 240px); } }
+@media (min-width: 761px) and (min-height: 501px) { #scrollChip { top: calc(134px + env(safe-area-inset-top)); } #questLog { top: calc(174px + env(safe-area-inset-top)); max-height: calc(var(--vh) - 240px); } }
 .npcb .guide { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .npcb .guide[hidden] { display: none; }
 .npcb .guide button { border: 1px solid rgba(143, 103, 68, 0.3); border-radius: 12px; padding: 5px 11px; background: rgba(255, 246, 225, 0.9); color: #6b4c32; font: 600 12.5px "Noto Serif KR", serif; cursor: pointer; }
 .npcb .row .goq { background: #e8b860; color: #4a3010; padding: 0 14px; }
 #meCard .items.bible .none { flex-basis: 100%; font-size: 11.5px; }
 /* 영적 전쟁 훈련소 (2026-11): 성경 속 장면 + 속삭임 + 이긴 이야기 */
-#wtrial { max-height: calc(100dvh - 96px); overflow-y: auto; }
+#wtrial { max-height: calc(var(--vh) - 96px); overflow-y: auto; }
 #wtrial .scene { margin: 0 0 6px; font: 500 13px/1.5 "Noto Serif KR", serif; color: #cdbfe0; word-break: keep-all; }
 #wtrial .why { margin: 8px 0 0; padding: 8px 10px; border-radius: 10px; background: rgba(255, 250, 238, 0.12); font: 500 13px/1.55 "Noto Serif KR", serif; color: #f3ecf8; word-break: keep-all; }
 #wtrial .why[hidden] { display: none; }
@@ -679,7 +672,7 @@ body.bigtrial #trial { box-shadow: 0 0 0 2px #6a4a9a, 0 10px 40px rgba(20, 10, 4
 #wtrial .row .next { background: #b9d48a; color: #2f3a20; }
 /* 장비 갖추기 (2026-11): 캐릭터가 보이도록 아래 작은 창만 */
 #dress { position: fixed; left: 0; right: 0; bottom: 0; z-index: 62; display: flex; justify-content: center; padding: 0 12px max(12px, env(safe-area-inset-bottom)); pointer-events: none; }
-#dress .pad { pointer-events: auto; width: min(420px, 100%); max-height: 46vh; overflow: auto; padding: 14px 16px 12px; border-radius: 22px; background: rgba(255, 250, 238, 0.96); color: #5a4030; box-shadow: 0 10px 40px rgba(40, 30, 15, 0.3); font-family: "Noto Serif KR", serif; touch-action: pan-y; }
+#dress .pad { pointer-events: auto; width: min(420px, 100%); max-height: calc(var(--vh) * 0.46); overflow: auto; padding: 14px 16px 12px; border-radius: 22px; background: rgba(255, 250, 238, 0.96); color: #5a4030; box-shadow: 0 10px 40px rgba(40, 30, 15, 0.3); font-family: "Noto Serif KR", serif; touch-action: pan-y; }
 #dress h3 { margin: 0 0 2px; font-size: 16px; text-align: center; }
 #dress .sub { margin: 0 0 8px; font-size: 12px; color: #a08868; text-align: center; word-break: keep-all; }
 #dress .items { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
@@ -691,31 +684,32 @@ body.bigtrial #trial { box-shadow: 0 0 0 2px #6a4a9a, 0 10px 40px rgba(20, 10, 4
 /* 병거 타기 (2026-11): 갈 곳 고르기 */
 #trip { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; background: rgba(40, 30, 15, 0.4); font-family: "Noto Serif KR", serif; }
 #trip[hidden] { display: none; }
-#trip .pad { position: relative; width: min(380px, calc(100vw - 32px)); max-height: calc(100vh - 60px); overflow: auto; padding: 18px 16px 14px; border-radius: 20px; background: rgba(255, 250, 238, 0.98); color: #5a4030; box-shadow: 0 10px 40px rgba(40, 30, 15, 0.35); }
+#trip .pad { position: relative; width: min(380px, calc(var(--vw) - 32px)); max-height: calc(var(--vh) - 60px); overflow: auto; padding: 18px 16px 14px; border-radius: 20px; background: rgba(255, 250, 238, 0.98); color: #5a4030; box-shadow: 0 10px 40px rgba(40, 30, 15, 0.35); }
 #trip h3 { margin: 0 0 4px; font-size: 18px; text-align: center; }
 #trip .sub { margin: 0 0 10px; font-size: 13px; text-align: center; color: #8f7458; }
 #trip .list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 #trip .list button { border: 0; border-radius: 12px; padding: 9px 8px; background: #fff; color: #6b4c32; font: 600 13px "Noto Serif KR", serif; box-shadow: 0 1px 4px rgba(60, 40, 20, 0.15); cursor: pointer; word-break: keep-all; }
 #trip .close { position: absolute; top: 10px; right: 12px; border: 0; background: none; font-size: 22px; color: #a08868; cursor: pointer; }
 /* 2026-11-03 가로 화면: 창이 화면보다 길면 손가락으로 끌어 내려 볼 수 있게 (고르기는 click이라 끌어도 눌리지 않음) */
-.npcb { max-height: calc(100dvh - 96px - env(safe-area-inset-bottom)); overflow-y: auto; touch-action: pan-y; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+.npcb { max-height: calc(var(--vh) - 96px - env(safe-area-inset-bottom)); overflow-y: auto; touch-action: pan-y; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 #meCard .pad, #shop .pad, #trip .pad, #dress .pad, #creator .pad, #keyhelp .pad { touch-action: pan-y; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
-#meCard .pad { max-height: calc(100dvh - 24px); }
-#shop .pad, #trip .pad { max-height: calc(100dvh - 24px); }
-@media (max-height: 500px) and (orientation: landscape) {
-  .npcb { bottom: calc(8px + env(safe-area-inset-bottom)); max-height: calc(100dvh - 70px); }
-  .npcb .say { font-size: 14px; line-height: 1.45; }
-  /* 시험 창: 세 말씀을 나란히 */
-  .npcb.trial .opts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-  .npcb.trial .opt { font-size: 12.5px; line-height: 1.4; padding: 6px 8px; }
-  #wtrial .scene { font-size: 12px; }
-  #wtrial, #trial { width: min(760px, calc(100vw - 230px)); max-height: calc(100dvh - 70px); }
-  #meCard .pad { width: min(560px, 92vw); }
-  #trip .list { grid-template-columns: repeat(3, 1fr); }
-  #dress .pad { max-height: 60vh; }
-}
+#meCard .pad { max-height: calc(var(--vh) - 24px); }
+#shop .pad, #trip .pad { max-height: calc(var(--vh) - 24px); }
+/* 가로 화면 (진짜 가로 또는 눕힌 화면, main.js resize가 html.land를 붙임) */
+/* 시험 창: 세 말씀을 나란히 */
+  html.land .npcb { bottom: calc(8px + env(safe-area-inset-bottom)); max-height: calc(var(--vh) - 70px); }
+  html.land .npcb .say { font-size: 14px; line-height: 1.45; }
+  html.land .npcb.trial .opts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  html.land .npcb.trial .opt { font-size: 12.5px; line-height: 1.4; padding: 6px 8px; }
+  html.land #wtrial .scene { font-size: 12px; }
+  html.land #wtrial, html.land #trial { width: min(760px, calc(var(--vw) - 230px)); max-height: calc(var(--vh) - 70px); }
+  html.land #meCard .pad { width: min(560px, calc(var(--vw) * 0.92)); }
+  html.land #trip .list { grid-template-columns: repeat(3, 1fr); }
+  html.land #dress .pad { max-height: calc(var(--vh) * 0.6); }
+
 #questLog { touch-action: pan-y; overscroll-behavior: contain; }
-@media (max-height: 500px) and (orientation: landscape) { #questLog { top: calc(60px + env(safe-area-inset-top)); max-height: calc(100dvh - 76px); min-height: 0; left: calc(130px + env(safe-area-inset-left)); } }
+/* 가로 화면 (진짜 가로 또는 눕힌 화면, main.js resize가 html.land를 붙임) */ html.land #questLog { top: calc(60px + env(safe-area-inset-top)); max-height: calc(var(--vh) - 76px); min-height: 0; left: calc(130px + env(safe-area-inset-left)); }
+
 /* 말풍선과 겹칠 때 말씀 카드를 작게 (main.js placeOverlays) */
 #verse { transition: opacity 1.6s ease, transform 1.6s ease, top 0.35s ease; }
 #verse.tight { padding: 10px 14px; }
@@ -732,16 +726,16 @@ body.at-door #enter { z-index: 100; }
 #wtalk .opts button small { display: block; color: #8a7458; font-size: 12px; margin-top: 2px; }
 #wtalk .opts button:active { transform: scale(0.98); }
 #map .guideMe { position: absolute; top: max(12px, env(safe-area-inset-top)); left: 14px; height: 44px; padding: 0 16px; border-radius: 22px; border: 0; background: #ffe9b8; color: #5a4128; font: 700 14px system-ui, sans-serif; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
-@media (max-height: 500px) and (orientation: landscape) {
-  #wtalk .opts { display: grid; grid-template-columns: repeat(3, 1fr); }
-}
+/* 가로 화면 (진짜 가로 또는 눕힌 화면, main.js resize가 html.land를 붙임) */
+  html.land #wtalk .opts { display: grid; grid-template-columns: repeat(3, 1fr); }
+
 
 /* 내 카드: 내 모습과 장비 (2026-11-03). 장비를 바꾸면 이 모습도 바로 바뀜 */
 #meCard canvas.me { display: block; width: 104px; height: 130px; margin: 0 auto 6px; border-radius: 14px; background: #eadfca; box-shadow: inset 0 0 0 1px rgba(160, 122, 64, 0.25); }
 #meCard .does { margin: 6px 0 0; font-size: 12px; color: #8a7458; min-height: 1em; }
-@media (max-height: 500px) and (orientation: landscape) {
-  /* 가로 화면: 왼쪽에 내 모습이 늘 보이게 (내려 보아도 따라옴) */
-  #meCard .pad { display: grid; grid-template-columns: 150px 1fr; column-gap: 16px; align-items: start; }
-  #meCard .pad > * { grid-column: 2; }
-  #meCard .pad > canvas.me { grid-column: 1; grid-row: 1 / span 40; position: sticky; top: 0; width: 150px; height: 188px; margin: 0; }
-}
+/* 가로 화면 (진짜 가로 또는 눕힌 화면, main.js resize가 html.land를 붙임) */
+/* 가로 화면: 왼쪽에 내 모습이 늘 보이게 (내려 보아도 따라옴) */
+  html.land #meCard .pad { display: grid; grid-template-columns: 150px 1fr; column-gap: 16px; align-items: start; }
+  html.land #meCard .pad > * { grid-column: 2; }
+  html.land #meCard .pad > canvas.me { grid-column: 1; grid-row: 1 / span 40; position: sticky; top: 0; width: 150px; height: 188px; margin: 0; }
+
