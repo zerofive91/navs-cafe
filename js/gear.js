@@ -69,7 +69,7 @@ export function initGear({ me, profile, scene, toast, sfx, burst, TIER }) {
     const inForest = Math.hypot(me.x, me.z) > R_PARK + 2;
     light.intensity += ((worn('lamp') && inForest ? 2.2 : 0) - light.intensity) * Math.min(1, dt * 3);
     light.position.set(me.x, me.y + 1.7, me.z);
-    me.boost = worn('shoes') && inForest ? 1.15 : 1;
+    me.boost = (worn('shoes') && inForest ? 1.15 : 1) * (performance.now() < (me.donkeyUntil || 0) ? 1.7 : 1); // 나귀 (shop.js)
   }
   function toggle(id) {
     if (!owned(id)) { toast(`${GEAR[id].name}: ${GEAR[id].how} 받아요`, 4); return; }

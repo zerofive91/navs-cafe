@@ -103,7 +103,7 @@ export function initCharacter({ me, look, profile, save, rebuild, view, toast, o
       ${Object.keys(profile.pets || {}).length ? `<p class="lb">돌본 동물</p><div class="items pets">${Object.entries(PETS).filter(([id]) => profile.pets[id]).map(([id, pt]) => { const tame = profile.pets[id] >= 3, on = profile.pet === id; return `<button data-pet="${id}" class="${on ? 'on' : tame ? '' : 'locked'}">${pt.name}${tame ? (on ? ' · 함께' : ' · 데리고 다니기') : ` ${profile.pets[id]}/3`}</button>`; }).join('')}</div>` : ''}
       <p class="lb">지갑</p>
       <p class="purse">${fmtMoney(profile.coins)}${Object.keys(profile.bag || {}).length ? '' : ' <span>· 정원 동쪽 루디아의 가게에서 쓸 수 있어요</span>'}</p>
-      ${Object.keys(profile.bag || {}).length ? `<div class="items goods">${Object.entries(profile.bag).map(([id, n]) => `<button data-use="${id}">${GOODS[id] ? GOODS[id].name : id} ${n}${id === 'spice' ? ' · 피우기' : ''}</button>`).join('')}</div>` : ''}
+      ${Object.keys(profile.bag || {}).length ? `<div class="items goods">${Object.entries(profile.bag).map(([id, n]) => `<button data-use="${id}">${GOODS[id] ? GOODS[id].name : id} ${n}${{ spice: ' · 피우기', chariot: ' · 타기', donkey: ' · 타기', salve: ' · 바르기' }[id] || ''}</button>`).join('')}</div>` : ''}
       <p class="lb">받은 것</p>
       <div class="items">${profile.items.length ? profile.items.map((id) => `<button data-item="${id}">${ITEMS[id] ? ITEMS[id].name : id}</button>`).join('') : '<span class="none">아직 없어요</span>'}</div>
       <p class="lb">말씀 번역 <span class="hint">이 기기에서 보는 말씀</span></p>
@@ -118,7 +118,7 @@ export function initCharacter({ me, look, profile, save, rebuild, view, toast, o
       const bb = e.target.closest('[data-bible]');
       if (bb) { setBible(bb.dataset.bible).then(() => { closeCard(); openCard(); toast(bb.dataset.bible === 'modern' ? '이제 말씀을 AI 현대어로 보여 드려요. 원문은 개역한글이에요' : '이제 말씀을 개역한글로 보여 드려요', 4); }); return; }
       const gb = e.target.closest('[data-gear]');
-      if (gb) { replay('gear:' + gb.dataset.gear); closeCard(); openCard(); return; }
+      if (gb) { closeCard(); openDress(gb.dataset.gear); return; }
       const g = e.target.closest('[data-use]');
       if (g) { closeCard(); replay('use:' + g.dataset.use); return; }
       const it = e.target.closest('[data-item]');
@@ -133,5 +133,46 @@ export function initCharacter({ me, look, profile, save, rebuild, view, toast, o
   }
   function closeCard() { document.getElementById('meCard')?.remove(); }
 
-  return { openCreator, openCard, closeCard, showChip, isOpen: () => !!document.getElementById('creator') };
+  // ---------- 장비 갖추기 (2026-11): 카드가 화면을 덮어 내 모습이 안 보이던 것을 고침 ----------
+  //   모습 바꾸기처럼 카메라가 캐릭터 앞으로 오고, 아래 작은 창에서 장비를 갖추고 벗으면 바로 보임
+  function openDress(first) {
+    if (document.getElementById('dress')) return;
+    const keep = { az: view.az, el: view.el, dist: view.dist };
+    const narrow = () => matchMedia('(max-width: 760px), (max-height: 500px)').matches;
+    const front = () => { view.az = me.face; view.el = 0.25; view.dist = 4.6; view.close = 4.6; view.aimY = narrow() ? -0.55 : 0.05; };
+    front();
+    const box = document.createElement('div');
+    box.id = 'dress'; box.className = 'dressbox';
+    const draw = () => {
+      box.innerHTML = `<div class="pad">
+        <h3>장비 갖추기</h3>
+        <p class="sub">하나님의 전신갑주를 입으라 (엡 6:13). 눌러서 갖추고, 다시 누르면 벗어요</p>
+        <div class="items gear">${Object.entries(GEAR).map(([id, g]) => { const own = profile.gear?.owned?.includes(id), on = own && profile.gear.worn.includes(id); return `<button data-gear="${id}" class="${on ? 'on' : own ? '' : 'locked'}">${g.name}${on ? ' ✓' : own ? '' : ' 🔒'}</button>`; }).join('')}</div>
+        <p class="does"></p>
+        <button class="go">다 됐어요</button>
+      </div>`;
+    };
+    const tell = (id) => { const g = GEAR[id], own = profile.gear?.owned?.includes(id); const el = box.querySelector('.does'); if (el) el.textContent = own ? `${g.name}: ${g.does}` : `${g.name}: ${g.how} 받아요`; };
+    const pick = (id) => {
+      if (profile.gear?.owned?.includes(id)) replay('gear:' + id);
+      draw(); tell(id); front();
+      if (me.av.userData.courseOutfit) box.querySelector('.does').textContent += ' · 지금은 길에서 잠시 입은 갑주라, 정원으로 나가면 내 장비가 보여요';
+    };
+    box.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      const b = e.target.closest('[data-gear]');
+      if (b) { e.preventDefault(); pick(b.dataset.gear); return; }
+      if (e.target.classList.contains('go')) done();
+    });
+    function done() {
+      box.remove();
+      Object.assign(view, keep);
+      view.close = 0; view.aimY = undefined;
+    }
+    draw();
+    document.body.appendChild(box);
+    if (first) pick(first);
+  }
+
+  return { openCreator, openCard, closeCard, openDress, showChip, isOpen: () => !!document.getElementById('creator') || !!document.getElementById('dress') };
 }
