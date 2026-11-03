@@ -3,15 +3,15 @@
 //   개역한글 구절을 찾아 오늘의 말로 풀어 쓴 문장(js/bible-modern.js)으로 바꿔 보여 줌 (공식 번역 아님)
 //   이 기기에만 저장(localStorage). 말씀 창·말풍선·알림·카드 어디든 같은 방식으로 바뀜
 const KEY = 'navs-cafe-bible';
-let mode = 'krv';
-try { mode = localStorage.getItem(KEY) === 'modern' ? 'modern' : 'krv'; } catch (e) { /* 저장소를 못 쓰면 개역한글 */ }
+let mode = 'modern'; // 기본은 AI 현대어 (2026-11-03 사용자 요청), 개역한글은 내 카드에서 고름
+try { mode = localStorage.getItem(KEY) === 'krv' ? 'krv' : 'modern'; } catch (e) { /* 저장소를 못 쓰면 AI 현대어 */ }
 let pairs = null; // [개역한글, 현대어] (긴 것부터)
 const orig = new WeakMap(); // 바꾼 글자 노드의 원래 글 (개역한글로 되돌릴 때)
 const shown = new WeakMap(); // 내가 바꿔 넣은 글
 const listeners = new Set();
 
 export const bibleMode = () => mode;
-export const BIBLE_NAME = { krv: '개역한글', modern: 'AI 현대어' };
+export const BIBLE_NAME = { modern: 'AI 현대어', krv: '개역한글' };
 export function onBible(fn) { listeners.add(fn); }
 
 function swap(t) {

@@ -724,3 +724,14 @@ body.bigtrial #trial { box-shadow: 0 0 0 2px #6a4a9a, 0 10px 40px rgba(20, 10, 4
 /* 첫 화면(혼자·다같이·모임)에서는 게임 화면의 단추·알림이 비치지 않게 (2026-11-03) */
 body.at-door > :not(#enter):not(canvas):not(#acct):not(#roomkey):not(script) { visibility: hidden !important; }
 body.at-door #enter { z-index: 100; }
+
+/* 문 앞 안내자·길잡이 (wayguide.js) */
+#wtalk .opts { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+#wtalk .opts button { text-align: left; border: 1.5px solid #e4cfa6; border-radius: 12px; background: #fffaf0; padding: 8px 12px; font: inherit; color: #5a4128; cursor: pointer; }
+#wtalk .opts button b { display: block; font-size: 15px; }
+#wtalk .opts button small { display: block; color: #8a7458; font-size: 12px; margin-top: 2px; }
+#wtalk .opts button:active { transform: scale(0.98); }
+#map .guideMe { position: absolute; top: max(12px, env(safe-area-inset-top)); left: 14px; height: 44px; padding: 0 16px; border-radius: 22px; border: 0; background: #ffe9b8; color: #5a4128; font: 700 14px system-ui, sans-serif; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+@media (max-height: 500px) and (orientation: landscape) {
+  #wtalk .opts { display: grid; grid-template-columns: repeat(3, 1fr); }
+}
