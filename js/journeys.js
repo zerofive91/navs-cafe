@@ -3,6 +3,7 @@
 //   전신갑주 훈련: 한 조각씩 입고 훈련 (불화살 막기·말씀의 검·복음의 신으로 달리기)
 //   요한계시록, 지혜의 길(잠언·전도서), 성령의 열매(따서 모으기), 믿음의 길(히브리서 11장)
 // 정거장 모양: [이름, 말씀, 장면, 들어설 때, 이어지는 말씀들]  (courses.js와 같음)
+import { emit } from './bus.js';
 import * as THREE from 'three';
 
 export const NEW_COURSES = {
@@ -723,9 +724,23 @@ export function journeySetup(K) {
     avail.push(() => { const h = pieces(); return h && h.includes('sword') && nearDummy() ? 'slash' : null; });
     steps.push((dt) => { for (const d of swordS.dummies) { if (d.T < 0) continue; d.T += dt; d.g.rotation.x = -Math.min(1, d.T * 2) * 1.4; if (d.T > 25) { d.T = -1; d.down = false; d.g.rotation.x = 0; } } });
   }
-  // 마지막: 전신갑주를 다 입고 오면 어둠이 물러감
+  // 마지막: 마귀를 대적하면 어둠이 물러감 (약 4:7) — 2026-11-03 고침
+  //   예전에는 길에서 입은 갑주 여섯 조각을 다 갖춰야만 물러가서, 조각이 모자라거나 내 장비로 오면 그대로 서 있었음
+  //   이제: 곁에 와서 기도하거나(X) 성령의 검을 휘두르거나, 전신갑주를 다 입고 오면 물러감. 처음 다가오면 방법을 알려 줌
   const standS = by('armor', 'stand')[0];
-  if (standS) steps.push(() => { if (standS.foe.T < 0 && standS.foe.g.visible && dist(standS.g.position) < 6) { const h = pieces(); if (h && h.length >= 6) { standS.foe.T = 0; hit('impactSoft_heavy_000', 0.4, 0.4); setTimeout(() => showVerse('course-x-soldier', { cooldown: 0, title: '그리스도 예수의 좋은 군사' }), 9000); } } if (dist(standS.g.position) > 60 && !standS.foe.g.visible) { standS.foe.g.visible = true; standS.foe.T = -1; standS.foe.g.position.set(0, 0.3, -2.6); standS.foe.g.scale.setScalar(1); } });
+  if (standS) {
+    let told = false;
+    const flee = () => { standS.foe.T = 0; hit('impactSoft_heavy_000', 0.4, 0.4); burst(me.x, me.y + 1.4, me.z); sfx('orb', 0.3, 0.8); emit('toast', ['마귀를 대적하니 어둠이 물러갔어요! (약 4:7)', 4]); setTimeout(() => showVerse('course-x-soldier', { cooldown: 0, title: '그리스도 예수의 좋은 군사' }), 6000); };
+    steps.push(() => {
+      const F = standS.foe, d = dist(standS.g.position);
+      if (F.T < 0 && F.g.visible && d < 7) {
+        const h = pieces() || [];
+        if (h.length >= 6 || me.action === 'pray' || me.action === 'slash' || me.action === 'worship' || me.action === 'praise') flee();
+        else if (!told) { told = true; emit('toast', ['어둠이 길을 막고 있어요. 하나님께 순복하며 기도하면(X 또는 기도 단추) 마귀가 물러가요', 6]); }
+      }
+      if (d > 60 && !F.g.visible) { F.g.visible = true; F.T = -1; F.g.position.set(0, 0.3, -2.6); F.g.scale.setScalar(1); told = false; }
+    });
+  }
 
   // ----- 성령의 열매: 나무마다 열매를 따서 바구니에 -----
   const trees = live.filter((S) => S.course.id === 'fruit' && S.fruitObj).sort((a, b) => a.fruitIdx - b.fruitIdx);

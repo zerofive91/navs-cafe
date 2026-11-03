@@ -54,7 +54,8 @@ export function initShop(K) {
              <p class="sub">돈은 훈련장(5)·부탁(3)·숲길 시험(3~8)을 마치면 받아요. 증거의 물가에서 배에 앉아 낚시하면 고기 입에서 하루 한 번 한 세겔을 얻어요.</p>`}</div>
       <p class="msg">${msg}</p></div>`;
   }
-  box.addEventListener('pointerdown', (e) => {
+  box.addEventListener('pointerdown', (e) => e.stopPropagation()); // 끌어서 내려 보기(스크롤)가 되도록, 고르기는 click에서
+  box.addEventListener('click', (e) => {
     e.stopPropagation();
     if (e.target === box || e.target.classList.contains('close')) return close();
     const t = e.target.closest('[data-tab]'); if (t) { tab = t.dataset.tab; return render(); }
@@ -117,7 +118,7 @@ export function initShop(K) {
   const PLACES = [
     ['cafe', '카페 입구'], ['market', '루디아의 가게'],
     ['t_word', '말씀 훈련장'], ['t_pray', '기도 훈련장'], ['t_fellow', '교제 훈련장'], ['t_witness', '증거 훈련장'], ['t_obey', '순종 훈련장'],
-    ['warfare', '영적 전쟁 훈련소'], ['meadow', '푸른 초장'], ['sower', '씨 뿌리는 밭'], ['mustard', '겨자씨'], ['vine', '포도나무'], ['fold', '잃은 양'], ['well', '우물'],
+    ['warfare', '영적 전쟁 훈련소'], ['emmaus', '엠마오 가는 길'], ['mount', '산 위의 가르침'], ['prison', '빌립보 감옥'], ['shiloh', '실로의 성막'], ['meadow', '푸른 초장'], ['sower', '씨 뿌리는 밭'], ['mustard', '겨자씨'], ['vine', '포도나무'], ['fold', '잃은 양'], ['well', '우물'],
     ['jericho', '여리고 성'], ['david', '다윗과 골리앗'], ['jonah', '요나의 바다'], ['ark', '노아의 방주'],
     ['zacc', '삭개오의 뽕나무'], ['road', '여리고 길'], ['wild', '들짐승 들판'], ['bethsaida', '벳새다 들녘'],
   ].filter(([id]) => id === 'cafe' || PARK[id]);
@@ -138,7 +139,8 @@ export function initShop(K) {
     trip.innerHTML = `<div class="pad"><button class="close" aria-label="닫기">×</button><h3>병거 타기</h3><p class="sub">어디로 갈까요? (병거 삯 ${profile.bag.chariot}개)</p><div class="list">${PLACES.map(([id, n]) => `<button data-to="${id}">${n}</button>`).join('')}</div></div>`;
     trip.hidden = false;
   }
-  trip.addEventListener('pointerdown', (e) => {
+  trip.addEventListener('pointerdown', (e) => e.stopPropagation()); // 끌어서 내려 보기(스크롤)가 되도록, 고르기는 click에서
+  trip.addEventListener('click', (e) => {
     e.stopPropagation();
     if (e.target === trip || e.target.classList.contains('close')) { trip.hidden = true; return; }
     const b = e.target.closest('[data-to]'); if (!b) return;

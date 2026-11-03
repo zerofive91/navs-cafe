@@ -58,7 +58,8 @@ export function initStory(K) {
   const $ = (s) => box.querySelector(s);
   const chip = document.createElement('div'); chip.id = 'storyChip'; chip.hidden = true; document.body.appendChild(chip);
   let shown = false, closedNear = false;
-  box.addEventListener('pointerdown', (e) => {
+  box.addEventListener('pointerdown', (e) => e.stopPropagation()); // 끌어서 내려 보기(스크롤)가 되도록, 고르기는 click에서
+  box.addEventListener('click', (e) => {
     e.stopPropagation();
     if (e.target.classList.contains('later')) { close(); closedNear = true; }
     else if (e.target.classList.contains('next')) {

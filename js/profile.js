@@ -46,6 +46,7 @@ function fill(p = {}) {
     dungeon: p.dungeon && typeof p.dungeon === 'object' ? p.dungeon : {}, // 이긴 숲길 { exodus: 'clear', ... }
     trails: p.trails && typeof p.trails === 'object' ? p.trails : {}, // 숲길 안내자의 부탁 { pilgrim: 'on' | 'done' }
     warfare: p.warfare && typeof p.warfare === 'object' ? p.warfare : {}, // 영적 전쟁 훈련소에서 이긴 횟수 { tempt: 2, lie: 1, fear: 0, pride: 0, real: 1 }
+    garden: p.garden && typeof p.garden === 'object' ? p.garden : {}, // 정원 말씀 체험을 마친 곳 { emmaus: 1, mount: 1, prison: 1, shiloh: 1 }
     since: p.since || null,
     coins: Number.isFinite(p.coins) ? Math.max(0, p.coins | 0) : null, // 지갑 (데나리온 단위). null: 아직 지갑을 받기 전
     bag: p.bag && typeof p.bag === 'object' ? p.bag : {}, // 소모품 { oil: 2, ... }

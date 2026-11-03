@@ -42,7 +42,8 @@ export function initCharacter({ me, look, profile, save, rebuild, view, toast, o
     input.addEventListener('input', mark);
     input.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter' && !go.disabled) done(); });
     input.addEventListener('keyup', (e) => e.stopPropagation());
-    box.addEventListener('pointerdown', (e) => {
+    box.addEventListener('pointerdown', (e) => e.stopPropagation()); // 끌어서 내려 보기(스크롤)가 되도록, 고르기는 click에서
+    box.addEventListener('click', (e) => {
       e.stopPropagation();
       const b = e.target.closest('.sw button');
       if (!b) return;
@@ -110,7 +111,8 @@ export function initCharacter({ me, look, profile, save, rebuild, view, toast, o
       <div class="items bible">${Object.entries(BIBLE_NAME).map(([id, n]) => `<button data-bible="${id}" class="${bibleMode() === id ? 'on' : ''}">${n}${bibleMode() === id ? ' ✓' : ''}</button>`).join('')}<span class="none">AI 현대어는 개역한글을 오늘의 말로 풀어 쓴 것이에요 (공식 번역 아님)</span></div>
       <div class="row"><button data-do="look">모습 바꾸기</button><button data-do="cafe">카페 안내 다시</button><button data-do="garden">정원 안내 다시</button><button data-do="account">계정 · 다른 기기에서 이어 하기</button></div>
     </div>`;
-    card.addEventListener('pointerdown', (e) => {
+    card.addEventListener('pointerdown', (e) => e.stopPropagation()); // 끌어서 내려 보기(스크롤)가 되도록, 고르기는 click에서
+    card.addEventListener('click', (e) => {
       e.stopPropagation();
       if (e.target === card || e.target.classList.contains('close')) return closeCard();
       const pb = e.target.closest('[data-pet]');
@@ -158,7 +160,8 @@ export function initCharacter({ me, look, profile, save, rebuild, view, toast, o
       draw(); tell(id); front();
       if (me.av.userData.courseOutfit) box.querySelector('.does').textContent += ' · 지금은 길에서 잠시 입은 갑주라, 정원으로 나가면 내 장비가 보여요';
     };
-    box.addEventListener('pointerdown', (e) => {
+    box.addEventListener('pointerdown', (e) => e.stopPropagation()); // 끌어서 내려 보기(스크롤)가 되도록, 고르기는 click에서
+    box.addEventListener('click', (e) => {
       e.stopPropagation();
       const b = e.target.closest('[data-gear]');
       if (b) { e.preventDefault(); pick(b.dataset.gear); return; }
