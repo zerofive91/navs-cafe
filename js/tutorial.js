@@ -41,7 +41,7 @@ export function nameTag(text) {
 }
 
 export function initTutorial(K) {
-  const { me, profile, save, toast, sfx, burst, walkTo, faceTo, barnabas, adam, home, near, lying, map, photoOn, outdoors } = K;
+  const { me, profile, save, toast, sfx, burst, walkTo, faceTo, barnabas, adam, tutors = () => [adam], home, near, lying, map, photoOn, outdoors } = K;
   const marks = new Set();
   let run = null; // { id, npc, list, i, t, moved, done }
 
@@ -74,22 +74,23 @@ export function initTutorial(K) {
     { aim: ['share', 'wave'], say: '증거는 받은 빛을 나누는 거예요. 곁에 사람이 있으면 빛을 건네고, 없으면 전도의 말씀이 떠요.', keys: [['V', '증거']], touch: '곁에 사람이 있으면 빛 단추로 빛을 건넬 수 있어요. 지금은 손 흔들기 단추로 인사해 보세요.', done: () => marks.has('KeyV') || marks.has('share') || marks.has('wave') },
     { aim: ['map'], say: '전체 지도를 열어 볼까요? 지도에서 누른 곳으로 걸어가요.', keys: [['M', '지도 열기 · 닫기'], ['Esc', '닫기']], touch: '위쪽의 지도 단추를 눌러 보세요.', done: () => marks.has('mapOpen') && map.el.hidden },
     { auto: true, desk: true, say: '단축키가 생각나지 않으면 언제든 물음표를 누르세요.', keys: [['? / F1', '단축키 안내']] },
-    { auto: true, end: true, say: () => `잘하셨어요, ${nm()}님! 이 광주리를 드릴게요. 받은 것을 담는 바구니예요. 오늘의 만나도 넣어 두었어요. 문 밖 정원에서는 정원지기 아담이 기다려요.`, reward: ['basket', 'manna'] },
+    { auto: true, end: true, say: () => `잘하셨어요, ${nm()}님! 이 광주리를 드릴게요. 받은 것을 담는 바구니예요. 오늘의 만나도 넣어 두었어요. 카페의 네 문 밖마다 정원 안내자가 기다려요. 남쪽 문에는 정원지기 아담이 있어요.`, reward: ['basket', 'manna'] },
   ];
   const GARDEN = [
-    { auto: true, say: () => `${nm()}님, 어서 오세요. 저는 정원지기 아담이에요. 정원과 숲을 다니는 법을 알려 드릴게요.`, verse: '여호와 하나님이 그 사람을 이끌어 에덴 동산에 두사 그것을 다스리며 지키게 하시고 (창세기 2:15)' },
+    // 첫 인사는 말을 건 안내자마다 다름 (아담 또는 입구마다 선 안내자: npc.intro)
+    { auto: true, say: () => (run?.npc?.intro ? run.npc.intro.say(nm()) : `${nm()}님, 어서 오세요. 저는 정원지기 아담이에요. 정원과 숲을 다니는 법을 알려 드릴게요.`), verse: () => (run?.npc?.intro ? run.npc.intro.verse : '여호와 하나님이 그 사람을 이끌어 에덴 동산에 두사 그것을 다스리며 지키게 하시고 (창세기 2:15)') },
     { aim: ['walk', 'run'], say: '정원에서는 저절로 달려요. 천천히 걷고 싶으면 걷기로 바꿔요.', keys: [['Shift', '걷기 ↔ 달리기']], touch: '오른쪽의 걷기 단추를 눌러 보세요.', done: () => marks.has('walk') || marks.has('run') },
     { aim: ['jump'], say: '뛰어 볼까요? 공중에서 또 누르면 두 번, 세 번 뛰어요.', keys: [['Space', '점프']], touch: '오른쪽의 점프 단추를 눌러 보세요.', done: () => marks.has('jump') },
     { aim: ['map'], say: '정원 바깥 숲에는 성경 이야기를 따라 걷는 코스가 많아요. 지도를 열면 아래에 코스 이름이 있고, 누르면 그 시작점으로 가요.', keys: [['M', '지도'], ['마우스', '가고 싶은 곳 누르기']], touch: '위쪽의 지도 단추를 누르고, 가고 싶은 곳이나 아래의 코스 이름을 눌러 보세요.', done: () => marks.has('mapOpen') && map.el.hidden },
     { say: '금빛으로 반짝이는 단추는 그 자리에서만 하는 체험이에요. 꽃밭 곁에서는 꽃을 들고, 여리고 성이나 다윗과 골리앗 같은 성경 이야기 터에서는 그 이야기를 겪어 볼 수 있어요.', keys: [['E', '그 자리 체험']], touch: '꽃밭이나 성경 이야기 터로 가서 반짝이는 단추를 눌러 보세요.', done: () => marks.has('place') },
     { aim: ['recline', 'stars'], say: '풀밭에 누워 하늘을 볼까요? 누운 채로 별을 볼 수 있어요.', keys: [['K', '눕기'], ['N', '별 보기']], touch: '눕기 단추를 누른 다음, 반짝이는 별 단추를 눌러 보세요.', done: () => marks.has('stars') },
     { aim: ['photo'], say: '마음에 드는 풍경은 사진으로 남겨요.', keys: [['P', '사진 모드'], ['Space', '찰칵'], ['Esc', '나오기']], touch: '위쪽의 사진기 단추를 눌러 보세요.', done: () => marks.has('photo') && !photoOn() },
-    { auto: true, end: true, say: () => `이제 마음껏 다녀 보세요, ${nm()}님. 이 겨자씨를 드릴게요. 정원 곳곳에는 수레바퀴 훈련장 다섯이 있어요. 에스라, 다니엘, 아굴라와 브리스길라, 빌립, 아브라함이 기다리니 곁에 가서 말을 걸어 보세요. 작은 씨가 자라 큰 나무가 되듯 말씀 안에서 자라 가요.`, reward: ['mustard'] },
+    { auto: true, end: true, say: () => `이제 마음껏 다녀 보세요, ${nm()}님. 이 겨자씨를 드릴게요. 정원 곳곳에는 수레바퀴 훈련장 다섯이 있어요. 에스라, 다니엘, 아굴라와 브리스길라, 빌립, 아브라함이 기다리니 곁에 가서 말을 걸어 보세요. 카페 문 앞 산책길 바로 바깥에는 엠마오 길, 산 위의 가르침, 빌립보 감옥, 실로의 성막도 있어요. 어디로 갈지 모르겠으면 언제든 카페 문 앞의 안내자에게 물어보세요. 작은 씨가 자라 큰 나무가 되듯 말씀 안에서 자라 가요.`, reward: ['mustard'] },
   ];
 
-  function start(id) {
+  function start(id, who) {
     if (run) stop();
-    const npc = id === 'cafe' ? barnabas : adam;
+    const npc = id === 'cafe' ? barnabas : who || adam;
     const list = (id === 'cafe' ? CAFE : GARDEN).filter((s) => !(TOUCH && s.desk));
     run = { id, npc, list, i: -1, t: 0, moved: 0, px: me.x, pz: me.z, wait: 0 };
     marks.clear();
@@ -101,12 +102,13 @@ export function initTutorial(K) {
   }
   function show() {
     const s = run.list[run.i];
-    $('.who b').textContent = run.id === 'cafe' ? '바나바' : '아담';
+    $('.who b').textContent = run.id === 'cafe' ? '바나바' : run.npc.tutName || '아담';
     $('.who .n').textContent = `${run.i + 1} / ${run.list.length}`;
     const say = typeof s.say === 'function' ? s.say() : s.say;
     $('.say').innerHTML = '';
     $('.say').append(say);
-    if (s.verse) { const v = document.createElement('small'); v.textContent = s.verse; $('.say').append(v); }
+    const verse = typeof s.verse === 'function' ? s.verse() : s.verse;
+    if (verse) { const v = document.createElement('small'); v.textContent = verse; $('.say').append(v); }
     const showKeys = !TOUCH && s.keys;
     $('.keys').innerHTML = showKeys ? s.keys.map(([k, d]) => `<span><kbd>${k}</kbd>${d}</span>`).join('') : '';
     if (TOUCH && s.touch) { const p = document.createElement('span'); p.className = 'tt'; p.textContent = s.touch; $('.keys').append(p); }
@@ -151,7 +153,7 @@ export function initTutorial(K) {
       save();
       K.onChange?.();
     }
-    r.npc.tag.userData.draw(r.id === 'garden' && !profile.tut.garden);
+    for (const n of tutors()) n.tag.userData.draw(!profile.tut.garden);
     // 바나바는 제자리(입구)로 돌아감
     if (r.id === 'cafe') setTimeout(() => walkTo(barnabas, home.barnabas, () => { barnabas.face = Math.PI; }), 1200);
   }
@@ -170,8 +172,12 @@ export function initTutorial(K) {
   let tick = 0; // 0.2초마다 확인 (실제 시간 기준)
   function step(dt) {
     // 아담: 정원 안내를 아직 안 받았으면 금빛 말풍선, 가까이 오면 말을 검
-    if (!run && profile.name && profile.tut.cafe && !profile.tut.garden && outdoors() && Math.hypot(me.x - adam.x, me.z - adam.z) < 6) start('garden');
-    for (const n of [barnabas, adam]) {
+    // 입구마다 선 안내자도 같은 정원 안내를 해 줌 (가장 가까운 안내자가 말을 검)
+    if (!run && profile.name && profile.tut.cafe && !profile.tut.garden && outdoors()) {
+      const t = tutors().find((n) => Math.hypot(me.x - n.x, me.z - n.z) < 6);
+      if (t) start('garden', t);
+    }
+    for (const n of [barnabas, ...tutors()]) {
       const d = Math.hypot(me.x - n.x, me.z - n.z);
       if (n.state !== 'walk' && d < 6) n.face = Math.atan2(me.x - n.x, me.z - n.z);
     }
@@ -201,6 +207,6 @@ export function initTutorial(K) {
     return false;
   }
 
-  adam.tag.userData.draw(!profile.tut.garden);
+  for (const n of tutors()) n.tag.userData.draw(!profile.tut.garden);
   return { start, stop, mark, step, onKey, active: () => !!run };
 }

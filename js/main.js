@@ -24,6 +24,7 @@ import { initDungeon } from './dungeon.js';
 import { initWarfare } from './warfare.js';
 import { initGuides } from './guides.js';
 import { initGarden } from './garden.js';
+import { initWayguide } from './wayguide.js';
 import { on } from './bus.js';
 import { initQuests } from './quests.js';
 import { initShop } from './shop.js';
@@ -151,7 +152,7 @@ function makeChar(look, x, z) {
 }
 
 const myLook = loadLook();
-let tut = null, character = null, training = null, dungeon = null, warfare = null, guides = null, garden = null, quests = null, shop = null, gear = null, story = null, pets = null, questLog = null; // 안내와 캐릭터 창은 맨 아래에서 만듦
+let tut = null, character = null, training = null, dungeon = null, warfare = null, guides = null, garden = null, wayguide = null, quests = null, shop = null, gear = null, story = null, pets = null, questLog = null; // 안내와 캐릭터 창은 맨 아래에서 만듦
 const profile = loadProfile(); // 닉네임·걸음·받은 것·안내 기록 (이 기기 안에만)
 if (profile.name) myLook.name = profile.name;
 const me = makeChar(myLook, SPAWN.x, SPAWN.z);
@@ -641,6 +642,20 @@ const view = { az: 0, el: 0.55, dist: 7.5, tx: me.x, ty: 0.62, tz: me.z, mode: '
 // 체험 시점: 체험을 시작하면 캐릭터와 대상이 함께 잘 보이는 자리로 카메라가 천천히 옮겨 감.
 // 정해진 시간이 지나거나, 조이스틱을 움직이거나, 화면을 끌면 원래 시점으로 부드럽게 돌아옴.
 //   target: 바라볼 대상, side: 캐릭터 뒤에서 옆으로 비켜선 각도, mid: 시선 중심(0 캐릭터 ~ 1 대상), y: 시선 높이
+// 내 카드 속 내 모습: 캐릭터 앞에서 한 장 찍어 canvas에 옮기고, 곧바로 원래 화면을 다시 그림
+function portrait(cv) {
+  const W = renderer.domElement.width, H = renderer.domElement.height;
+  const pc = new THREE.PerspectiveCamera(30, W / H, 0.1, 80);
+  const p = me.av.position, f = me.face;
+  pc.position.set(p.x + Math.sin(f) * 3.6, p.y + 1.25, p.z + Math.cos(f) * 3.6);
+  pc.lookAt(p.x, p.y + 0.74, p.z);
+  renderer.render(scene, pc);
+  const g = cv.getContext('2d'), ca = cv.width / cv.height;
+  let sh = H * 0.8, sw = sh * ca; if (sw > W) { sw = W; sh = sw / ca; }
+  g.clearRect(0, 0, cv.width, cv.height);
+  g.drawImage(renderer.domElement, (W - sw) / 2, (H - sh) / 2, sw, sh, 0, 0, cv.width, cv.height);
+  renderer.render(scene, camera);
+}
 function shot(target, { dist = 10, el = 0.35, side = 0.55, dur = 7, mid = 0.5, y = 1.2 } = {}) {
   if (view.mode === 'first') return;
   const t = typeof target === 'function' ? target() : target;
@@ -1202,6 +1217,7 @@ function frame(now) {
   warfare.step(dt, t);
   guides.step(dt);
   garden.step(dt);
+  wayguide.step(dt);
   quests.step(dt, t);
   shop.step(dt, t);
   gear.step(dt);
@@ -1213,6 +1229,7 @@ function frame(now) {
   warfare.pin();
   guides.pin();
   garden.pin();
+  wayguide.pin();
   together.step(dt, t);
   stepGifts(dt);
   barista.av.userData.book.visible = false;
@@ -1482,13 +1499,13 @@ const scrolls = initScrolls({ scene, me, sfx, fxSprite, burst, icon: ICONS.scrol
 const saveMe = () => saveProfile(profile);
 tut = initTutorial({
   me, profile, save: saveMe, toast, sfx, burst, walkTo, faceTo, map, lying, outdoors: () => outdoors(me),
-  barnabas: owner, adam, home: { barnabas: ownerPos },
+  barnabas: owner, adam, tutors: () => (wayguide ? wayguide.tutors() : [adam]), home: { barnabas: ownerPos },
   near: (k) => Math.hypot(me.x - SPOTS[k].x, me.z - SPOTS[k].z) < SPOTS[k].r,
   photoOn: () => leisure.photoOn(),
   onChange: () => character.showChip(),
 });
 character = initCharacter({
-  me, look: myLook, profile, save: saveMe, rebuild: rebuildMe, view, toast,
+  me, look: myLook, profile, save: saveMe, rebuild: rebuildMe, view, toast, portrait,
   onCreated: () => { character.showChip(); setTimeout(() => tut.start('cafe'), 500); },
   replay: (id) => (id === 'account' ? account.open() : id.startsWith('use:') ? shop.use(id.slice(4)) : id.startsWith('gear:') ? gear.toggle(id.slice(5)) : id.startsWith('pet:') ? pets.choose(id.slice(4)) : tut.start(id)),
 });
@@ -1496,13 +1513,13 @@ training = initTraining({
   scene, me, makeChar, npcs, profile, save: saveMe, toast, sfx, burst, fxSprite,
   quests: () => quests,
   goTo: (p, say) => { if (me.climb) { toast('먼저 나무에서 내려와요', 3); return; } if (walkToward(me, walkTo, p)) toast(say, 3); else toast('그곳으로 가는 길을 찾지 못했어요', 3); },
-  busy: () => !!tut?.active() || !!character?.isOpen() || !!dungeon?.active() || !!guides?.active() || !!garden?.active() || !!warfare?.active() || !!quests?.active() || !!shop?.active(),
+  busy: () => !!tut?.active() || !!character?.isOpen() || !!dungeon?.active() || !!guides?.active() || !!garden?.active() || !!wayguide?.active() || !!warfare?.active() || !!quests?.active() || !!shop?.active(),
   onChange: () => character.showChip(),
 });
 Object.assign(ACTIONS, training.actions);
 dungeon = initDungeon({
   scene, me, profile, save: saveMe, toast, sfx, burst, fxSprite,
-  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!warfare?.active() || !!guides?.active() || !!garden?.active() || !!quests?.active() || !!shop?.active(),
+  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!warfare?.active() || !!guides?.active() || !!garden?.active() || !!wayguide?.active() || !!quests?.active() || !!shop?.active(),
   onChange: () => character.showChip(),
   courseName: (id) => (COURSE_META[id] ? COURSE_META[id].name : id),
   gear: () => gear, shot,
@@ -1511,23 +1528,38 @@ Object.assign(ACTIONS, dungeon.actions);
 guides = initGuides({
   me, makeChar, npcs, profile, save: saveMe, toast, sfx, burst, dungeon,
   goTo: (p, say) => { if (walkToward(me, walkTo, p)) toast(say, 3); else toast('그곳으로 가는 길을 찾지 못했어요', 3); },
-  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!dungeon?.active() || !!warfare?.active() || !!garden?.active() || !!quests?.active() || !!shop?.active() || !!story?.active?.(),
+  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!dungeon?.active() || !!warfare?.active() || !!garden?.active() || !!wayguide?.active() || !!quests?.active() || !!shop?.active() || !!story?.active?.(),
   onChange: () => character.showChip(),
 });
 warfare = initWarfare({
   scene, me, makeChar, npcs, profile, save: saveMe, toast, sfx, burst, fxSprite,
-  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!dungeon?.active() || !!guides?.active() || !!garden?.active() || !!quests?.active() || !!shop?.active() || !!story?.active?.(),
+  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!dungeon?.active() || !!guides?.active() || !!garden?.active() || !!wayguide?.active() || !!quests?.active() || !!shop?.active() || !!story?.active?.(),
   onChange: () => character.showChip(),
 });
 garden = initGarden({
   scene, me, makeChar, npcs, profile, save: saveMe, toast, sfx, burst,
-  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!dungeon?.active() || !!guides?.active() || !!warfare?.active() || !!quests?.active() || !!shop?.active() || !!story?.active?.(),
+  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!dungeon?.active() || !!guides?.active() || !!wayguide?.active() || !!warfare?.active() || !!quests?.active() || !!shop?.active() || !!story?.active?.(),
   onChange: () => character.showChip(),
 });
+wayguide = initWayguide({
+  me, makeChar, npcs, nameTag, adam, profile, sfx, walkTo,
+  quests: () => quests, training: () => training, garden: () => garden, guides: () => guides, dungeon: () => dungeon,
+  goTo: (p, say) => { if (me.climb) { toast('먼저 나무에서 내려와요', 3); return; } if (walkToward(me, walkTo, p)) toast(say, 3); else toast('그곳으로 가는 길을 찾지 못했어요. 지도에서 가까운 곳으로 가 보세요', 4); },
+  openMap: () => map.open(),
+  tutActive: () => !!tut?.active(),
+  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!dungeon?.active() || !!guides?.active() || !!garden?.active() || !!warfare?.active() || !!quests?.active() || !!shop?.active() || !!story?.active?.(),
+});
+// 지도 화면의 길잡이 단추: 어디로 갈지 모를 때 가 볼 만한 곳을 골라 줌
+{
+  const b = document.createElement('button'); b.className = 'guideMe'; b.textContent = '🧭 어디로 갈까요?';
+  b.addEventListener('pointerdown', (e) => e.stopPropagation());
+  b.addEventListener('click', (e) => { e.stopPropagation(); map.shut(); wayguide.openHere(); });
+  map.el.appendChild(b);
+}
 gear = initGear({ me, profile, scene, toast, sfx, burst, TIER });
 quests = initQuests({
   scene, me, makeChar, npcs, profile, save: saveMe, toast, sfx, burst, fxSprite, lying, nearestFree,
-  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!dungeon?.active() || !!guides?.active() || !!garden?.active() || !!warfare?.active() || !!shop?.active(),
+  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!dungeon?.active() || !!guides?.active() || !!garden?.active() || !!wayguide?.active() || !!warfare?.active() || !!shop?.active(),
   onChange: () => character.showChip(),
 });
 Object.assign(ACTIONS, quests.actions);
@@ -1540,7 +1572,7 @@ shop = initShop({
     ...Object.values(training?.T || {}).filter((d) => d.who && d.who.av && !profile.train?.[d.stat]).map((d) => d.who),
     ...(guides?.list || []).filter((g) => profile.trails?.[g.id] !== 'done' && dungeon?.open(g.id) !== false).map((g) => g.n),
   ],
-  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!dungeon?.active() || !!guides?.active() || !!garden?.active() || !!warfare?.active() || !!quests?.active(),
+  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!dungeon?.active() || !!guides?.active() || !!garden?.active() || !!wayguide?.active() || !!warfare?.active() || !!quests?.active(),
   onChange: () => character.showChip(),
 });
 Object.assign(ACTIONS, shop.actions);
@@ -1548,7 +1580,7 @@ pets = initPets({ scene, me, profile, toast, sfx, burst, onChange: () => charact
 Object.assign(ACTIONS, pets.actions);
 story = initStory({
   scene, me, makeChar, npcs, profile, save: saveMe, toast, sfx, burst, fxSprite,
-  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!dungeon?.active() || !!guides?.active() || !!garden?.active() || !!warfare?.active() || !!quests?.active() || !!shop?.active(),
+  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!dungeon?.active() || !!guides?.active() || !!garden?.active() || !!wayguide?.active() || !!warfare?.active() || !!quests?.active() || !!shop?.active(),
   onChange: () => character.showChip(),
 });
 questLog = initQuestLog({ me, quests, story, walkTo, toast });
@@ -1561,4 +1593,4 @@ setTimeout(() => {
   for (const n of npcs) if (n.av) upgradeCup(n.av);
 }, 300);
 
-window.__cafe = { get questLog() { return questLog; }, get pets() { return pets; }, get story() { return story; }, get shop() { return shop; }, get gear() { return gear; }, get warfare() { return warfare; }, get guides() { return guides; }, get garden() { return garden; }, availableActions, profile, tut, character, training, dungeon, quests, camera, shot, together, me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs, placed, park, scrolls, renderer, map };
+window.__cafe = { get questLog() { return questLog; }, get pets() { return pets; }, get story() { return story; }, get shop() { return shop; }, get gear() { return gear; }, get warfare() { return warfare; }, get guides() { return guides; }, get garden() { return garden; }, get wayguide() { return wayguide; }, availableActions, profile, tut, character, training, dungeon, quests, camera, shot, together, me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs, placed, park, scrolls, renderer, map };
