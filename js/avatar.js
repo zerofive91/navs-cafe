@@ -492,4 +492,5 @@ export function poseAvatar(av, ch, t, dt) {
   let closed = ch.action === 'pray';
   if (u.blinkAt < 0) { closed = true; if (u.blinkAt < -0.12) u.blinkAt = 2 + Math.random() * 3; }
   u.eyes.forEach((e) => { e.scale.y = closed ? 0.2 : 1.25; });
+  u.cosPose?.(av, ch, t, dt); // 날개·탈것·머리 장식 (cosmetic.js)
 }

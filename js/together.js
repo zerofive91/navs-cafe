@@ -9,6 +9,7 @@
 // 받는 쪽은 마지막 위치와 속도로 부드럽게 이어서 움직여 보여 줌.
 
 import { setOutfit } from './avatar.js';
+import { setCosmetic } from './cosmetic.js';
 
 const SUPABASE_URL = 'https://esbhbhjnpupcrjwbnwet.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_BJB1Jth8sAEJllf9nnvA3A_iHQB5-Sz'; // 공개용(publishable) 키
@@ -75,6 +76,7 @@ export function initTogether({ scene, me, look, makeChar, poseAvatar, upgradeCup
     if (ch.buf.length > 10) ch.buf.shift();
     ch.net = { ...m, period: m.p || 1 };
     if (!ch.av.visible) { ch.x = m.x; ch.z = m.z; ch.y = m.y; ch.av.rotation.y = m.f; ch.av.visible = true; }
+    if (m.c !== undefined && m.c !== ch.cosCode) { ch.cosCode = m.c; const [wing, mount, head] = (m.c || '..').split('.'); setCosmetic(ch.av, { wing, mount, head }); }
     if (m.o !== undefined && m.o !== ch.outfitKey) { ch.outfitKey = m.o; setOutfit(ch.av, m.o === 'glory' ? 'glory' : m.o ? 'armor' : null, m.o && m.o !== 'glory' ? m.o.split(',') : undefined); }
   }
   function sampleBuf(ch) {
@@ -113,6 +115,7 @@ export function initTogether({ scene, me, look, makeChar, poseAvatar, upgradeCup
       ch.racket = n.r || null;
       ch.hold = n.h || null;
       ch.swim = !!n.sw;
+      ch.ride = !!n.rd;
       ch.seat = n.s ? { kind: n.s, free: true } : null;
       ch.av.position.set(ch.x, ch.y, ch.z);
       let da = ch.face - ch.av.rotation.y;
@@ -132,7 +135,7 @@ export function initTogether({ scene, me, look, makeChar, poseAvatar, upgradeCup
       st: me.state === 'walk' ? 'walk' : me.state === 'sit' ? 'sit' : 'idle',
       run: me.running ? 1 : 0, a: me.action || 0, i: me.item || 0, d: me.drink || 0, fd: me.food || 0, b: me.bites || 0,
       r: me.racket || 0, h: me.hold || 0, sw: me.swim ? 1 : 0, s: me.state === 'sit' && me.seat ? me.seat.kind : 0,
-      o: outfitCode(), ts: Date.now(),
+      o: outfitCode(), c: me.av.userData.cosCode || '', rd: me.ride ? 1 : 0, ts: Date.now(),
     };
   }
   const outfitCode = () => { const u = me.av.userData; return u.outfit === 'glory' ? 'glory' : u.outfit ? (u.pieces || []).join(',') || 'armor' : ''; };
@@ -147,7 +150,7 @@ export function initTogether({ scene, me, look, makeChar, poseAvatar, upgradeCup
     lastKey = key(m);
     dirty = false;
   }
-  const key = (m) => [m.st, m.run, m.a, m.i, m.d, m.fd, m.b, m.r, m.h, m.sw, m.s, m.o].join('|');
+  const key = (m) => [m.st, m.run, m.a, m.i, m.d, m.fd, m.b, m.r, m.h, m.sw, m.s, m.o, m.c, m.rd].join('|');
   function sendStep(dt) {
     if (st.count < 2) return; // 혼자 있는 방에서는 보내지 않음
     sinceSend += dt;

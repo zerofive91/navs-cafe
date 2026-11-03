@@ -51,6 +51,7 @@ function mergeProfile(a, b) {
     items: [...new Set([...(b.items || []), ...(a.items || [])])],
     stats,
     gear: { owned: [...new Set([...(a.gear?.owned || []), ...(b.gear?.owned || [])])], worn: b.gear?.worn || a.gear?.worn || [] },
+    cos: { ...(a.cos || {}), ...(b.cos || {}), owned: [...new Set([...(a.cos?.owned || []), ...(b.cos?.owned || [])])] },
     pets: Object.fromEntries([...new Set([...Object.keys(a.pets || {}), ...Object.keys(b.pets || {})])].map((k) => [k, Math.max(a.pets?.[k] | 0, b.pets?.[k] | 0)])),
     story: Math.max(a.story | 0, b.story | 0),
     tut: obj(a.tut, b.tut), train: obj(a.train, b.train), quests: obj(a.quests, b.quests), dungeon: obj(a.dungeon, b.dungeon),
