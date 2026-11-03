@@ -642,6 +642,20 @@ const view = { az: 0, el: 0.55, dist: 7.5, tx: me.x, ty: 0.62, tz: me.z, mode: '
 // 체험 시점: 체험을 시작하면 캐릭터와 대상이 함께 잘 보이는 자리로 카메라가 천천히 옮겨 감.
 // 정해진 시간이 지나거나, 조이스틱을 움직이거나, 화면을 끌면 원래 시점으로 부드럽게 돌아옴.
 //   target: 바라볼 대상, side: 캐릭터 뒤에서 옆으로 비켜선 각도, mid: 시선 중심(0 캐릭터 ~ 1 대상), y: 시선 높이
+// 내 카드 속 내 모습: 캐릭터 앞에서 한 장 찍어 canvas에 옮기고, 곧바로 원래 화면을 다시 그림
+function portrait(cv) {
+  const W = renderer.domElement.width, H = renderer.domElement.height;
+  const pc = new THREE.PerspectiveCamera(30, W / H, 0.1, 80);
+  const p = me.av.position, f = me.face;
+  pc.position.set(p.x + Math.sin(f) * 3.6, p.y + 1.25, p.z + Math.cos(f) * 3.6);
+  pc.lookAt(p.x, p.y + 0.74, p.z);
+  renderer.render(scene, pc);
+  const g = cv.getContext('2d'), ca = cv.width / cv.height;
+  let sh = H * 0.8, sw = sh * ca; if (sw > W) { sw = W; sh = sw / ca; }
+  g.clearRect(0, 0, cv.width, cv.height);
+  g.drawImage(renderer.domElement, (W - sw) / 2, (H - sh) / 2, sw, sh, 0, 0, cv.width, cv.height);
+  renderer.render(scene, camera);
+}
 function shot(target, { dist = 10, el = 0.35, side = 0.55, dur = 7, mid = 0.5, y = 1.2 } = {}) {
   if (view.mode === 'first') return;
   const t = typeof target === 'function' ? target() : target;
@@ -1491,7 +1505,7 @@ tut = initTutorial({
   onChange: () => character.showChip(),
 });
 character = initCharacter({
-  me, look: myLook, profile, save: saveMe, rebuild: rebuildMe, view, toast,
+  me, look: myLook, profile, save: saveMe, rebuild: rebuildMe, view, toast, portrait,
   onCreated: () => { character.showChip(); setTimeout(() => tut.start('cafe'), 500); },
   replay: (id) => (id === 'account' ? account.open() : id.startsWith('use:') ? shop.use(id.slice(4)) : id.startsWith('gear:') ? gear.toggle(id.slice(5)) : id.startsWith('pet:') ? pets.choose(id.slice(4)) : tut.start(id)),
 });

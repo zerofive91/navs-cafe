@@ -11,7 +11,7 @@ export const BAGS = [0x5b6b8a, 0x8a5b5b, 0x6b8a5b, 0x444444, 0xc8a070];
 const hex = (n) => '#' + n.toString(16).padStart(6, '0');
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-export function initCharacter({ me, look, profile, save, rebuild, view, toast, onCreated, replay }) {
+export function initCharacter({ me, look, profile, save, rebuild, view, toast, onCreated, replay, portrait }) {
   // ---------- 만들기 ----------
   function openCreator(first = false) {
     if (document.getElementById('creator')) return;
@@ -82,8 +82,13 @@ export function initCharacter({ me, look, profile, save, rebuild, view, toast, o
     chip.hidden = false;
     chip.innerHTML = `<b>${esc(profile.name)}</b><small>${stageOf(profile.steps).name}</small>`;
   }
-  chip.addEventListener('pointerdown', (e) => { e.stopPropagation(); openCard(); });
+  // 누르면 열리고 다시 누르면 닫힘 (예전엔 pointerdown에 열려서, 손을 뗄 때의 click이 바탕을 눌러 바로 닫혔음)
+  chip.addEventListener('pointerdown', (e) => e.stopPropagation());
+  chip.addEventListener('click', (e) => { e.stopPropagation(); openCard(); });
 
+  const gearButtons = () => Object.entries(GEAR).map(([id, g]) => { const own = profile.gear?.owned?.includes(id), on = own && profile.gear.worn.includes(id); return `<button data-gear="${id}" class="${on ? 'on' : own ? '' : 'locked'}" title="${own ? g.why + ' 받음 · ' + g.does : g.how + ' 받아요'}">${g.name}${on ? ' ✓' : own ? '' : ' 🔒'}</button>`; }).join('');
+  // 카드 속 내 모습: 지금 장비를 갖춘 모습을 앞에서 찍어 보여 줌 (장비를 바꾸면 바로 다시 찍음)
+  const drawMe = (card) => { const cv = card.querySelector('canvas.me'); if (cv && portrait) setTimeout(() => { try { portrait(cv); } catch (e) { /* 못 찍으면 빈 칸 */ } }, 60); };
   function openCard() {
     if (document.getElementById('meCard')) return closeCard();
     const st = stageOf(profile.steps);
@@ -93,14 +98,15 @@ export function initCharacter({ me, look, profile, save, rebuild, view, toast, o
     card.id = 'meCard';
     card.innerHTML = `<div class="pad">
       <button class="close" aria-label="닫기">×</button>
+      <canvas class="me" width="240" height="300" aria-label="지금 내 모습"></canvas>
       <h3>${esc(profile.name)}</h3>
       <p class="stage">${st.name}${next ? ` <span>· 다음 단계 ${next.name}</span>` : ''}</p>
       <div class="bar"><i style="width:${Math.round(k * 100)}%"></i></div>
       <p class="steps">걸음 ${profile.steps}${next ? ` / ${next.need}` : ''}${profile.quests && Object.keys(profile.quests).length ? ` · 부탁 ${Object.keys(profile.quests).length}` : ''}${profile.dungeon && Object.keys(profile.dungeon).length ? ` · 이긴 숲길 ${Object.keys(profile.dungeon).length}` : ''}</p>
       <p class="lb">수레바퀴</p>
       <div class="stats">${STATS.map((x) => { const v = (profile.stats && profile.stats[x.id]) || 0; return `<div><span>${x.name}</span><div class="sb"><i style="width:${Math.min(100, v)}%;background:${x.color}"></i></div><b>${v}</b>${profile.train && profile.train[x.id] ? '<em>훈련 마침</em>' : ''}</div>`; }).join('')}</div>
-      <p class="lb">장비 <span class="hint">하나님의 전신갑주 (엡 6:13)</span></p>
-      <div class="items gear">${Object.entries(GEAR).map(([id, g]) => { const own = profile.gear?.owned?.includes(id), on = own && profile.gear.worn.includes(id); return `<button data-gear="${id}" class="${on ? 'on' : own ? '' : 'locked'}" title="${own ? g.why + ' 받음 · ' + g.does : g.how + ' 받아요'}">${g.name}${on ? ' ✓' : own ? '' : ' 🔒'}</button>`; }).join('')}</div>
+      <p class="lb">내 모습과 장비 <span class="hint">하나님의 전신갑주 (엡 6:13) · 눌러서 갖추고 벗어요</span></p>
+      <div class="items gear">${gearButtons()}</div><p class="does"></p>
       ${Object.keys(profile.pets || {}).length ? `<p class="lb">돌본 동물</p><div class="items pets">${Object.entries(PETS).filter(([id]) => profile.pets[id]).map(([id, pt]) => { const tame = profile.pets[id] >= 3, on = profile.pet === id; return `<button data-pet="${id}" class="${on ? 'on' : tame ? '' : 'locked'}">${pt.name}${tame ? (on ? ' · 함께' : ' · 데리고 다니기') : ` ${profile.pets[id]}/3`}</button>`; }).join('')}</div>` : ''}
       <p class="lb">지갑</p>
       <p class="purse">${fmtMoney(profile.coins)}${Object.keys(profile.bag || {}).length ? '' : ' <span>· 정원 동쪽 루디아의 가게에서 쓸 수 있어요</span>'}</p>
@@ -120,7 +126,16 @@ export function initCharacter({ me, look, profile, save, rebuild, view, toast, o
       const bb = e.target.closest('[data-bible]');
       if (bb) { setBible(bb.dataset.bible).then(() => { closeCard(); openCard(); toast(bb.dataset.bible === 'modern' ? '이제 말씀을 AI 현대어로 보여 드려요. 원문은 개역한글이에요' : '이제 말씀을 개역한글로 보여 드려요', 4); }); return; }
       const gb = e.target.closest('[data-gear]');
-      if (gb) { closeCard(); openDress(gb.dataset.gear); return; }
+      if (gb) {
+        const id = gb.dataset.gear, g = GEAR[id];
+        if (!profile.gear?.owned?.includes(id)) { card.querySelector('.does').textContent = `${g.name}: ${g.how} 받아요`; return; }
+        replay('gear:' + id);
+        card.querySelector('.items.gear').innerHTML = gearButtons();
+        const on = profile.gear.worn.includes(id);
+        card.querySelector('.does').textContent = `${g.name} ${on ? '갖춤' : '벗음'}${on ? ' · ' + g.does : ''}${me.av.userData.courseOutfit ? ' · 지금은 길에서 잠시 입은 갑주라, 정원으로 나가면 내 장비가 보여요' : ''}`;
+        drawMe(card);
+        return;
+      }
       const g = e.target.closest('[data-use]');
       if (g) { closeCard(); replay('use:' + g.dataset.use); return; }
       const it = e.target.closest('[data-item]');
@@ -132,6 +147,7 @@ export function initCharacter({ me, look, profile, save, rebuild, view, toast, o
       else replay(d.dataset.do);
     });
     document.body.appendChild(card);
+    drawMe(card);
   }
   function closeCard() { document.getElementById('meCard')?.remove(); }
 
