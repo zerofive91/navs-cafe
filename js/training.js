@@ -5,6 +5,7 @@
 //   증거: 빌립 (행 8:30) - 길 가는 세 사람에게 다가가 빛 건네기
 //   순종: 아브라함 (창 12:4, 히 11:8) - 갈 바를 몰라도 앞서가는 등불을 따라 걷기
 // 사부 곁에 가면 말을 걸고, 기초 과정을 마치면 그 능력치와 걸음이 자라고 성경 물품을 받음
+import { offerTalk } from './talkgate.js';
 import * as THREE from 'three';
 import { TRAIN, floorY } from './layout.js';
 import { VERSES, showVerse } from './verses.js';
@@ -374,7 +375,6 @@ export function initTraining(K) {
       else if (!S.called && d > 4.5 && d < 11 && me.state === 'walk') {
         S.called = true;
         n.action = 'wave'; setTimeout(() => { if (n.action === 'wave') n.action = null; }, 2400);
-        toast(`${whoName(id)}: ${fin ? '다시 왔군요! 언제든 한 번 더 연습해요' : `어서 와요, ${T[id].name}이에요. ${CALL[id] || ''}`}. 제 곁으로 오세요`, 5);
       }
     }
   }
@@ -411,8 +411,8 @@ export function initTraining(K) {
     if (busy()) { if (offer) hide(); return; }
     let nearId = null;
     for (const [id, n] of trainers) if (Math.hypot(me.x - n.x, me.z - n.z) < 3.6) nearId = id;
-    if (nearId && nearId !== offer && nearId !== closedFor) offerTo(nearId);
-    if (!nearId) { closedFor = null; if (offer) hide(); }
+    if (nearId && nearId !== offer) { const id = nearId; offerTalk('train:' + id, Object.fromEntries(trainers)[id], () => offerTo(id)); } // 말 걸기 단추를 눌러야 열림
+    if (!nearId && offer) hide();
   }
   // 고정된 자리 (사부·길손이 밀리지 않게): main.js가 이동을 계산한 뒤 다시 제자리에 둠
   const pinned = [ezra, daniel, aquila, priscilla, philip, abraham];

@@ -3,6 +3,7 @@
 //   목자(잃은 양) · 사마리아 여인(우물) · 여호수아(여리고) · 다윗(매끄러운 돌) · 룻과 나오미(이삭)
 //   엘리야(로뎀나무) · 노아(비둘기) / 카페 안: 베드로(증거의 물)
 //   2026-11 더함: 삭개오 · 사마리아인 · 안드레(오병이어) · 요나(요나의 바다) · 솔로몬(푸른 초장) · 이삭(겨자씨) · 요한(포도나무 그늘)
+import { offerTalk } from './talkgate.js';
 import * as THREE from 'three';
 import { PARK, floorY, isFree, polar, Q as WHEEL, WITNESS_POOL_R, SYCAMORE } from './layout.js';
 import { VERSES, showVerse } from './verses.js';
@@ -516,16 +517,16 @@ export function initQuests(K) {
     if (busy()) { if (shown && !thanks) hide(); return; }
     let nearQ = null;
     for (const q of Q) if (Math.hypot(me.x - q.who.x, me.z - q.who.z) < 3.4) nearQ = q;
-    if (run && nearQ === run.q && run.i >= run.q.steps.length) { complete(); return; }
+    if (run && nearQ === run.q && run.i >= run.q.steps.length) { offerTalk('quest:' + nearQ.id, nearQ.who, () => complete()); return; } // 말 걸기 단추를 눌러야 열림
     if (thanks) { if (Math.hypot(me.x - thanks.who.x, me.z - thanks.who.z) > 9) { thanks = null; hide(); } return; }
-    if (nearQ && nearQ !== shown && nearQ !== closedFor) {
+    if (nearQ && nearQ !== shown) offerTalk('quest:' + nearQ.id, nearQ.who, () => {
       const q = nearQ, isRun = run && run.q === q;
       if (isRun) show(q, hintOf(run), '', { end: true, next: '알겠어요' });
       else if (run) show(q, `지금은 ${run.q.name}의 부탁을 하고 있군요. 그 일을 마치고 다시 와 주세요.`, '', { next: '알겠어요' });
       else if (profile.quests[q.id] === 'done') show(q, `다시 와 주었군요, ${profile.name || '친구'}님! 한 번 더 도와줄래요? 이번에는 마음으로 하는 연습이에요.`, '', { next: '도와줄게요', later: true });
       else show(q, q.ask, q.verse, { next: '도와줄게요', later: true });
-    }
-    if (!nearQ) { closedFor = null; if (shown) hide(); }
+    });
+    if (!nearQ && shown) hide();
   }
 
   // 왼쪽 부탁 창: 지금 부탁의 내용과 해야 할 자리
