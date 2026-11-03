@@ -739,3 +739,7 @@ body.at-door #enter { z-index: 100; }
   html.land #meCard .pad > * { grid-column: 2; }
   html.land #meCard .pad > canvas.me { grid-column: 1; grid-row: 1 / span 40; position: sticky; top: 0; width: 150px; height: 188px; margin: 0; }
 
+/* 꾸미기 (cosmetic.js) */
+#shop .kind { margin: 12px 0 0; font-size: 12.5px; font-weight: 700; color: #a07a40; letter-spacing: 0.08em; }
+#meCard .items.cos button.on { background: #f6e6f6; color: #6a2a6a; box-shadow: 0 0 0 2px #b07ab0; }
+#meCard .cosdoes { margin: 6px 0 0; font-size: 12.5px; color: #8f7458; }

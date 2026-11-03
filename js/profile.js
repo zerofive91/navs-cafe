@@ -51,6 +51,7 @@ function fill(p = {}) {
     coins: Number.isFinite(p.coins) ? Math.max(0, p.coins | 0) : null, // 지갑 (데나리온 단위). null: 아직 지갑을 받기 전
     bag: p.bag && typeof p.bag === 'object' ? p.bag : {}, // 소모품 { oil: 2, ... }
     gear: p.gear && typeof p.gear === 'object' ? { owned: p.gear.owned || [], worn: p.gear.worn || [] } : { owned: [], worn: [] }, // 전신갑주·등불 (gear.js)
+    cos: p.cos && typeof p.cos === 'object' ? { owned: p.cos.owned || [], wing: p.cos.wing || '', mount: p.cos.mount || '', head: p.cos.head || '' } : { owned: [], wing: '', mount: '', head: '' }, // 꾸미기: 날개·탈것·머리 장식 (cosmetic.js)
     pets: p.pets && typeof p.pets === 'object' ? p.pets : {}, // 돌본 동물 { dog: 3, ... } (3이면 길들임)
     pet: typeof p.pet === 'string' ? p.pet : '', // 데리고 다니는 동물
     story: p.story | 0, // 성경 큰 이야기: 마친 장 수

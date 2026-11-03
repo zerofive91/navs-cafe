@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { setOutfit } from './avatar.js';
 import { R_PARK } from './layout.js';
 import { saveProfile } from './profile.js';
+import { initCosmetic } from './cosmetic.js';
 
 const done = (o) => Object.keys(o || {}).length;
 const tierWins = (p, TIER, t) => Object.keys(p.dungeon || {}).filter((id) => (TIER[id] || 0) >= t).length;
@@ -23,6 +24,7 @@ export const ARMOR6 = ['belt', 'breast', 'shoes', 'shield', 'helmet', 'sword'];
 export function initGear({ me, profile, scene, toast, sfx, burst, TIER }) {
   profile.gear = profile.gear && typeof profile.gear === 'object' ? profile.gear : { owned: [], worn: [] };
   const G = profile.gear;
+  const cos = initCosmetic({ me, profile, toast, sfx, burst }); // 날개·탈것·머리 장식 (겉모습만)
   G.owned = G.owned || []; G.worn = G.worn || [];
   const owned = (id) => G.owned.includes(id);
   const worn = (id) => G.worn.includes(id) && owned(id);
@@ -65,6 +67,7 @@ export function initGear({ me, profile, scene, toast, sfx, burst, TIER }) {
   let T = 0;
   function step(dt) {
     T += dt;
+    cos.step();
     if (T > 1) { T = 0; check(false); apply(false); }
     const inForest = Math.hypot(me.x, me.z) > R_PARK + 2;
     light.intensity += ((worn('lamp') && inForest ? 2.2 : 0) - light.intensity) * Math.min(1, dt * 3);
