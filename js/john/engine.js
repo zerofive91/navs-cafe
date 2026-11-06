@@ -11,9 +11,7 @@ import { addSteps, addStat, earn, giveItem, STATS, ITEMS, JOHN_EVENTS } from '..
 import { findPath, nearestFree } from '../nav.js';
 import { floorY } from '../layout.js';
 import { JX, JZ, ZONES, SP, PLAZA_LIGHT, JARS, ROOF_Y, HOUSE10, REGION } from './layout.js';
-import { EV, ORDER } from './events.js';
-import { initTrials } from './trials.js';
-import { initModes } from './modes.js';
+// events·trials·modes는 region.js가 불러와 넘김 (불러오기에 실패해 다시 시도할 때 주소 끝을 바꿀 수 있게)
 
 const MODE_NAME = { l: '듣기', r: '읽기', a: '적용', s: '공부', m: '암송', d: '묵상' };
 const NOBLUR = 'navs-cafe-noblur';
@@ -32,7 +30,7 @@ const SKY = {
   dark: { bg: 0x161a2a, fogC: 0x141828, fog: [3, 34], hemiSky: 0x40486a, hemiGround: 0x2a2620, hemi: 0.34, sun: 0.12 },  // 1:5 어두움 (빛 비추기 시험)
 };
 
-export function initJohn(K, built) {
+export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
   const { scene, me, makeChar, npcs, profile, save, toast, sfx, burst, fxSprite, walkTo, standUp, shot, busy, onChange, here, openLog, lights } = K;
   const parts = built.parts;
   const J = () => profile.john;
@@ -136,7 +134,11 @@ export function initJohn(K, built) {
       document.body.classList.add('talking');
       document.body.classList.toggle('trialing', !!s.dark);
     },
-    close() { if (!spec) return; const s = spec; spec = null; box.hidden = true; document.body.classList.remove('talking', 'trialing'); s.onClose?.(); },
+    close() {
+      if (!spec) return; const s = spec; spec = null; box.hidden = true; document.body.classList.remove('talking', 'trialing');
+      if (s.dark && !s.done && run) run.r.closed = true; // 답하기 전에 닫힌 시험: 증인에게 다시 말을 걸면 다시 열림
+      s.onClose?.();
+    },
     isOpen: () => !!spec,
   };
   const pick = (i) => {
@@ -144,7 +146,7 @@ export function initJohn(K, built) {
     const o = s.opts[i]; if (!o) return;
     const b = box.querySelector(`[data-o="${i}"]`), why = box.querySelector('.why');
     if (o.ok) { s.done = true; b.classList.add('hint'); box.classList.add('ok'); why.hidden = true; }
-    else { b.classList.add('no'); why.hidden = !o.why; why.textContent = o.why; }
+    else { b.classList.add('no'); why.hidden = !o.why; why.textContent = o.why; if (o.why) requestAnimationFrame(() => why.scrollIntoView({ block: 'nearest' })); }
     s.onPick?.(o);
   };
   box.addEventListener('pointerdown', (e) => e.stopPropagation()); // 끌어서 내려 보기가 되도록, 고르기는 click에서
@@ -156,7 +158,8 @@ export function initJohn(K, built) {
     if (!B.keep) ui.close();
     B.fn?.();
   });
-  window.addEventListener('keydown', (e) => { // 보기는 숫자 키로도
+  window.addEventListener('keydown', (e) => { // 보기는 숫자 키로도, Esc로 닫기
+    if (spec && e.key === 'Escape') { e.stopPropagation(); ui.close(); return; }
     if (!spec || !spec.opts || e.target.closest?.('textarea,input')) return;
     const n = +e.key; if (n >= 1 && n <= spec.opts.length) { e.stopPropagation(); pick(n - 1); }
   }, true);
@@ -179,12 +182,16 @@ export function initJohn(K, built) {
 
   // ---------- 들고 다니는 것 (등불·물동이·잔), 하인 앞치마 ----------
   let carried = null, carryKind = null;
+  // 들고 다니는 등불의 빛: 마을 모형(root) 안에 미리 두어 이 마을에서만 조명 수에 들고, 세기만 0↔5로 바꿈
+  const lampLight = new THREE.PointLight(0xffc878, 0, 11, 1.4);
+  built.root.add(lampLight);
+  const handPos = new THREE.Vector3();
   const carryMesh = (kind) => {
     const g = new THREE.Group();
     if (kind === 'lamp') {
       const b = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 8), M(0xb9805a)); b.scale.set(1.3, 0.55, 1); g.add(b);
       const f = fxSprite('light_01', 0xffc860, 0.55); f.position.set(0.12, 0.12, 0); g.add(f);
-      const l = new THREE.PointLight(0xffc878, 5, 11, 1.4); l.position.y = 0.3; g.add(l);
+      g.userData.lamp = true; // 빛은 lampLight (아래)
     } else if (kind === 'jar') {
       const j = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.09, 0.26, 12), M(0xb9805a)); j.position.y = -0.06; g.add(j);
       const w = new THREE.Mesh(new THREE.CircleGeometry(0.1, 12), M(0x6fb2c8, 0.1)); w.rotation.x = -Math.PI / 2; w.position.y = 0.07; g.add(w);
@@ -478,13 +485,15 @@ export function initJohn(K, built) {
     sfx('orb', 0.3, 1.05); burst(me.x, me.y + 1.4, me.z);
     resetNpcs(e);
     updateChip();
-    setTimeout(() => {
+    const showDone = () => {
+      if (busy() || ui.isOpen() || !inTown()) { setTimeout(showDone, 800); return; } // 다른 창이 닫힐 때까지 (마을을 떠났으면 돌아올 때)
       ui.open({
         who: e.who, sub: `${e.title} · 마침`, text: msg, note: '깊이 보기(공부·암송·묵상)는 언제든 이 증인에게 다시 말을 걸면 해요.',
         buttons: [{ t: '감사해요', cls: 'next' }],
         onClose: () => { if (first && allDone()) setTimeout(() => toast('사도 요한이 빛의 광장에서 기다려요. 이야기는 이어져요 (금빛 기둥)', 6), 800); },
       });
-    }, 2200);
+    };
+    setTimeout(showDone, 2200);
   }
 
   // ---------- 증인과 대화 ----------
@@ -519,6 +528,7 @@ export function initJohn(K, built) {
   function talkWitness(e) {
     const n = N[e.npc];
     if (run && run.ev === e) {
+      if (run.r.closed && curStep()?.enter) { startStep(); return; } // 닫힌 시험 창 다시 열기
       ui.open({ who: e.who, sub: `${e.title} · ${run.i + 1}/${run.steps.length}`, text: hintOf(), buttons: [{ t: '그만두기', cls: 'later', fn: () => quit() }, { t: '알겠어요', cls: 'next' }] });
       return;
     }
@@ -602,7 +612,7 @@ export function initJohn(K, built) {
   }
 
   // ---------- 매 프레임 ----------
-  let lastT = 0, chipT = 0;
+  let lastT = 0, chipT = 0, wasTown = inTown();
   function step() {
     const now = performance.now(), dt = lastT ? Math.min(0.25, (now - lastT) / 1000) : 0; lastT = now; // 실제 흐른 시간 (헤드리스에서도 같게)
     const town = inTown();
@@ -612,7 +622,16 @@ export function initJohn(K, built) {
     const b = blind < 0.01 ? 0 : blind;
     document.body.style.setProperty('--jblind', b.toFixed(3));
     document.body.classList.toggle('jn-blind', b > 0);
-    if (!town) blurBtn.hidden = true;
+    blurBtn.hidden = !(town && blindTarget);
+    // 마을을 떠날 때 (수레): 사건은 그대로 두고 창·속삭임을 닫고 손에 든 것·앞치마를 감춤. 돌아오면 다시 보임
+    if (town !== wasTown) {
+      wasTown = town;
+      if (!town) { ui.close(); whisper(''); darkK = 0; }
+      if (carried) carried.visible = town;
+      if (apron) apron.visible = town;
+    }
+    lampLight.intensity = town && carried && carryKind === 'lamp' ? 5 : 0;
+    if (lampLight.intensity) { me.av.updateWorldMatrix(true, true); carried.getWorldPosition(handPos); lampLight.position.set(handPos.x, handPos.y + 0.3, handPos.z); }
     if (noise) { const d = waterAt && town ? dist(waterAt) : 999; noise.g.gain.value = waterAt && town ? Math.max(0.02, Math.min(0.5, 6 / (d + 4))) : 0; }
     for (const n of Object.values(N)) {
       const d = dist(n);

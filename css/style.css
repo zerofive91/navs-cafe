@@ -769,7 +769,7 @@ body.region-john #storyChip, body.region-john #questChip { display: none; } /* �
 #johnChip::before { content: "✦ "; color: #d8a020; }
 #johnChip::after { content: " ›"; opacity: 0.6; }
 #johnChip[hidden] { display: none; }
-@media (max-width: 760px), (max-height: 500px) { #johnChip { top: calc(150px + env(safe-area-inset-top)); max-width: calc(var(--vw) - 110px); } }
+@media (max-width: 760px), (max-height: 500px) { #johnChip { top: calc(150px + env(safe-area-inset-top)); max-width: calc(var(--vw) - 150px); } } /* 좁은 폰에서 두 줄이 된 단추 줄(왼쪽 끝 vw-130px)과 겹치지 않게 */
 /* 폰 가로: 왼쪽 아래 이름표(#meChip)와 겹치지 않게 맨 위 왼쪽 (가운데 단추 줄 왼편) */
 @media (max-height: 500px) { #johnChip { top: calc(12px + env(safe-area-inset-top)); max-width: calc(var(--vw) * 0.5 - 112px); } }
 .npcb.jn .row { flex-wrap: wrap; }
@@ -788,6 +788,13 @@ body.region-john #storyChip, body.region-john #questChip { display: none; } /* �
 .npcb.jn:not(.trial) .opt.no { background: #eee6da; color: #a09080; }
 .npcb.jn { max-height: calc(var(--vh) - 120px); overflow-y: auto; }
 @media (max-width: 760px), (max-height: 500px) { .npcb.jn { max-height: calc(var(--vh) * 0.62); } }
+/* 가로 폰: 조이스틱과 오른쪽 단추 줄 사이에 넓게, 아래에 붙여 높이를 더 씀. 보기는 한 줄에 하나 (긴 대답이 잘리지 않게) */
+html.land .npcb.jn { top: auto; bottom: calc(8px + env(safe-area-inset-bottom)); width: min(620px, calc(var(--vw) - 250px)); max-width: none; max-height: calc(var(--vh) - 70px); padding: 8px 12px 6px; }
+html.land .npcb.jn .say { font-size: 14px; line-height: 1.45; }
+html.land .npcb.jn .opts { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+html.land .npcb.jn .opt { font-size: 14px; line-height: 1.4; padding: 5px 8px; }
+html.land .npcb.jn .note { margin-top: 3px; }
+html.land .npcb.jn .why { margin-top: 5px; padding: 4px 9px; font-size: 13px; }
 /* 암송: 조각을 차례대로 */
 .jmemo .line { min-height: 46px; margin: 8px 0; padding: 8px 10px; border-radius: 10px; background: rgba(255, 240, 200, 0.55); font: 500 15px/1.6 "Noto Serif KR", serif; color: #5a4030; word-break: keep-all; }
 .jmemo .line .blank { color: #c0a070; }
@@ -811,6 +818,9 @@ body.region-john #storyChip, body.region-john #questChip { display: none; } /* �
 /* 실로암: 흐린 화면 (조작은 그대로). "흐림 없이 하기"면 색만 옅어짐 */
 body.jn-blind canvas#cafe { filter: blur(calc(var(--jblind, 0) * 7px)) saturate(calc(1 - var(--jblind, 0) * 0.85)) brightness(calc(1 - var(--jblind, 0) * 0.12)); }
 body.jn-blind.jn-noblur canvas#cafe { filter: saturate(calc(1 - var(--jblind, 0) * 0.6)); }
-#jnBlurBtn { position: fixed; right: calc(14px + env(safe-area-inset-right)); top: calc(var(--vh) * 0.38); z-index: 8; border: 0; border-radius: 16px; padding: 9px 14px; background: rgba(255, 250, 238, 0.95); color: #5a4030; box-shadow: 0 2px 12px rgba(40, 30, 15, 0.25); font: 600 13px "Noto Serif KR", serif; cursor: pointer; }
+#jnBlurBtn { position: fixed; left: calc(12px + env(safe-area-inset-left)); top: calc(92px + env(safe-area-inset-top)); z-index: 8; border: 0; border-radius: 16px; padding: 9px 14px; background: rgba(255, 250, 238, 0.95); color: #5a4030; box-shadow: 0 2px 12px rgba(40, 30, 15, 0.25); font: 600 13px "Noto Serif KR", serif; cursor: pointer; }
 #jnBlurBtn[hidden] { display: none; }
+/* 오른쪽 단추 줄을 가리지 않게 언제나 왼쪽 진행 표시 바로 아래 */
+@media (max-width: 760px) { #jnBlurBtn { top: calc(192px + env(safe-area-inset-top)); } }
+@media (max-height: 500px) { #jnBlurBtn { top: calc(54px + env(safe-area-inset-top)); } }
 @media (prefers-reduced-motion: reduce) { #jwhisper.on, .jmemo .pcs button.shake { animation: none; } }

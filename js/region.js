@@ -110,12 +110,12 @@ export function initRegion(K) {
   async function buildJohn() {
     if (!johnBuilt) {
       // 브라우저는 한 번 실패한 모듈 주소를 기억해 같은 주소로는 다시 받지 않음 → 다시 시도할 때는 주소 끝을 바꿈
-      const url = tries++ ? `./john/build.js?retry=${tries}` : './john/build.js';
-      const eurl = tries > 1 ? `./john/engine.js?retry=${tries}` : './john/engine.js';
-      johnBuilt = Promise.all([import(url), import(eurl)]).then(([m, E]) => {
+      // 사건 모듈(engine·events·trials·modes)도 같은 주소 끝을 붙여 따로 불러 engine에 넘김
+      const q = tries++ ? `?retry=${tries}` : '';
+      johnBuilt = Promise.all(['build', 'engine', 'events', 'trials', 'modes'].map((n) => import(`./john/${n}.js${q}`))).then(([m, E, Ev, Tr, Md]) => {
         const r = m.buildJohn({ scene, occluders, makeCart, makeSignpost }); tapCart(r.cart, JOHN_CART.stand); johnRoot = r.root;
         // 1차 MVP 사건 (와 보라·가나·니고데모·실로암). 사건이 고장 나도 마을 오가기는 되도록 따로 감쌈
-        try { if (johnKit) eng = E.initJohn({ ...johnKit, here: currentRegion }, r); } catch (e) { console.warn('요한복음 마을 사건을 준비하지 못했어요', e); }
+        try { if (johnKit) eng = E.initJohn({ ...johnKit, here: currentRegion }, r, { EV: Ev.EV, ORDER: Ev.ORDER, initTrials: Tr.initTrials, initModes: Md.initModes }); } catch (e) { console.warn('요한복음 마을 사건을 준비하지 못했어요', e); }
         return r;
       });
       johnBuilt.catch(() => { johnBuilt = null; }); // 불러오기에 실패하면 다음에 수레를 탈 때 다시 시도
