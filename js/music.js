@@ -11,6 +11,8 @@ export const PLAYLIST = [
 ].map(([n, title, sub]) => ({ src: `assets/music/${n}.mp3`, title, sub }));
 
 const VOLUME = 0.32;
+let duckK = 1; // 머무름 묵상 동안 살짝 낮춤 (stillness.js → duck)
+const vol = () => VOLUME * duckK;
 
 // 음표 버튼을 누르면 곡 목록이 열림: 곡을 고르면 그 곡부터 차례로, 맨 위 단추로 끄고 켬
 export function initMusic(button, icons) {
@@ -59,7 +61,7 @@ export function initMusic(button, icons) {
   const play = () => {
     audio.src = PLAYLIST[idx % PLAYLIST.length].src;
     audio.volume = 0;
-    audio.play().then(() => { fails = 0; fadeTo(VOLUME); }).catch(() => {});
+    audio.play().then(() => { fails = 0; fadeTo(vol()); }).catch(() => {});
     save(); paint();
   };
   function setOn(v, restart) {
@@ -82,5 +84,8 @@ export function initMusic(button, icons) {
   window.addEventListener('pointerdown', (e) => { if (!panel.hidden && !panel.contains(e.target) && e.target !== button) panel.hidden = true; }, true);
   paint();
   // 입장 버튼을 누른 뒤(사용자 동작 이후)에만 자동으로 이어 재생
-  return { resume: () => { if (on) play(); } };
+  return {
+    resume: () => { if (on) play(); },
+    duck: (d) => { duckK = d ? 0.5 : 1; if (on && !audio.paused) fadeTo(vol()); },
+  };
 }

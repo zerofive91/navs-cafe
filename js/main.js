@@ -8,13 +8,15 @@ import { ICONS } from './icons.js';
 import { loadProps, upgradeCup, fxSprite } from './props.js';
 import { initSigns } from './signs.js';
 import { initMusic } from './music.js';
-import { showVerse, showNext, nextVerse } from './verses.js';
+import { showVerse, showNext, nextVerse, onVerseShown } from './verses.js';
 import { initPark } from './park.js';
 import { initMap } from './map.js';
 import { initScrolls } from './scrolls.js';
 import { initTogether, inviteCodeFromUrl, RANDOM_CAP, INVITE_CAP } from './together.js';
 import { makeWheelProxy } from './wheelproxy.js';
 import { initLeisure } from './leisure.js';
+import { initStillness } from './stillness.js';
+import { recordMet } from './met.js';
 import { loadProfile, saveProfile, onProfileSave } from './profile.js';
 import { initAccount } from './account.js';
 import { initCharacter, HOODIES, HAIRS, BAGS } from './character.js';
@@ -155,7 +157,7 @@ function makeChar(look, x, z) {
 
 const myLook = loadLook();
 let region = null; // 마을 사이 다니기 (region.js). 맨 아래에서 만듦
-let tut = null, character = null, training = null, dungeon = null, warfare = null, guides = null, garden = null, wayguide = null, quests = null, shop = null, gear = null, story = null, pets = null, questLog = null; // 안내와 캐릭터 창은 맨 아래에서 만듦
+let tut = null, character = null, training = null, dungeon = null, warfare = null, guides = null, garden = null, wayguide = null, quests = null, shop = null, gear = null, story = null, pets = null, questLog = null, stillness = null; // 안내와 캐릭터 창은 맨 아래에서 만듦
 const profile = loadProfile(); // 닉네임·걸음·받은 것·안내 기록 (이 기기 안에만)
 if (profile.name) myLook.name = profile.name;
 const me = makeChar(myLook, SPAWN.x, SPAWN.z);
@@ -590,6 +592,7 @@ function availableActions() {
   list.push(...walkToggle);
   if ((me.item === 'cup' || me.food) && !near(SPOTS.tray)) list.push('putdown');
   if ((me.item === 'cup' || me.food) && near(SPOTS.tray)) place('tray');
+  list.push(...(stillness?.available() || [])); // 쉬는 자리에 3초쯤 앉아 있으면 머무르기 (반짝이지 않게)
   // 어디서나 할 수 있는 일 (가까이 의자·벤치·통나무·선베드가 있으면 앉기·눕기도 반짝임)
   if (me.state === 'sit') list.push('stand');
   else if (nearSeat(false)) place('sit'); else list.push('sit');
@@ -936,7 +939,7 @@ stickEl.addEventListener('pointercancel', stickUp);
 const KEYMAP = { ArrowUp: 'u', KeyW: 'u', ArrowDown: 'd', KeyS: 'd', ArrowLeft: 'l', KeyA: 'l', ArrowRight: 'r', KeyD: 'r' };
 // 컴퓨터 단축키: 방향키·WASD 걷기, 스페이스 점프, M 지도, Shift 걷기/달리기, E 그 자리 체험(나무 오르기·주문·낚시 등), Enter 다음 말씀
 // Z 말씀, X 기도, C 교제, V 증거, B 찬양 (수레바퀴 순서) / J 앉기, K 눕기, L 먹고 마시기
-const NOT_E = new Set(['walk', 'run', 'sit', 'stand', 'recline', 'jump', 'pray', 'read', 'praise', 'share', 'wave', 'sip', 'eat', 'putdown']);
+const NOT_E = new Set(['stay', 'walk', 'run', 'sit', 'stand', 'recline', 'jump', 'pray', 'read', 'praise', 'share', 'wave', 'sip', 'eat', 'putdown']);
 const lying = () => me.seat && (me.seat.kind === 'lie' || LIEABLE.has(me.seat.kind));
 const goPlace = (name) => { const p = PLACES.find((q) => q[0] === name); if (p) walkTo(me, { x: p[1].x, z: p[1].z }, () => faceTo(me, p[2])); };
 const toggle = (name) => (me.action === name ? (me.seat ? ACTIONS.stand() : (me.action = null)) : pressIfAvailable(name));
@@ -959,6 +962,7 @@ const HOTKEYS = {
   Enter: () => nextVerse(),
   NumpadEnter: () => nextVerse(),
   KeyN: () => pressIfAvailable('stars'),
+  KeyH: () => pressIfAvailable('stay'), // 머무르기 (쉬는 자리에 앉아서)
   KeyP: () => leisure.togglePhoto(),
   KeyI: () => character?.openCard(),
 };
@@ -967,7 +971,7 @@ const KEY_HELP = [
   ['마우스', [['오른쪽 클릭', '그곳으로 걷기'], ['왼쪽 클릭', '사람에게 말 걸기 · 물건 고르기 · 앉기'], ['끌기 / 휠', '시점 돌리기 / 가까이 · 멀리']]],
   ['움직이기', [['↑ ↓ / W S', '앞으로 · 뒤로'], ['← → / A D', '몸 돌리기'], ['Space', '점프 (공중에서 또 누르면 2·3단)'], ['Shift', '걷기 ↔ 달리기 (정원·숲)'], ['M', '지도 (누른 곳으로 걸어감)'], ['Esc', '지도·안내 닫기']]],
   ['수레바퀴', [['Z', '말씀 읽기'], ['X', '기도'], ['C', '교제 (카운터에서 주문)'], ['V', '증거 (곁의 사람에게 빛 건네기)'], ['B', '찬양']]],
-  ['쉬기', [['J', '앉기 · 일어서기'], ['K', '눕기 (앉은 채로도)'], ['N', '누운 채로 별 보기'], ['L', '먹기 · 마시기'], ['P', '사진 찍기 (Space 찰칵)']]],
+  ['쉬기', [['J', '앉기 · 일어서기'], ['K', '눕기 (앉은 채로도)'], ['N', '누운 채로 별 보기'], ['H', '앉아서 머무르기 (숨 고르기 · 말씀)'], ['L', '먹기 · 마시기'], ['P', '사진 찍기 (Space 찰칵)']]],
   ['체험', [['E', '그 자리 체험 (반짝이는 단추)'], ['Enter', '다음 말씀'], ['I', '나의 캐릭터 · 안내 다시 보기'], ['? / F1', '이 안내']]],
 ];
 const keyHelp = document.createElement('div');
@@ -978,7 +982,7 @@ const toggleKeyHelp = (v = keyHelp.hidden) => { keyHelp.hidden = !v; };
 keyHelp.addEventListener('pointerdown', (e) => { e.stopPropagation(); if (e.target === keyHelp || e.target.classList.contains('close')) toggleKeyHelp(false); });
 HOTKEYS.Slash = () => toggleKeyHelp();
 HOTKEYS.F1 = () => toggleKeyHelp();
-{ const esc = HOTKEYS.Escape; HOTKEYS.Escape = () => { if (document.getElementById('meCard')) character?.closeCard(); else if (!keyHelp.hidden) toggleKeyHelp(false); else if (leisure.photoOn()) leisure.togglePhoto(); else esc(); }; }
+{ const esc = HOTKEYS.Escape; HOTKEYS.Escape = () => { if (document.getElementById('meCard')) character?.closeCard(); else if (!keyHelp.hidden) toggleKeyHelp(false); else if (leisure.photoOn()) leisure.togglePhoto(); else if (stillness?.active()) stillness.actions.stay(); else esc(); }; }
 let keyTipShown = false;
 try { keyTipShown = localStorage.getItem('navs-cafe-keytip') === '1'; } catch (e) { /* 저장 안 됨 */ }
 window.addEventListener('keydown', (e) => {
@@ -1438,6 +1442,7 @@ function frame(now) {
   signs.step(dt * (window.__cafe.speed || 1));
   park.step(dt * (window.__cafe.speed || 1), t);
   leisure.step(dt, t);
+  stillness?.step();
   scrolls.step(dt * (window.__cafe.speed || 1), t);
   // 그림자 범위가 캐릭터를 따라감 (넓은 정원에서도 그림자)
   {
@@ -1623,6 +1628,11 @@ const park = initPark({ scene, me, interactive, act, sfx, fxSprite, burst, walkT
 Object.assign(ACTIONS, park.actions);
 const leisure = initLeisure({ scene, me, camera, renderer, view, lights: [hemi, sun, warm], act, sfx, burst, walkTo, faceTo, standUp, nearestPerson, toast, ICONS, LIEABLE });
 Object.assign(ACTIONS, leisure.actions);
+// 머무름 묵상 (2026-11, js/stillness.js): 쉬는 자리에서 1~2분 숨 고르기 + 말씀 한 구절
+stillness = initStillness({ me, profile, save: () => saveProfile(profile), busy: () => busyOf('stillness')(), rest: () => restK, music, sfx });
+Object.assign(ACTIONS, stillness.actions);
+// 오늘 만난 말씀 (2026-11, js/met.js): 화면에 떠오른 말씀을 하루치 모아 내 카드 '오늘 말씀' 탭에
+onVerseShown((key) => { if (recordMet(profile.met, key)) saveProfile(profile); });
 const scrolls = initScrolls({ scene, me, sfx, fxSprite, burst, icon: ICONS.scroll });
 // 마을 사이 다니기: 정원 길목의 수레 ↔ 요한복음 마을 (2026-11). 마을마다 하늘·안개, 지도, 함께 있는 사람이 바뀜
 const ENV0 = { fog: null, near: 0, far: 0, hemiSky: hemi.color.clone(), hemiGround: hemi.groundColor.clone() };
@@ -1662,6 +1672,7 @@ const OPEN_WINDOWS = {
   quests: () => quests?.active(), shop: () => shop?.active(), story: () => story?.active?.(),
   region: () => region?.active(), // 마을을 옮기는 중
   john: () => !!region?.engine?.active(), // 요한복음 마을 사건 말풍선 (시험·공부·암송·묵상 창 포함)
+  stillness: () => !!stillness?.active(), // 머무름 묵상 (고르는 창 포함)
 };
 const busyOf = (self, ...skip) => {
   const off = new Set([self, ...skip]);
