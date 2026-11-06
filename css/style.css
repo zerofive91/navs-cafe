@@ -701,6 +701,16 @@ body.bigtrial #trial { box-shadow: 0 0 0 2px #6a4a9a, 0 10px 40px rgba(20, 10, 4
   html.land .npcb .say { font-size: 15px; line-height: 1.45; }
   html.land .npcb.trial .opts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
   html.land .npcb.trial .opt { font-size: 15px; line-height: 1.4; padding: 6px 8px; }
+  /* 2026-11 숲길 시험: 가로 폰에서 스크롤 없이 보이게 번호를 글 안으로 띄우고 장절은 글 뒤에 이어 붙임 (글자 크기는 그대로) */
+  html.land #trial { padding: 8px 12px 4px; }
+  html.land #trial .who { margin-bottom: 2px; }
+  html.land #trial .say { line-height: 1.4; }
+  html.land #trial .opts { margin-top: 6px; }
+  html.land #trial .say small { display: inline; margin: 0 0 0 6px; font-size: 13px; line-height: 1.4; }
+  html.land #trial .opt { display: block; line-height: 1.35; padding: 5px 7px; }
+  html.land #trial .opt kbd { float: left; margin: 1px 5px 0 0; }
+  html.land #trial .opt em { display: inline; margin-left: 4px; white-space: nowrap; }
+  html.land #trial .row button { height: 26px; }
   html.land #wtrial .scene { font-size: 13px; }
   html.land #wtrial, html.land #trial { width: min(760px, calc(var(--vw) - 230px)); max-height: calc(var(--vh) - 70px); }
   html.land #meCard .pad { width: min(560px, calc(var(--vw) * 0.92)); }

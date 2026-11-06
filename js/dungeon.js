@@ -97,7 +97,7 @@ export function initDungeon(K) {
       for (let q = 0; q < 3; q++) { const s = fxSprite('circle_05', 0x2a2038, 2.6); s.material.blending = THREE.NormalBlending; s.material.opacity = 0.45; s.position.y = 1 + q * 0.5; g.add(s); parts.push(s); }
       g.scale.setScalar(isBig ? 1.9 : 1);
       g.position.set(p.x, gy(p), p.z); scene.add(g);
-      const S = { id, k, g, parts, x: p.x, z: p.z, back: st[gi], lie: (isBig ? big : small[k % small.length]).id, big: isBig, beaten: false, fade: -1 };
+      const S = { id, k, g, parts, x: p.x, z: p.z, back: st[gi], lie: (isBig || !small.length ? big : small[k % small.length]).id, big: isBig, beaten: false, fade: -1 };
       shades.push(S); byCourse[id].push(S);
     });
   }
