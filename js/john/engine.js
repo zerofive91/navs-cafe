@@ -484,9 +484,9 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
     for (const k of new Set(ORDER.map((id) => EV[id].npc))) {
       const e = relEv(k), n = N[k]; if (!e || !e.stand || evsOf(k).length < 2 || (run && run.ev.npc === k)) continue;
       const q = nearestFree(SP[e.stand]) || SP[e.stand];
-      if (Math.hypot(n.home0.x - q.x, n.home0.z - q.z) < 0.5) continue;
-      n.home0 = { x: q.x, z: q.z }; n.face0 = n.face;
-      if (n.state !== 'walk') { n.path = []; n.x = q.x; n.z = q.z; n.home = { ...n.home0 }; }
+      if (Math.hypot(n.home0.x - q.x, n.home0.z - q.z) >= 0.5) { n.home0 = { x: q.x, z: q.z }; n.face0 = n.face; }
+      // 자리가 같아도 다른 곳(호수 가운데 등)에 남아 있으면 제자리로
+      if (n.state !== 'walk' && !n.seat && Math.hypot(n.x - q.x, n.z - q.z) > 0.5) { n.path = []; n.state = 'idle'; n.x = q.x; n.z = q.z; n.home = { ...n.home0 }; }
     }
   }
   function quit(silent) {
@@ -660,6 +660,7 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
     document.body.style.setProperty('--jblind', b.toFixed(3));
     document.body.classList.toggle('jn-blind', b > 0);
     blurBtn.hidden = !(town && (blindTarget || g2.fx())); // 실로암 흐림, 밤바다 물결·안개
+    if (!blurBtn.hidden && !blurBtn.textContent) blurLabel();
     // 마을을 떠날 때 (수레): 사건은 그대로 두고 창·속삭임을 닫고 손에 든 것·앞치마를 감춤. 돌아오면 다시 보임
     if (town !== wasTown) {
       wasTown = town;
@@ -733,12 +734,14 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
     if (spec && spec.anchor && dist(spec.anchor) > 6) ui.close();
     // 말 걸기 (가까이 가도 저절로 열지 않음: 단추나 그 사람을 눌러야)
     if (ui.isOpen() || busy()) return;
-    let best = null, bd = 2.9;
-    for (const n of Object.values(N)) { if (n.hide || !n.av.visible) continue; const d = dist(n); if (d < bd) { bd = d; best = n; } }
+    // 가까이 있는 사람 중 지금 단계의 대화 상대 → 사건 증인·요한 → 나머지 순으로 (무리가 아이보다 가까워도 아이에게)
+    const st = curStep(), want = st ? [].concat(st.talk || []) : [];
+    const rank = (n) => (want.includes(n.key) && !(st.told && st.told(run.r, n.key)) ? 0 : evsOf(n.key).length || n.key === 'john' ? 1 : 2);
+    let best = null, bd = 2.9, br = 3;
+    for (const n of Object.values(N)) { if (n.hide || !n.av.visible) continue; const d = dist(n); if (d >= 2.9) continue; const rk = rank(n); if (rk < br || (rk === br && d < bd)) { br = rk; bd = d; best = n; } }
     if (!best) return;
     const k = best.key;
     const ev = evsOf(k).length ? (run && run.ev.npc === k ? run.ev : relEv(k)) : null;
-    const st = curStep();
     if (st && [].concat(st.talk || []).includes(k) && !(st.told && st.told(run.r, k))) offerTalk('jn:' + k, best, () => { const myRun = run, myI = run.i; st.open(run.r, () => { if (run === myRun && run.i === myI) advance(); }, k, best); });
     else if (k === 'john') offerTalk('jn:john', best, () => { talkJohn(); spec && (spec.anchor = best); });
     else if (ev) offerTalk('jn:' + k, best, () => { talkWitness(ev); spec && (spec.anchor = best); });

@@ -88,7 +88,8 @@ export function initGalilee({ root, me, parts, N, person, GREET, toast, sfx, bur
   function offBoat(to) {
     if (me.seat === B.seat) { me.seat = null; me.state = 'idle'; }
     const q = nearestFree(to) || to; me.x = q.x; me.z = q.z; me.y = G(q);
-    const pn = N.peter; pn.seat = null; pn.state = 'idle'; pn.fixFace = false;
+    const pn = N.peter; pn.seat = null; pn.state = 'idle'; pn.fixFace = false; pn.path = [];
+    if (pn.home0) { pn.x = pn.home0.x; pn.z = pn.home0.z; pn.home = { ...pn.home0 }; } // 호수 가운데 남지 않게 (land()는 아래서 다시 옮김)
     B.on = false; B.glide = false;
   }
   function land() {

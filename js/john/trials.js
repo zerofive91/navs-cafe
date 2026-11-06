@@ -14,12 +14,15 @@ import { VERSES } from '../verses.js';
 const SUB = { answer: '대답', drop: '내려놓기', verse: '말씀 고르기', clear: '흐림 걷어내기' };
 export function initTrials({ ui, me, toast, sfx, burst, whisper, sky, showVerse, lightPath, praying, push = null, fog = null }) {
   let cur = null; // 걸으며 하는 시험(B·E) 하나
+  let gen = 0; // end()마다 늘어남: 그만둔 뒤 늦게 도는 setTimeout(다음 겹·안개)을 막음
+  let choosing = false; // 고르는 시험 창이 떠 있음 (그만두면 닫음)
   const won = new Set(); // 이번 사건 진행에서 이긴 시험 종류
 
   // 고르는 시험 (D 대답 · F 내려놓기 · A 말씀 고르기): 말풍선에 속삭임과 보기
   //   A의 보기는 { v: 'jn-6-6', ok } 처럼 말씀 키로 (본문과 장절을 보여 줌)
   const optText = (o) => { const v = o.v && VERSES[o.v]; return v ? `${v[0]} (${v[1]})` : o.t; };
   function choose(kind, { who, lie, q, opts, win, then, drop, sub }) {
+    const g = gen; choosing = true;
     ui.open({
       dark: true, who: who || '어둠의 속삭임', sub: sub || `어둠의 시험 · ${SUB[kind]}`,
       text: lie, note: q,
@@ -28,7 +31,7 @@ export function initTrials({ ui, me, toast, sfx, burst, whisper, sky, showVerse,
         if (!o.ok) { sfx('impact/impactSoft_medium_000', 0.18, 0.8); return; }
         sfx('orb', 0.28, 1.15); burst(me.x, me.y + 1.4, me.z);
         if (drop) drop();
-        setTimeout(() => { ui.close(); won.add(kind); if (win) showVerse(win, { cooldown: 0, delay: 0.3, title: { drop: '내려놓았어요', verse: '말씀을 붙들었어요' }[kind] || '대답했어요' }); then?.(); }, 1100);
+        setTimeout(() => { if (g !== gen) return; choosing = false; ui.close(); won.add(kind); if (win) showVerse(win, { cooldown: 0, delay: 0.3, title: { drop: '내려놓았어요', verse: '말씀을 붙들었어요' }[kind] || '대답했어요' }); then?.(); }, 1100);
       },
     });
   }
@@ -38,8 +41,10 @@ export function initTrials({ ui, me, toast, sfx, burst, whisper, sky, showVerse,
   // H 흐림 걷어내기: layers 차례로 고르기. 맞을 때마다 fog(남은 겹 / 전체)로 한 겹씩 걷힘. 다 걷히면 win 말씀
   function clear({ who, layers, win, then, onLayer }) {
     let k = 0;
+    const g = gen;
     fog?.(1);
     const open = () => {
+      if (g !== gen) return;
       const L = layers[k];
       choose('clear', {
         who, lie: L.lie, q: L.q || `물결과 어둠이 마음을 덮어요. 어떤 말씀으로 걷어 낼까요? (${k + 1}/${layers.length})`, opts: L.opts,
@@ -73,7 +78,7 @@ export function initTrials({ ui, me, toast, sfx, burst, whisper, sky, showVerse,
     cur = { kind: 'stay', sec, ok, lines, then, label, t: 0, li: 0, wt: 0, broke: false };
     whisper(lines[0] || '');
   }
-  function end() { cur = null; whisper(''); sky.darkness(0); }
+  function end() { if (choosing) { choosing = false; if (ui.isOpen()) ui.close(); } cur = null; gen++; whisper(''); sky.darkness(0); }
   let last = 0;
   function step() {
     const now = performance.now(), dt = last ? Math.min(0.25, (now - last) / 1000) : 0; last = now; // 실제 흐른 시간 (헤드리스에서도 같게)
@@ -97,8 +102,9 @@ export function initTrials({ ui, me, toast, sfx, burst, whisper, sky, showVerse,
       const p = typeof c.to === 'function' ? c.to() : c.to;
       const moved = Math.hypot(me.x - c.at.x, me.z - c.at.z); c.at = { x: me.x, z: me.z };
       c.still = moved > 0.02 || me.state === 'walk' ? 0 : c.still + dt;
-      if (c.still > 1 && push && c.away) { const a = typeof c.away === 'function' ? c.away() : c.away, dx = a.x - me.x, dz = a.z - me.z, L = Math.hypot(dx, dz) || 1; push((dx / L) * 0.9 * dt, (dz / L) * 0.9 * dt); }
-      if (now - c.said > 3800 && c.lines.length) { c.said = now; whisper(c.lines[c.li++ % c.lines.length]); }
+      const far = Math.hypot(me.x - p.x, me.z - p.z) > (c.far || 30);
+      if (c.still > 1 && push && c.away && !ui.isOpen() && !far) { const a = typeof c.away === 'function' ? c.away() : c.away, dx = a.x - me.x, dz = a.z - me.z, L = Math.hypot(dx, dz) || 1; push((dx / L) * 0.9 * dt, (dz / L) * 0.9 * dt); }
+      if (!far && now - c.said > 3800 && c.lines.length) { c.said = now; whisper(c.lines[c.li++ % c.lines.length]); } else if (far && c.said) { c.said = 0; whisper(''); }
       if (Math.hypot(me.x - p.x, me.z - p.z) < c.r) { const f = c.then; end(); won.add('against'); sfx('orb', 0.25, 1.2); burst(me.x, me.y + 1.4, me.z); f?.(); }
       return;
     }

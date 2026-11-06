@@ -266,7 +266,7 @@ export const EV = {
 
   // ---------- (2차 가) ⑤ 밤바다 (6:16-21, Z5 북쪽 물가 → Z4): 노 젓기, 물결 안개 걷어내기, 빛을 배로 맞아들이기 ----------
   sea: {
-    id: 'sea', ch: '6:16-21', zone: 'galilee', start: 'bethsaida', stand: 'peterShore', title: '밤바다', sign: 1, who: '베드로', npc: 'peter',
+    id: 'sea', ch: '6:16-21', zone: 'galilee', start: 'bethsaida', stand: 'peterShore', reset: ['peter'], title: '밤바다', sign: 1, who: '베드로', npc: 'peter',
     stat: 'prayer', reward: { steps: 12, stat: 3, coin: 3, items: ['jn_oar'] }, after: 'loaves',
     listen: '저물매 우리는 바다로 내려가 배를 타고 가버나움으로 건너갔어요(6:16-17). 이미 어두웠고, 그분은 아직 오지 않으셨지요. 저와 함께 노를 저어 봐요. 물결과 흔들림이 어지러우면 "흐림 없이 하기"를 눌러요.',
     read: ['jn-6-16', 'jn-6-17', 'jn-6-18', 'jn-6-19', 'jn-6-20', 'jn-6-21'],

@@ -130,6 +130,7 @@ export function initRegion(K) {
     let done = false, first = false;
     try {
       if (me.climb) me.climb = null;
+      if (eng?.X?.inBoat?.()) eng.quit(); // 밤바다 배 위에서 떠나면 사건을 그만두고 배에서 내림 (자리 jboat가 따라가지 않게)
       if (me.seat) standUp(me);
       me.path = []; me.task = null; me.action = null; me.state = 'idle'; me.jumps = 0; me.vy = 0; me.hop = 0;
       const T0 = performance.now();
