@@ -37,6 +37,7 @@ import { TIER } from './dungeon.js';
 import { COURSE_META } from './courses.js';
 import { initQuestLog, walkToward } from './questlog.js';
 import { talkOffer, pressTalk } from './talkgate.js';
+import { escDialog } from './dialog.js';
 import { initRegion } from './region.js';
 
 const canvas = document.getElementById('cafe');
@@ -945,7 +946,7 @@ const goPlace = (name) => { const p = PLACES.find((q) => q[0] === name); if (p) 
 const toggle = (name) => (me.action === name ? (me.seat ? ACTIONS.stand() : (me.action = null)) : pressIfAvailable(name));
 const HOTKEYS = {
   KeyM: () => (map.el.hidden ? map.open() : map.shut()),
-  Escape: () => { if (!map.el.hidden) map.shut(); },
+  Escape: () => { if (!map.el.hidden) map.shut(); else escDialog(); }, // 지도가 없으면 가장 나중에 연 말풍선을 닫음 (dialog.js)
   ShiftLeft: () => pressIfAvailable('walk', 'run'),
   ShiftRight: () => pressIfAvailable('walk', 'run'),
   KeyZ: () => toggle('read'),
@@ -993,6 +994,7 @@ window.addEventListener('keydown', (e) => {
   if (e.target?.closest?.('#stillPick') && /^(Enter|NumpadEnter|Space)$/.test(e.code)) return; // 1분·2분 단추에 포커스: 단추가 눌리게 (다음 말씀·점프로 가로채지 않음)
   if (region?.locked()) { e.preventDefault(); return; } // 마을을 옮기는 동안은 단축키 쉼
   if (!e.repeat && tut) { tut.mark(e.code); if (tut.onKey(e.code)) { e.preventDefault(); return; } }
+  if (/^(Enter|NumpadEnter)$/.test(e.code) && e.target?.closest?.('[data-dlg] button')) return; // 말풍선 단추에 포커스: Enter로 그 단추를 누름 (다음 말씀으로 가로채지 않음)
   if (HOTKEYS[e.code]) { if (!e.repeat) HOTKEYS[e.code](); e.preventDefault(); return; }
   if (e.code === 'Space') { if (leisure.photoOn()) leisure.snap(); else { ACTIONS.jump(); tut?.mark('jump'); } e.preventDefault(); return; }
   if (KEYMAP[e.code]) { keys.add(KEYMAP[e.code]); e.preventDefault(); }
@@ -1667,7 +1669,7 @@ region = initRegion({
 Object.assign(ACTIONS, region.actions);
 // 열려 있는 창 등록부 (2026-11): 말풍선·안내·훈련 등 창이 하나라도 열려 있으면 다른 말풍선은 열리지 않음
 //   새 모듈이 생기면 여기 한 줄만 보태면 됨. busyOf(자기 이름, ...보지 않을 이름)은 자기 자신을 뺀 나머지를 살핌
-//   story는 훈련·시험·부탁·가게가 예전부터 보지 않아 같은 동작을 유지함 (보게 하려면 해당 인자만 지우기)
+//   story(누가) 말풍선이 열려 있으면 훈련·시험·부탁·가게도 열리지 않음 (2026-11 단위 6에서 정리, 예전엔 예외였음)
 const OPEN_WINDOWS = {
   tut: () => tut?.active(), character: () => character?.isOpen(), training: () => training?.active(), dungeon: () => dungeon?.active(),
   guides: () => guides?.active(), garden: () => garden?.active(), wayguide: () => wayguide?.active(), warfare: () => warfare?.active(),
@@ -1697,13 +1699,13 @@ training = initTraining({
   scene, me, makeChar, npcs, profile, save: saveMe, toast, sfx, burst, fxSprite,
   quests: () => quests,
   goTo: (p, say) => { if (me.climb) { toast('먼저 나무에서 내려와요', 3); return; } if (walkToward(me, walkTo, p)) toast(say, 3); else toast('그곳으로 가는 길을 찾지 못했어요', 3); },
-  busy: busyOf('training', 'story'),  // story를 보지 않음(기존 동작 유지)
+  busy: busyOf('training'),
   onChange: () => character.showChip(),
 });
 Object.assign(ACTIONS, training.actions);
 dungeon = initDungeon({
   scene, me, profile, save: saveMe, toast, sfx, burst, fxSprite,
-  busy: busyOf('dungeon', 'story'),  // story를 보지 않음(기존 동작 유지)
+  busy: busyOf('dungeon'),
   resting: () => restK > 0.5, // 쉼 모드(앉아 쉬는 중)면 승리 반짝임을 절반으로
   onChange: () => character.showChip(),
   courseName: (id) => (COURSE_META[id] ? COURSE_META[id].name : id),
@@ -1744,7 +1746,7 @@ wayguide = initWayguide({
 gear = initGear({ me, profile, scene, toast, sfx, burst, TIER });
 quests = initQuests({
   scene, me, makeChar, npcs, profile, save: saveMe, toast, sfx, burst, fxSprite, lying, nearestFree,
-  busy: busyOf('quests', 'story'),  // story를 보지 않음(기존 동작 유지)
+  busy: busyOf('quests'),
   onChange: () => character.showChip(),
 });
 Object.assign(ACTIONS, quests.actions);
@@ -1757,7 +1759,7 @@ shop = initShop({
     ...Object.values(training?.T || {}).filter((d) => d.who && d.who.av && !profile.train?.[d.stat]).map((d) => d.who),
     ...(guides?.list || []).filter((g) => profile.trails?.[g.id] !== 'done' && dungeon?.open(g.id) !== false).map((g) => g.n),
   ],
-  busy: busyOf('shop', 'story'),  // story를 보지 않음(기존 동작 유지)
+  busy: busyOf('shop'),
   onChange: () => character.showChip(),
 });
 Object.assign(ACTIONS, shop.actions);
