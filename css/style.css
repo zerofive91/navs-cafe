@@ -556,6 +556,19 @@ body:has(#creator) #actions, body:has(#creator) #stick, body:has(#creator) #meCh
 .npcb.trial.ok .opt:not(.hint) { opacity: 0.6; }
 .npcb.trial .row button { color: #c8b8e0; }
 body.trialing #verse { visibility: hidden; } /* 고르는 동안은 시험 창만 */
+/* 2026-11 숲길 시험 형식: 채우기(빈칸 낱말)·버티기(말씀 붙들고 서 있기), 틀렸을 때 "왜 아닌가" 한 줄 */
+.npcb.trial .say small.why { color: #ffe2a8; }
+.npcb.trial .say .q.re { animation: whisper 0.9s ease; }
+@keyframes whisper { from { opacity: 0.15; } }
+.npcb.trial .verse { margin-top: 8px; padding: 8px 10px; border-radius: 12px; background: rgba(255, 250, 238, 0.12); color: #f3ecf8; font: 500 15px/1.55 "Noto Serif KR", serif; word-break: keep-all; }
+.npcb.trial .verse[hidden] { display: none; }
+.npcb.trial .verse em { margin-left: 4px; font-style: normal; font-size: 13px; color: #c8b8e0; white-space: nowrap; }
+.npcb.trial .verse .blank { display: inline-block; min-width: 3.2em; margin: 0 3px; border-bottom: 2px dashed #ffd56a; color: #ffd56a; font-weight: 700; text-align: center; line-height: 1.25; }
+.npcb.trial .verse .blank.on { border-bottom-style: solid; }
+.npcb.trial .verse .lamp { display: block; height: 8px; margin-top: 8px; border-radius: 4px; background: rgba(255, 255, 255, 0.14); overflow: hidden; }
+.npcb.trial .verse .lamp b { display: block; width: 0; height: 100%; border-radius: 4px; background: linear-gradient(90deg, #ffb84a, #ffe69a); box-shadow: 0 0 10px #ffd56a; transition: width 0.15s linear; }
+.npcb.trial .opt.word { align-items: center; }
+.npcb.trial .row .again { background: #ffd77a; color: #3a2a48; }
 #map .courses button small { color: #e8b84a; font-size: 0.85em; }
 
 /* 정원의 부탁: 지금 하는 부탁 */
@@ -711,6 +724,9 @@ body.bigtrial #trial { box-shadow: 0 0 0 2px #6a4a9a, 0 10px 40px rgba(20, 10, 4
   html.land #trial .opt kbd { float: left; margin: 1px 5px 0 0; }
   html.land #trial .opt em { display: inline; margin-left: 4px; white-space: nowrap; }
   html.land #trial .row button { height: 26px; }
+  html.land #trial .verse { margin-top: 5px; padding: 5px 8px; line-height: 1.4; }
+  html.land #trial .verse .lamp { margin-top: 5px; height: 7px; }
+  html.land #trial .opt.word { text-align: center; }
   html.land #wtrial .scene { font-size: 13px; }
   html.land #wtrial, html.land #trial { width: min(760px, calc(var(--vw) - 230px)); max-height: calc(var(--vh) - 70px); }
   html.land #meCard .pad { width: min(560px, calc(var(--vw) * 0.92)); }
