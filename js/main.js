@@ -606,8 +606,8 @@ function availableActions() {
   list.push('wave');
   return list;
 }
-const isOn = (name) => me.action === name || (name === 'light' && me.action === 'gaze') || (name === 'boat' && me.seat && me.seat.kind === 'boat') || (me.hold && me.hold === name);
-const TOGGLES = new Set(['kite', 'flower', 'stars']); // 다시 누르면 그 단추가 직접 끔
+const isOn = (name) => me.action === name || (name === 'stay' && !!stillness?.running()) || (name === 'light' && me.action === 'gaze') || (name === 'boat' && me.seat && me.seat.kind === 'boat') || (me.hold && me.hold === name);
+const TOGGLES = new Set(['kite', 'flower', 'stars', 'stay']); // 다시 누르면 그 단추가 직접 끔
 let shown = '';
 function pressAction(name, on) {
   if (region?.locked()) return; // 마을을 옮기는 동안은 쉼
@@ -632,7 +632,7 @@ function pressIfAvailable(...names) {
 }
 function refreshActions() {
   const list = availableActions();
-  const key = list.join(',') + '|' + me.action + '|' + (me.hold || '') + '|' + [...placeActs].join(',');
+  const key = list.join(',') + '|' + me.action + '|' + (me.hold || '') + '|' + [...placeActs].join(',') + '|' + (stillness?.running() ? 's' : '');
   if (key === shown) return;
   shown = key;
   bar.innerHTML = '';
@@ -990,6 +990,7 @@ window.addEventListener('keydown', (e) => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (e.target && /^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return; // 이름을 쓰는 동안에는 단축키 쉼
   if (character?.isOpen()) return;
+  if (e.target?.closest?.('#stillPick') && /^(Enter|NumpadEnter|Space)$/.test(e.code)) return; // 1분·2분 단추에 포커스: 단추가 눌리게 (다음 말씀·점프로 가로채지 않음)
   if (region?.locked()) { e.preventDefault(); return; } // 마을을 옮기는 동안은 단축키 쉼
   if (!e.repeat && tut) { tut.mark(e.code); if (tut.onKey(e.code)) { e.preventDefault(); return; } }
   if (HOTKEYS[e.code]) { if (!e.repeat) HOTKEYS[e.code](); e.preventDefault(); return; }
@@ -1629,7 +1630,8 @@ Object.assign(ACTIONS, park.actions);
 const leisure = initLeisure({ scene, me, camera, renderer, view, lights: [hemi, sun, warm], act, sfx, burst, walkTo, faceTo, standUp, nearestPerson, toast, ICONS, LIEABLE });
 Object.assign(ACTIONS, leisure.actions);
 // 머무름 묵상 (2026-11, js/stillness.js): 쉬는 자리에서 1~2분 숨 고르기 + 말씀 한 구절
-stillness = initStillness({ me, profile, save: () => saveProfile(profile), busy: () => busyOf('stillness')(), rest: () => restK, music, sfx });
+//   내 카드(#meCard)는 등록부에 없어(열려 있어도 단축키·Esc가 카드를 다뤄야 함) 여기서만 따로 봄: 카드를 열면 묵상이 조용히 끝남
+stillness = initStillness({ me, profile, save: () => saveProfile(profile), busy: () => busyOf('stillness')() || !!document.getElementById('meCard'), rest: () => restK, music, sfx });
 Object.assign(ACTIONS, stillness.actions);
 // 오늘 만난 말씀 (2026-11, js/met.js): 화면에 떠오른 말씀을 하루치 모아 내 카드 '오늘 말씀' 탭에
 onVerseShown((key) => { if (recordMet(profile.met, key)) saveProfile(profile); });

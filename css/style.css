@@ -888,25 +888,30 @@ body.stilling #verse { visibility: hidden; }
 #stillPick .row { display: flex; gap: 8px; justify-content: center; }
 #stillPick button { border: 0; border-radius: 12px; height: 38px; padding: 0 20px; background: #8f6744; color: #fffaf0; font: 600 15px "Noto Serif KR", serif; cursor: pointer; }
 #stillPick button.x { padding: 0 10px; background: transparent; color: #a08868; font-size: 13px; }
-#still { position: fixed; left: 50%; bottom: calc(150px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 4; width: min(480px, calc(var(--vw) - 200px)); display: flex; flex-direction: column; align-items: center; pointer-events: none; opacity: 0; transition: opacity 1.6s ease; font-family: "Noto Serif KR", serif; color: #fffaf0; text-align: center; text-shadow: 0 0 3px rgba(40, 28, 12, 0.9), 0 0 12px rgba(40, 28, 12, 0.55); }
+#still { position: fixed; left: 50%; bottom: calc(150px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 4; width: min(480px, calc(var(--vw) - 200px)); box-sizing: border-box; padding: 10px 14px 12px; border-radius: 28px; background: radial-gradient(ellipse at center, rgba(44, 33, 18, 0.5) 0%, rgba(44, 33, 18, 0.36) 60%, rgba(44, 33, 18, 0.12) 100%); display: flex; flex-direction: column; align-items: center; pointer-events: none; opacity: 0; transition: opacity 1.6s ease; font-family: "Noto Serif KR", serif; color: #fffaf0; text-align: center; text-shadow: 0 0 3px rgba(40, 28, 12, 0.9), 0 0 12px rgba(40, 28, 12, 0.55); }
 #still[hidden] { display: none; }
 #still.on { opacity: 1; }
 #still.bye { transition-duration: 0.8s; }
 #still .breath { width: 104px; height: 104px; display: grid; place-items: center; }
-#still .breath i { display: block; width: 100%; height: 100%; border-radius: 50%; background: radial-gradient(circle, rgba(255, 242, 210, 0.6) 0%, rgba(255, 226, 168, 0.3) 55%, rgba(255, 226, 168, 0) 72%); box-shadow: inset 0 0 0 2px rgba(255, 240, 205, 0.85), 0 0 18px rgba(255, 220, 160, 0.45); transform: scale(0.5); will-change: transform, opacity; }
+#still .breath i { display: block; width: 100%; height: 100%; border-radius: 50%; background: radial-gradient(circle, rgba(255, 242, 210, 0.6) 0%, rgba(255, 226, 168, 0.3) 55%, rgba(255, 226, 168, 0) 72%); box-shadow: inset 0 0 0 2px rgba(255, 240, 205, 0.9), 0 0 0 1px rgba(60, 42, 20, 0.45), 0 0 18px rgba(255, 220, 160, 0.45); transform: scale(0.5); will-change: transform, opacity; }
 #still .cue { margin: 6px 0 4px; font-size: 13px; letter-spacing: 0.14em; opacity: 0.85; }
+#still .lines { width: 100%; height: 6.6em; display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden; font-size: 17px; } /* 줄이 늘어도 원이 움직이지 않게 높이 고정, 새 줄은 아래에 */
 #still .lines p { margin: 2px 0; font-size: 17px; line-height: 1.5; word-break: keep-all; opacity: 0; transform: translateY(6px); transition: opacity 2.4s ease, transform 2.4s ease; }
 #still .lines p.in { opacity: 1; transform: none; }
-#still .lines p.old.in { opacity: 0.55; }
+#still .lines p.old.in { opacity: 0.72; }
 #still .lines p.gone { display: none; }
 #still cite { margin-top: 4px; font-style: normal; font-size: 13px; letter-spacing: 0.12em; opacity: 0; transition: opacity 2s ease; }
 #still cite.on { opacity: 0.85; }
 /* 좁은 세로 화면: 왼쪽 아래 조이스틱 위, 오른쪽 동작 단추줄을 비켜서 */
 @media (max-width: 640px) {
   html:not(.land) #still, html:not(.land) #stillPick { left: calc(16px + env(safe-area-inset-left)); right: calc(92px + env(safe-area-inset-right)); width: auto; transform: none; }
-  html:not(.land) #still .breath { width: 88px; height: 88px; }
+  html:not(.land) #still, html:not(.land) #stillPick { bottom: calc(192px + env(safe-area-inset-bottom)); } /* 왼쪽 아래 이름표(#meChip, bottom 146px) 위로 */
+  html:not(.land) #still .breath { width: 80px; height: 80px; }
+  html:not(.land) #still .lines { font-size: 16px; height: 8.4em; } /* 좁아서 한 구가 두 줄로 접힐 수 있음 */
+  html:not(.land) #still .lines p { font-size: 16px; }
 }
 html.land #stillPick { bottom: calc(14px + env(safe-area-inset-bottom)); width: min(320px, calc(var(--vw) - 300px)); }
 html.land #still { bottom: calc(8px + env(safe-area-inset-bottom)); width: min(460px, calc(var(--vw) - 300px)); }
 html.land #still .breath { width: 72px; height: 72px; }
-html.land #still .lines p { font-size: 16px; }
+html.land #still .lines, html.land #still .lines p { font-size: 16px; }
+html.land #still .lines { height: 6.2em; }

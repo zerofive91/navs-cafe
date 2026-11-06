@@ -326,7 +326,7 @@ function tapNext(ev) {
 }
 // 다음 구절로 (카드를 누르거나 Enter 키)
 export function nextVerse() {
-  if (!queue || !queue.keys.length) return;
+  if (hush || !queue || !queue.keys.length) return; // 머무름 묵상 중에는 보이지 않는 카드를 넘기지 않음
   const e = el();
   const k = queue.keys.shift();
   last[k] = performance.now() / 1000;

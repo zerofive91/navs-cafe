@@ -9,7 +9,8 @@ export const dayOf = (t = Date.now()) => { const d = new Date(t); return `${d.ge
 const isDay = (s) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
 const isObj = (x) => !!x && typeof x === 'object' && !Array.isArray(x);
 
-// 한 날의 목록 다듬기: 같은 키는 하나로 (처음 본 때는 이른 것, 묵상 표시는 어느 한쪽에라도 있으면), 본 때 순서, 40개까지
+// 한 날의 목록 다듬기: 같은 키는 하나로 (처음 본 때는 이른 것, 묵상 표시는 어느 한쪽에라도 있으면), 본 때 순서(같으면 키 순서), 40개까지
+//   40개를 넘으면 묵상 표시(m)한 것을 먼저 남기고, 나머지는 먼저 본 것부터
 function cleanList(list) {
   const by = new Map();
   for (const x of Array.isArray(list) ? list : []) {
@@ -19,7 +20,10 @@ function cleanList(list) {
     if (!o) by.set(x[0], [x[0], ts, m ? 'm' : '']);
     else { if (ts && (!o[1] || ts < o[1])) o[1] = ts; if (m) o[2] = 'm'; }
   }
-  return [...by.values()].sort((a, b) => a[1] - b[1]).slice(0, MET_MAX);
+  const order = (a, b) => a[1] - b[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0);
+  let all = [...by.values()].sort(order);
+  if (all.length > MET_MAX) all = [...all.filter((x) => x[2] === 'm'), ...all.filter((x) => x[2] !== 'm')].slice(0, MET_MAX).sort(order);
+  return all;
 }
 const fillDay = (x) => (isObj(x) && isDay(x.d) ? { d: x.d, k: cleanList(x.k) } : null);
 export function fillMet(m) {
@@ -29,10 +33,15 @@ export function fillMet(m) {
 }
 
 // 날짜가 바뀌었으면 넘김. 바뀌었으면 true
+//   d·prev 가운데 오늘 날짜가 있으면 그것을 오늘 목록으로 되살림 (시계가 앞선 다른 기기와 합쳐 오늘 것이 prev로 밀린 경우)
+//   남은 날 가운데 기록이 있는 날 하나를 prev로: 오늘보다 앞선 날 중 가장 늦은 날, 없으면(모두 미래) 그중 가장 늦은 날
 export function rollMet(met, today = dayOf()) {
   if (met.d === today) return false;
-  if (met.d && met.k.length) met.prev = { d: met.d, k: met.k };
-  met.d = today; met.k = [];
+  const days = [met.d ? { d: met.d, k: met.k } : null, met.prev].filter(Boolean);
+  const mine = days.find((x) => x.d === today);
+  const rest = days.filter((x) => x.d !== today && x.k.length).sort((a, b) => (a.d < b.d ? 1 : -1));
+  met.d = today; met.k = mine ? mine.k : [];
+  met.prev = rest.find((x) => x.d < today) || rest[0] || null;
   return true;
 }
 // 만난 말씀 하나 적기. 이미 오늘 만난 것이면 처음 본 때를 그대로 둠. 바뀐 게 있으면 true
@@ -58,7 +67,8 @@ export function markMet(met, key, ts = Date.now(), today = dayOf(ts)) {
 
 // 두 기기 기록 합치기: 날짜별로 모아 같은 날은 키 합집합(이른 때, 묵상 표시는 합침),
 //   가장 늦은 날이 d·k, 그다음 날이 prev, 나머지는 버림. b(서버)에 met이 없으면 a(이 기기) 그대로
-export function mergeMet(a, b) {
+//   이 기기의 오늘(today) 기록은 버리지 않음: 시계가 앞선 기기 때문에 세 날짜가 되어도 오늘 것은 d나 prev에 남음
+export function mergeMet(a, b, today = dayOf()) {
   if (!isObj(b)) return fillMet(a);
   if (!isObj(a)) return fillMet(b);
   a = fillMet(a); b = fillMet(b);
@@ -69,7 +79,8 @@ export function mergeMet(a, b) {
   }
   const order = [...days.keys()].sort().reverse();
   if (!order.length) return { d: '', k: [], prev: null };
-  const [d0, d1] = order;
+  let [d0, d1] = order;
+  if (days.has(today) && d0 !== today && d1 !== today) d1 = today; // 앞선 날짜 둘에 밀려도 오늘은 남김
   return { d: d0, k: cleanList(days.get(d0)), prev: d1 ? { d: d1, k: cleanList(days.get(d1)) } : null };
 }
 

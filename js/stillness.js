@@ -42,8 +42,9 @@ export function initStillness({ me, profile, save, busy, rest = () => 0, music, 
 
   // ---------- 묵상 화면 ----------
   const el = document.createElement('div');
-  el.id = 'still'; el.hidden = true; el.setAttribute('aria-live', 'polite');
-  el.innerHTML = `<div class="breath"><i></i></div><p class="cue"></p><div class="lines"></div><cite></cite>`;
+  el.id = 'still'; el.hidden = true;
+  // 화면 읽기: 숨 안내(2~6초마다 바뀜)와 원은 읽지 않고, 말씀 줄과 출처만 읽음
+  el.innerHTML = `<div class="breath" aria-hidden="true"><i></i></div><p class="cue" aria-hidden="true"></p><div class="lines" aria-live="polite"></div><cite aria-live="polite"></cite>`;
   document.body.appendChild(el);
   const ring = el.querySelector('.breath i'), cueEl = el.querySelector('.cue'), linesEl = el.querySelector('.lines'), citeEl = el.querySelector('cite');
 
