@@ -4,7 +4,7 @@ import { buildWorld } from './build.js';
 import { makeAvatar, poseAvatar } from './avatar.js';
 import { findPath, nearestFree } from './nav.js';
 import { C, TRAY, R_RIM_IN, floorY, seats, SPOTS, SPAWN, planters, polar, COUNTER, CEIL, Q, isFree, R_HALL, R_WALK, onWater, inPool, R_PARK, nearTree } from './layout.js';
-import { ICONS } from './icons.js';
+import { ICONS, ICON_LABELS } from './icons.js';
 import { loadProps, upgradeCup, fxSprite } from './props.js';
 import { initSigns } from './signs.js';
 import { initMusic } from './music.js';
@@ -641,7 +641,7 @@ function refreshActions() {
     const on = isOn(name);
     if (name === 'jump' || name === 'sit' || name === 'stand' || name === 'share') { /* 누를 때마다 실행 */ }
     b.className = 'act' + (on ? ' on' : '') + (placeActs.has(name) && !on ? ' place' : '');
-    b.setAttribute('aria-label', name);
+    b.setAttribute('aria-label', ICON_LABELS[name] || name);
     b.innerHTML = ICONS[name];
     b.addEventListener('pointerdown', (e) => { e.stopPropagation(); pressAction(name, on); });
     bar.appendChild(b);

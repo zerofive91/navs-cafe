@@ -111,7 +111,8 @@ export const CART = (() => {
 // "나는…" 등불 일곱의 자리 (LAMPS 차례대로): 떡(6:35)·빛(8:12)·문(10:7)·목자(10:11)·부활(11:25)·길(14:6)·포도나무(15:5)
 export const LAMP_IDS = ['bread', 'light', 'door', 'shepherd', 'life', 'way', 'vine'];
 // 사건의 그 자리 단추 이름 (region.js가 main.js ACTIONS에 미리 등록하고, 엔진이 생기면 넘김. 아이콘은 js/icons.js)
-export const JN_ACTS = ['jn_lamp', 'jn_water', 'jn_draw', 'jn_give', 'jn_look', 'jn_wash', 'jn_put', 'jn_boat', 'jn_row', 'jn_call'];
+export const JN_ACTS = ['jn_lamp', 'jn_water', 'jn_draw', 'jn_give', 'jn_look', 'jn_wash', 'jn_put', 'jn_boat', 'jn_row', 'jn_call',
+  'jn_clear', 'jn_lift', 'jn_push', 'jn_untie', 'jn_pour', 'jn_plant']; // 2차 나: 장사판 치우기 · 자리 들기 · 돌 옮기기 · 베 풀기 · 향유 붓기 · 밀 심기
 // 구역 팻말 (빈 자리마다 하나)
 export const SIGNPOSTS = Object.entries(ZONES).map(([id, z]) => {
   const p = id === 'light' ? W(PU + 4.5, PV + 15.5) : W(z.u - z.r * 0.55, z.v - z.r * 0.55);
@@ -200,9 +201,55 @@ Object.assign(SP, {
   // Z5
   philip: S(88.4, -82.4), andrew5: S(86.6, -80.6), boy: S(95.2, -76.4), warm5: S(101.6, -72.8), med5: S(101.8, -66.8),
 });
+// ---------- 2차 나 사건 자리 (2026-11): 성전 뜰(Z7: 성소·장사판·솔로몬 행각·양 우리) · 베데스다 못(Z8) · 베다니(Z12: 마르다와 마리아의 집·잔치 마당·나사로의 무덤) ----------
+// 성전 뜰은 길 넷이 가운데서 갈라짐 (북쪽 수가 길, 서북 윗동네 길, 남쪽 실로암 길, 동쪽 베데스다 길). 모형은 길 사이 빈 쪽에만 둠
+// Z7: 뜰 북쪽의 성소(들어가지 않는 큰 돌집), 북서쪽 장사판 넷(요 2:14), 동쪽 솔로몬 행각(10:23, 기둥 두 줄), 동쪽 길 너머 양 우리(10:1, 남쪽 문)
+export const HOLY7 = rect(-76, -64, 36, 46, 6.5);
+export const STALLS7 = [S(-69.5, 51.5), S(-66.5, 49), S(-63.8, 51.2), S(-67, 54.5)]; // 비둘기장 · 돈 바꾸는 상 둘 · 소와 양 (요 2:14)
+export const STALL_KIND = ['dove', 'money', 'money', 'ox'];
+export const PORTICO7 = { us: [-50.5, -48], vs: [50, 53, 56, 59, 62], h: 3.4 };
+export const FOLD7 = rect(-34, -26, 60, 66, 1.1);
+export const FOLD7_DOOR = [-31, -29]; // 남쪽 담의 문 (양의 문, 10:7)
+// Z8 베데스다: 길 꼭짓점 남쪽의 못 둘(가운데 둑), 둘레 네 줄과 둑 위 한 줄 = 행각 다섯 (5:2)
+export const POOL8 = { rim: rect(-20.3, -7.7, 97.2, 105.8), water: rect(-19.5, -8.5, 98, 105), mid: 101.5, base: groundH(-14, 101.5) };
+POOL8.cols = (() => {
+  const L = [], u0 = -22.3, u1 = -5.7, v0 = 95.2, v1 = 107.8;
+  for (let u = u0; u <= u1 + 0.01; u += (u1 - u0) / 6) { L.push(S(u, v0)); L.push(S(u, v1)); }
+  for (let v = v0 + 2.52; v < v1 - 0.1; v += 2.52) { L.push(S(u0, v)); L.push(S(u1, v)); }
+  return L;
+})();
+POOL8.midCols = [-17.2, -14, -10.8].map((u) => S(u, POOL8.mid)); // 두 못 사이 둑 위 (걸어 들어가지 않음)
+// Z12 베다니: 집(문은 남쪽 마당 쪽), 마당 잔치 식탁과 차양, 집 서쪽 벽 의자, 동쪽 작은 밭(12:24), 서북쪽 굴 무덤과 돌 (11:38)
+export const HOUSE12 = rect(40, 47, 61.5, 67.5, 2.8);
+export const TABLE12 = rect(40.5, 46.5, 70, 71, 0.78);
+export const PLOT12 = rect(49, 53, 62.5, 66.5);
+export const TOMB12 = { rock: S(27.6, 61.2), r: 3.4, mouth: S(30.6, 62.4), stone: S(31.4, 63.2), rolled: S(31.6, 59.9) };
+Object.assign(SP, {
+  // Z7 성전 뜰: 아버지 집 (2장)
+  disciple7: S(-71.8, 50.2), prayAt7: S(-66.8, 51.6), portico7: S(-49.25, 57.5), warm7: S(-51.8, 60.2),
+  // 생수와 세상의 빛 (7-8장): 행각 곁 물동이와 빛, 뜰 가운데 세워진 여인, 내가 설 자리, 무리가 나가는 길
+  woman8: S(-55, 55), lightAt7: S(-57.7, 56.7), warmL: S(-52.3, 53.4), jar7: S(-52.8, 51.6),
+  accOut: [S(-44, 69.5), S(-58.6, 40), S(-47, 46.5), S(-60, 41.5), S(-43, 71)],
+  // 선한 목자 (10장): 양 우리 남쪽 문 앞, 우리 안 깔개, 세 곳에서 부르는 소리 (첫째·둘째 차례는 문 앞 길가, 셋째는 문과 양쪽 담 너머)
+  shepherd: S(-26.6, 68.8), foldFront: S(-30, 69.8), foldSeat: S(-30, 62.6), foldDoor: S(-30, 66.6),
+  voiceA: [S(-36.2, 71), S(-30, 72.6), S(-23.8, 71)], voiceC: [S(-35.5, 61.4), S(-30, 67.9), S(-24.5, 61.4)],
+  // Z8 베데스다 (5장): 동쪽 행각 돗자리, 행각에 누운 병자들, 성전에서 못 쪽으로 오는 무리의 길
+  sick: S(-3.9, 100.4), mat8: S(-6.8, 101.5), water8: S(-14, 101.5),
+  pts: [S(-6.8, 98.1), S(-6.8, 104.9), S(-14.6, 96.2), S(-11.2, 106.8)],
+  stream8: [S(-49, 62.6), S(-40, 72), S(-22, 86), S(-12.5, 93.6)],
+  // Z12 베다니 (11장): 마르다, 집 서쪽 벽 의자의 마리아, 식탁의 나사로, 위문 온 사람들, 마을 어귀(남동쪽 길)의 빛, 무덤
+  martha: S(49.6, 72.4), mary12: S(38.7, 64.5), maryTable: S(39.3, 70.6), lazarus: S(42.4, 71.8),
+  mourn: [S(48.4, 74.4), S(51.4, 70.6), S(37.2, 68.2)], mournTomb: [S(35.2, 66.8), S(36.4, 62.6), S(34, 68.2)],
+  warmMeet: S(56.9, 93.4), marthaMeet: S(55.4, 92.2), stoneAt: S(33.3, 64.5), lazarusTomb: S(31.6, 62.9), warmTomb: S(34.8, 60.6),
+  // 나드 향유 (12장): 잔치 식탁(북쪽 긴 의자 가운데), 식탁 머리의 빛, 밭에 밀 심을 자리
+  table12: S(43.8, 69.25), warm12t: S(47.7, 70.5), plantAt: S(51, 64.6),
+});
+// 마을 돌 테두리(구역 빈 자리 표시)가 2차 나 모형을 지나가면 그 돌은 빼고 그림 (build.js zoneStones)
+export const noStone = (u, v) => [HOLY7, rect(-51.6, -46.9, 48.8, 63.2), rect(-23, -5, 94.5, 108.5), rect(38, 48, 61, 72.5), PLOT12, FOLD7].some((r) => inRect(r, u, v, 0.8)) || Math.hypot(u - TOMB12.rock.u, v - TOMB12.rock.v) < TOMB12.r + 1.2;
 // 이 둘레에는 나무를 두지 않음 (모형과 겹치지 않게)
 const CLEAR = [[ZONES.cana, 16], [ZONES.upper, 15], [ZONES.siloam, 13], [GATE7.c, 10], [SP.pole, 3], [ZONES.jordan, 14],
-  [ZONES.sychar, 26], [FIELD6, 0], [ZONES.galilee, 16], [S(SYN4.cu, SYN4.cv), 11], [S(HOUSE4.cu, HOUSE4.cv), 8], [SP.warm3, 6], [BOAT.dockE, 7], [BOAT.dockW, 7], [ZONES.bethsaida, 20], [SP.servPath[1], 6]];
+  [ZONES.sychar, 26], [FIELD6, 0], [ZONES.galilee, 16], [S(SYN4.cu, SYN4.cv), 11], [S(HOUSE4.cu, HOUSE4.cv), 8], [SP.warm3, 6], [BOAT.dockE, 7], [BOAT.dockW, 7], [ZONES.bethsaida, 20], [SP.servPath[1], 6],
+  [HOLY7, 0], [S(-58, 54), 13], [FOLD7, 0], [S(-30, 66), 9], [ZONES.bethesda, 18], [ZONES.bethany, 17], [TOMB12.rock, 9], [SP.warmMeet, 5]];
 
 // ---------- 나무: 올리브·무화과·종려 (씨앗 고정, 길·구역·물에서 떨어진 곳) ----------
 export const TREES = [];
@@ -237,6 +284,10 @@ block(GATE7.at(2.3, 0), 0.5); block(GATE7.at(-2.3, 0), 0.5);
 for (const s of [-1, 1]) for (let a = 2.9; a <= 8.01; a += 0.5) block(GATE7.at(s * a, 0), 0.32);
 block(SP.pole, 0.25); block(SP.lamp10, 0.18, 1.2); for (const p of LINE10) block(p, 0.12);
 block(WELL6, 0.85, 0.9); block(SP.shade6, 0.4);
+// 2차 나: 솔로몬 행각·베데스다 행각 기둥, 성전 뜰 물동이, 나사로의 무덤 바위
+for (const u of PORTICO7.us) for (const v of PORTICO7.vs) block(S(u, v), 0.26);
+for (const c of POOL8.cols) block(c, 0.24);
+block(SP.jar7, 0.4, 0.9); block(TOMB12.rock, TOMB12.r);
 const BK = 4, buckets = new Map();
 const bkey = (i, j) => i * 4096 + j;
 for (const o of obstacles) {
@@ -266,6 +317,11 @@ export const SEATS_J = {
   seat4: seat(SP.seat4, Math.PI / 2, 'gbench', W(SP.seat4.u + 0.8, SP.seat4.v)),
   synW: seat(SP.synW, Math.PI / 2, 'gbench', W(SP.synW.u + 0.8, SP.synW.v)),
   synE: seat(SP.synE, -Math.PI / 2, 'gbench', W(SP.synE.u - 0.8, SP.synE.v)),
+  // 2차 나: 솔로몬 행각 그늘, 베데스다 돗자리, 양 우리 안 깔개, 베다니 잔치 식탁(북쪽 긴 의자 셋). 집 서쪽 벽 의자는 마리아 자리라 넣지 않음
+  portico7: seat(SP.portico7, -Math.PI / 2, 'floor', W(SP.portico7.u, SP.portico7.v + 0.7)),
+  mat8: seat(SP.mat8, -Math.PI / 2, 'floor', W(SP.mat8.u + 0.2, SP.mat8.v + 0.7)),
+  foldSeat: seat(SP.foldSeat, 0, 'floor', W(SP.foldSeat.u, SP.foldSeat.v + 0.7)),
+  feast12: [42, 43.8, 45.6].map((u) => seat(S(u, 69.25), 0, 'gbench', W(u, 68.55))),
 };
 
 // ---------- 바닥·막힘·길값 (layout.js가 이 상자 안이면 이 함수로 넘김) ----------
@@ -314,6 +370,11 @@ function blockedRect(u, v) {
   const Sy = SYN4, sd = SYN4_DOOR;
   if (wallU(u, v, Sy.u0, Sy.v0, Sy.v1) || wallU(u, v, Sy.u1, Sy.v0, Sy.v1) || wallV(u, v, Sy.v0, Sy.u0, Sy.u1)) return true;
   if (wallV(u, v, Sy.v1, Sy.u0, sd[0]) || wallV(u, v, Sy.v1, sd[1], Sy.u1)) return true;
+  // 2차 나: 성소, 양 우리 담(남쪽 문만 열림), 베데스다 못(둘레 돌단까지), 베다니 집과 잔치 식탁
+  if (inRect(HOLY7, u, v, BODY) || inRect(POOL8.rim, u, v, 0.05) || inRect(HOUSE12, u, v, BODY) || inRect(TABLE12, u, v, BODY * 0.8)) return true;
+  const F = FOLD7, fd = FOLD7_DOOR;
+  if (wallU(u, v, F.u0, F.v0, F.v1) || wallU(u, v, F.u1, F.v0, F.v1) || wallV(u, v, F.v0, F.u0, F.u1)) return true;
+  if (wallV(u, v, F.v1, F.u0, fd[0]) || wallV(u, v, F.v1, fd[1], F.u1)) return true;
   return false;
 }
 function floorY(x, z) {

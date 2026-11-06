@@ -7,12 +7,15 @@
 //   (2차 가) G 거슬러 걷기: 떠나가는 무리 사이를 밀리며 빛 쪽으로. 멈추면 무리에 밀려 뒤로 (요 6:66-68)
 //   (2차 가) H 흐림 걷어내기: 화면의 물결·안개를 말씀 카드로 한 겹씩 걷어 냄 (요 6:20)
 //   (2차 가) I 서두름·되돌아섬: "돌아가자"는 속삭임에도 말씀을 믿고 계속 걸음. 되돌아서면 가던 길을 알려 줌 (요 4:50)
+//   (2차 나) C 목소리 가리기: 세 곳에서 부르는 소리 가운데 말씀과 맞는 목자의 음성이 나는 자리로 가서 섬. 틀린 자리는 이유 한 줄 (요 10:4-5, 10:27)
+//     예수님 목소리 연출은 하지 않음: 맞는 음성은 말씀 글(구절)로만 보여 줌
 //   마을 공용이라 2차·3차 사건과 초보자 마을 숲길에서도 같은 방식을 쓸 수 있음
 // ui: engine.js의 말풍선 (open/close), whisper: 화면 위쪽 속삭임 한 줄, sky: 구역 조명 (B에서 어둠 정도)
 import { VERSES } from '../verses.js';
 
 const SUB = { answer: '대답', drop: '내려놓기', verse: '말씀 고르기', clear: '흐림 걷어내기' };
-export function initTrials({ ui, me, toast, sfx, burst, whisper, sky, showVerse, lightPath, praying, push = null, fog = null }) {
+const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+export function initTrials({ ui, me, toast, sfx, burst, whisper, sky, showVerse, lightPath, praying, push = null, fog = null, marks = null, go = null }) {
   let cur = null; // 걸으며 하는 시험(B·E) 하나
   let gen = 0; // end()마다 늘어남: 그만둔 뒤 늦게 도는 setTimeout(다음 겹·안개)을 막음
   let choosing = false; // 고르는 시험 창이 떠 있음 (그만두면 닫음)
@@ -63,8 +66,8 @@ export function initTrials({ ui, me, toast, sfx, burst, whisper, sky, showVerse,
     cur = { kind: 'light', to, r, lines, then, k: 0.15, still: 0, li: 0, said: 0, lit: false, at: { x: me.x, z: me.z } };
   }
   // G 거슬러 걷기: to(자리 또는 함수)까지. 1초 넘게 멈추면 무리에 밀려 away 쪽으로 (push가 막힌 곳은 피함)
-  function against({ to, r = 2, lines = [], then, away }) {
-    cur = { kind: 'against', to, r, lines, then, away, still: 0, li: 0, said: 0, at: { x: me.x, z: me.z } };
+  function against({ to, r = 2, lines = [], then, away, far = 30 }) { // far: 이보다 멀면 밀지 않고 속삭이지 않음
+    cur = { kind: 'against', to, r, lines, then, away, far, still: 0, li: 0, said: 0, at: { x: me.x, z: me.z } };
     whisper(lines[0] || '');
   }
   // I 서두름·되돌아섬: to까지 걸어가면 이김. 가장 가까이 갔던 때보다 back m 넘게 멀어지면 말씀을 떠올려 줌
@@ -78,7 +81,39 @@ export function initTrials({ ui, me, toast, sfx, burst, whisper, sky, showVerse,
     cur = { kind: 'stay', sec, ok, lines, then, label, t: 0, li: 0, wt: 0, broke: false };
     whisper(lines[0] || '');
   }
-  function end() { if (choosing) { choosing = false; if (ui.isOpen()) ui.close(); } cur = null; gen++; whisper(''); sky.darkness(0); }
+  // C 목소리 가리기: rounds [{ spots: [p, p, p], lines: [{ t | v, ok, why }] }]. 맞는 자리에 0.6초 서면 다음 차례
+  //   패널(#jvoices)에 세 소리를 번호와 함께 보여 줌. 줄을 누르거나 숫자 키를 누르면 그 자리로 걸어감. marks(spots, 흐리게)는 땅의 번호 고리
+  const vEl = document.createElement('div'); vEl.id = 'jvoices'; vEl.hidden = true; document.body.appendChild(vEl);
+  // 낭독기: 패널은 이름 있는 묶음, 머리글(차례 k/n)은 바뀔 때 읽어 줌. 줄은 단추라 탐색하면 본문이 읽힘
+  vEl.setAttribute('role', 'group'); vEl.setAttribute('aria-label', '세 곳에서 부르는 소리');
+  vEl.innerHTML = '<p class="h" aria-live="polite"></p><div class="ls"></div><p class="n"></p>';
+  const vH = vEl.querySelector('.h'), vLs = vEl.querySelector('.ls'), vN = vEl.querySelector('.n');
+  let vAway = false; // 마을을 떠나 있음 (패널 감춤, 숫자 키 놓아줌)
+  // 폰에서는 말씀 카드(#verse)가 떠 있는 동안 패널을 감춤: 카드 아랫줄과 "• • •"를 가리지 않게
+  const narrowMQ = window.matchMedia?.('(max-width: 760px), (max-height: 500px)');
+  const cardUp = () => !!(narrowMQ?.matches && document.querySelector('#verse.on'));
+  vEl.addEventListener('pointerdown', (e) => e.stopPropagation());
+  const goVoice = (i) => { if (!cur || cur.kind !== 'voices') return; const p = cur.rounds[cur.k].spots[i]; if (p) go?.(p); };
+  vEl.addEventListener('click', (e) => { const b = e.target.closest('[data-v]'); if (!b) return; e.stopPropagation(); goVoice(+b.dataset.v); });
+  window.addEventListener('keydown', (e) => {
+    if (!cur || cur.kind !== 'voices' || vAway || vEl.hidden || ui.isOpen() || e.target.closest?.('textarea,input')) return;
+    const n = +e.key; if (n >= 1 && n <= 3) { e.stopPropagation(); goVoice(n - 1); }
+  }, true);
+  const voiceText = (o) => { const v = o.v && VERSES[o.v]; return v ? v[0] : o.t; };
+  function drawVoices() {
+    const c = cur, R = c.rounds[c.k];
+    const head = `${c.who} · ${c.k + 1}/${c.rounds.length}`;
+    if (vH.textContent !== head) vH.textContent = head;
+    vLs.innerHTML = R.lines.map((o, i) => `<button class="vl${c.no.has(i) ? ' no' : ''}" data-v="${i}"${c.no.has(i) ? ' aria-disabled="true"' : ''}><b>${i + 1}</b><span>${esc(voiceText(o))}</span>${c.no.has(i) ? '<i class="x">✕ 아니에요</i>' : ''}</button>`).join('');
+    vN.textContent = c.note;
+    vEl.hidden = vAway || cardUp();
+    marks?.(R.spots, R.lines.map((o, i) => c.no.has(i)));
+  }
+  function voices({ who = '세 곳에서 부르는 소리', rounds, then, r = 1.25, note = '말씀과 맞는 목자의 음성이 나는 번호 자리로 가서 서요. 줄을 누르면 그쪽으로 걸어가요' }) {
+    cur = { kind: 'voices', who, rounds, then, r, note, k: 0, t: 0, at: -1, no: new Set(), told: -1 };
+    drawVoices();
+  }
+  function end() { if (choosing) { choosing = false; if (ui.isOpen()) ui.close(); } cur = null; gen++; whisper(''); sky.darkness(0); vEl.hidden = true; marks?.(null); }
   let last = 0;
   function step() {
     const now = performance.now(), dt = last ? Math.min(0.25, (now - last) / 1000) : 0; last = now; // 실제 흐른 시간 (헤드리스에서도 같게)
@@ -118,6 +153,27 @@ export function initTrials({ ui, me, toast, sfx, burst, whisper, sky, showVerse,
       if (d < c.r) { const f = c.then; end(); won.add('onward'); sfx('orb', 0.25, 1.2); burst(me.x, me.y + 1.4, me.z); f?.(); }
       return;
     }
+    if (c.kind === 'voices') {
+      const hide = vAway || cardUp(); if (vEl.hidden !== hide) vEl.hidden = hide;
+      if (hide) { c.at = -1; c.t = 0; return; } // 패널이 안 보이는 동안은 자리를 재지 않음 (말씀 카드를 먼저 읽게)
+      const R = c.rounds[c.k];
+      let at = -1; R.spots.forEach((p, i) => { if (Math.hypot(me.x - p.x, me.z - p.z) < c.r) at = i; });
+      if (at !== c.at) { c.at = at; c.t = 0; }
+      if (at < 0) { c.told = -1; return; }
+      c.t += dt;
+      if (c.t < 0.6) return;
+      const o = R.lines[at];
+      if (o.ok) {
+        sfx('orb', 0.26, 1.1 + c.k * 0.08); burst(me.x, me.y + 1.4, me.z);
+        const v = o.v && VERSES[o.v]; if (v) toast(`말씀과 맞는 목자의 음성이에요 (${v[1]})`, 3);
+        c.k++; c.no = new Set(); c.at = -1; c.t = 0; c.told = -1;
+        if (c.k >= c.rounds.length) { const f = c.then; end(); won.add('voices'); f?.(); } else drawVoices();
+      } else if (c.told !== at) {
+        c.told = at; c.no.add(at); sfx('impact/impactSoft_medium_000', 0.16, 0.8);
+        toast(o.why || '타인의 음성이에요. 말씀과 맞지 않아요 (10:5)', 5); drawVoices();
+      }
+      return;
+    }
     if (c.kind === 'stay') {
       if (c.ok()) { c.t += dt; c.broke = false; }
       else if (c.t > 0 && !c.broke) { c.broke = true; c.t = 0; toast('다시 그 자리에 머물러요. 처음부터 세어요', 3); }
@@ -127,9 +183,10 @@ export function initTrials({ ui, me, toast, sfx, burst, whisper, sky, showVerse,
     }
   }
   return {
-    answer, drop: dropIt, pick, clear, light, stay, against, onward, step, end,
+    answer, drop: dropIt, pick, clear, light, stay, against, onward, voices, step, end,
     won: (k) => won.has(k), reset: () => { won.clear(); end(); fog?.(0); },
+    away: (off) => { vAway = off; if (cur && cur.kind === 'voices') { if (off) vEl.hidden = true; else drawVoices(); } }, // 마을을 떠나면 목소리 패널을 감추고(숫자 키도 놓아줌), 돌아오면 다시
     active: () => !!cur,
-    progress: () => (cur && cur.kind === 'stay' ? `${cur.label} ${Math.min(cur.sec, Math.floor(cur.t))}/${cur.sec}초` : ''),
+    progress: () => (cur && cur.kind === 'stay' ? `${cur.label} ${Math.min(cur.sec, Math.floor(cur.t))}/${cur.sec}초` : cur && cur.kind === 'voices' ? `· ${cur.k + 1}/${cur.rounds.length}` : ''),
   };
 }
