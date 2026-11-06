@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import {
   JX, JZ, HALF_W, HALF_D, W, ZONES, LAKE, RIVER, RIVER_HALF, FORD, ROADS, groundH, WATER_Y, PLAZA, PLAZA_LIGHT, LAMPS, BENCHES, CART, SIGNPOSTS, TREES,
+  SP, HOUSE2, YARD3, YARD3_GAPS, HOUSE3, JARS, TABLE3, HOUSE10, ROOF_Y, STAIR10, LINE10, GATE7, POOL9,
 } from './layout.js';
 
 const M = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.92, ...o });
@@ -19,6 +20,10 @@ const mat = {
   olive: M(0x93a57d),
   fig: M(0x6f8f55),
   palm: M(0x7f9a4f),
+  plaster: M(0xe3d6b8), plasterDark: M(0xcdbd9c), door: M(0x6e4f36), jar: M(0xcfc6b4, { roughness: 0.8 }),
+  wine: new THREE.MeshStandardMaterial({ color: 0x7a1c2c, roughness: 0.2 }),
+  cloth: new THREE.MeshStandardMaterial({ color: 0xf2ead8, roughness: 1, side: THREE.DoubleSide }),
+  bronze: M(0xb8864a, { roughness: 0.4, metalness: 0.6, emissive: 0x6a3a10, emissiveIntensity: 0.4 }),
 };
 
 function ground() {
@@ -163,6 +168,183 @@ function glowTex() {
   const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
 
+// ---------- 1차 MVP 사건 모형 (2026-11): Z1 등불 자리 · Z2 집과 무화과나무 · Z3 잔치 집 · Z10 니고데모 집 · Z7 성전 문 · Z9 실로암 ----------
+const gy = (p) => groundH(p.u, p.v);
+function bx(root, w, h, d, m, x, y, z, ry = 0) {
+  const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m);
+  o.position.set(x, y, z); o.rotation.y = ry; o.castShadow = true; o.receiveShadow = true; root.add(o); return o;
+}
+// 평평한 지붕 돌집 (문은 face 쪽: 'w' | 'e' | 's' | 'n')
+function stoneHouse(root, R, face = 'w', y0 = null) {
+  const c = W(R.cu, R.cv), g = y0 ?? groundH(R.cu, R.cv);
+  bx(root, R.w, R.h + 0.6, R.d, mat.plaster, c.x, g - 0.6 + (R.h + 0.6) / 2, c.z);
+  bx(root, R.w + 0.3, 0.16, R.d + 0.3, mat.plasterDark, c.x, g + R.h + 0.02, c.z); // 지붕 가장자리
+  const dw = 1.0, dh = 1.7;
+  const dp = { w: [c.x - R.w / 2 - 0.02, c.z, Math.PI / 2], e: [c.x + R.w / 2 + 0.02, c.z, Math.PI / 2], s: [c.x, c.z + R.d / 2 + 0.02, 0], n: [c.x, c.z - R.d / 2 - 0.02, 0] }[face];
+  bx(root, dw, dh, 0.06, mat.door, dp[0], g + dh / 2, dp[1], dp[2]);
+  // 작은 창 둘
+  for (const s of [-1, 1]) {
+    const off = s * Math.min(R.w, R.d) * 0.3;
+    if (face === 'w' || face === 'e') bx(root, 0.06, 0.4, 0.5, mat.door, dp[0], g + 1.7, dp[1] + off, 0);
+    else bx(root, 0.5, 0.4, 0.06, mat.door, dp[0] + off, g + 1.7, dp[1], 0);
+  }
+}
+function treeBig(root, p, h = 3.4, r = 2.4, color = mat.fig) {
+  const y = gy(p);
+  const t = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.32, h, 7), mat.trunk); t.position.set(p.x, y + h / 2, p.z); t.castShadow = true; root.add(t);
+  for (const [dx, dz, s] of [[0, 0, 1], [0.9, 0.4, 0.75], [-0.8, -0.5, 0.7], [0.2, -0.9, 0.65]]) {
+    const c = new THREE.Mesh(new THREE.IcosahedronGeometry(r * s, 0), color); c.position.set(p.x + dx, y + h + 0.3 * s, p.z + dz); c.scale.y = 0.62; c.castShadow = true; root.add(c);
+  }
+}
+function oilLamp(root, x, y, z) {
+  const g = new THREE.Group(); g.position.set(x, y, z);
+  const bowl = new THREE.Mesh(new THREE.SphereGeometry(0.14, 12, 8), mat.clay); bowl.scale.set(1.3, 0.5, 1); g.add(bowl);
+  const spout = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.16, 8), mat.clay); spout.rotation.z = Math.PI / 2; spout.position.set(0.2, 0.02, 0); g.add(spout);
+  const fl = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex(), color: 0xffc860, transparent: true, depthWrite: false })); fl.scale.set(0.5, 0.7, 1); fl.position.set(0.26, 0.14, 0); g.add(fl);
+  g.userData.flame = fl;
+  root.add(g); return g;
+}
+function mvp(root) {
+  const parts = {};
+  // Z1: 광장 끝 등불 자리 (작은 돌 받침 위 등잔)
+  {
+    const p = SP.lampAt, y = gy(p);
+    bx(root, 0.5, 0.9, 0.5, mat.stone, p.x - 0.9, y + 0.45, p.z);
+    parts.lampStand = oilLamp(root, p.x - 0.9, y + 0.98, p.z);
+  }
+  // Z2: 작은 집 (문은 강 쪽 서쪽), 문 앞 의자, 무화과나무, 따뜻한 빛 (처음엔 감춤)
+  {
+    stoneHouse(root, HOUSE2, 'w');
+    const b = SP.bench2, y = gy(b);
+    bx(root, 0.5, 0.12, 1.5, mat.wood, b.x, y + 0.45, b.z);
+    for (const s of [-0.6, 0.6]) bx(root, 0.42, 0.45, 0.14, mat.stoneDark, b.x, y + 0.22, b.z + s);
+    treeBig(root, SP.fig, 2.6, 2.3, mat.fig);
+    const w = SP.warm, wy = gy(w);
+    const orb = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex(), color: 0xffe0a0, transparent: true, depthWrite: false, opacity: 0.9 }));
+    orb.scale.set(2.6, 2.6, 1); orb.position.set(w.x, Math.max(wy, WATER_Y) + 1.5, w.z);
+    const core = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 10), new THREE.MeshBasicMaterial({ color: 0xfff6dc })); core.position.copy(orb.position);
+    const g = new THREE.Group(); g.add(orb, core); g.visible = false; root.add(g);
+    parts.warm = g;
+  }
+  // Z3 가나: 마당 담(동·남쪽 틈), 잔치 집, 돌항아리 여섯(물 높이), 식탁과 의자, 우물
+  {
+    const Y = YARD3, g0 = groundH(Y.cu, Y.cv), H = Y.h;
+    const wallSeg = (u0, v0, u1, v1) => {
+      const a = W(u0, v0), b = W(u1, v1), len = Math.hypot(b.x - a.x, b.z - a.z);
+      bx(root, len + 0.4, H, 0.4, mat.stoneDark, (a.x + b.x) / 2, g0 + H / 2 - 0.1, (a.z + b.z) / 2, -Math.atan2(b.z - a.z, b.x - a.x));
+    };
+    const gE = YARD3_GAPS.east, gS = YARD3_GAPS.south;
+    wallSeg(Y.u0, Y.v0, Y.u1, Y.v0); wallSeg(Y.u0, Y.v0, Y.u0, Y.v1);
+    wallSeg(Y.u1, Y.v0, Y.u1, gE[0]); wallSeg(Y.u1, gE[1], Y.u1, Y.v1);
+    wallSeg(Y.u0, Y.v1, gS[0], Y.v1); wallSeg(gS[1], Y.v1, Y.u1, Y.v1);
+    stoneHouse(root, HOUSE3, 's');
+    // 차양 (잔치 식탁 위 천)
+    const T = TABLE3, tc = W(T.cu, T.cv), ty = groundH(T.cu, T.cv);
+    const aw = new THREE.Mesh(new THREE.PlaneGeometry(8, 4.6), mat.cloth); aw.rotation.x = -Math.PI / 2 + 0.08; aw.position.set(tc.x, ty + 2.7, tc.z - 0.4); aw.receiveShadow = true; root.add(aw);
+    for (const [dx, dz] of [[-3.9, -2.6], [3.9, -2.6], [-3.9, 1.9], [3.9, 1.9]]) bx(root, 0.1, 2.7, 0.1, mat.wood, tc.x + dx, ty + 1.35, tc.z + dz);
+    bx(root, T.w, 0.08, T.d, mat.wood, tc.x, ty + T.h, tc.z);
+    for (const dx of [-T.w / 2 + 0.3, T.w / 2 - 0.3]) bx(root, 0.12, T.h, T.d - 0.2, mat.door, tc.x + dx, ty + T.h / 2, tc.z);
+    for (const dz of [1.2, -1.2]) bx(root, T.w, 0.1, 0.42, mat.wood, tc.x, ty + 0.42, tc.z + dz); // 긴 의자 둘
+    // 식탁 위 떡과 잔
+    parts.cups = [];
+    for (let k = 0; k < 6; k++) {
+      const x = tc.x - 2.4 + k * 0.95;
+      const loaf = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.18, 0.08, 10), M(0xd8a85a)); loaf.position.set(x, ty + T.h + 0.08, tc.z - 0.15); root.add(loaf);
+      const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.045, 0.14, 10), mat.clay); cup.position.set(x + 0.3, ty + T.h + 0.11, tc.z + 0.22); root.add(cup);
+      const wine = new THREE.Mesh(new THREE.CircleGeometry(0.052, 10), mat.wine); wine.rotation.x = -Math.PI / 2; wine.position.set(x + 0.3, ty + T.h + 0.175, tc.z + 0.22); wine.visible = false; root.add(wine);
+      parts.cups.push(wine);
+    }
+    // 돌항아리 여섯 (요 2:6 두 세 통 드는) — 물은 안쪽 원판이 아귀까지 차오름
+    parts.jars = JARS.map((j) => {
+      const y = gy(j), g = new THREE.Group(); g.position.set(j.x, y, j.z);
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.27, 0.95, 16, 1, true), mat.jar); body.position.y = 0.475; body.castShadow = true; g.add(body);
+      const lip = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.04, 6, 18), mat.jar); lip.rotation.x = Math.PI / 2; lip.position.y = 0.95; g.add(lip);
+      const bottom = new THREE.Mesh(new THREE.CircleGeometry(0.27, 16), mat.stoneDark); bottom.rotation.x = -Math.PI / 2; bottom.position.y = 0.03; g.add(bottom);
+      const wm = new THREE.MeshStandardMaterial({ color: 0x6fb2c8, roughness: 0.1, transparent: true, opacity: 0.9 });
+      const water = new THREE.Mesh(new THREE.CircleGeometry(0.31, 16), wm); water.rotation.x = -Math.PI / 2; water.position.y = 0.04; water.visible = false; g.add(water);
+      root.add(g);
+      return { g, water, wm, level: 0 };
+    });
+    // 우물 (돌 테두리, 물, 두레박 기둥)
+    const w = SP.well, wy = gy(w);
+    const ringM = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.85, 0.75, 20, 1, true), mat.stoneDark); ringM.position.set(w.x, wy + 0.37, w.z); ringM.castShadow = true; root.add(ringM);
+    const lipW = new THREE.Mesh(new THREE.TorusGeometry(0.8, 0.09, 6, 20), mat.stone); lipW.rotation.x = Math.PI / 2; lipW.position.set(w.x, wy + 0.75, w.z); root.add(lipW);
+    const ww = new THREE.Mesh(new THREE.CircleGeometry(0.72, 18), mat.water); ww.rotation.x = -Math.PI / 2; ww.position.set(w.x, wy + 0.45, w.z); root.add(ww);
+    for (const s of [-1, 1]) bx(root, 0.1, 1.7, 0.1, mat.wood, w.x + s * 0.85, wy + 0.85, w.z);
+    bx(root, 1.9, 0.08, 0.08, mat.wood, w.x, wy + 1.7, w.z);
+  }
+  // Z10 니고데모 집: 지붕 위 낮은 담·층계참, 바깥 계단, 빨랫줄과 천, 등잔 / 멀리 장대 위 놋뱀
+  {
+    const H = HOUSE10, st = STAIR10, g = ROOF_Y - H.h;
+    stoneHouse(root, H, 'w', g);
+    const c = W(H.cu, H.cv);
+    // 지붕 담 (동쪽은 층계참 옆이 열림)
+    const pm = mat.plasterDark, ph = 0.45;
+    bx(root, H.w, ph, 0.2, pm, c.x, ROOF_Y + ph / 2, JZ + H.v0);
+    bx(root, H.w, ph, 0.2, pm, c.x, ROOF_Y + ph / 2, JZ + H.v1);
+    bx(root, 0.2, ph, H.d, pm, JX + H.u0, ROOF_Y + ph / 2, c.z);
+    bx(root, 0.2, ph, H.v1 - st.vTop, pm, JX + H.u1, ROOF_Y + ph / 2, JZ + (st.vTop + H.v1) / 2);
+    // 층계참과 계단 (돌 칸)
+    const lw = st.u1 - st.u0, lx = JX + (st.u0 + st.u1) / 2;
+    bx(root, lw, ROOF_Y - g + 0.1, st.vTop - H.v0, mat.plaster, lx, (ROOF_Y + g) / 2 - 0.05, JZ + (H.v0 + st.vTop) / 2);
+    const n = 9;
+    for (let k = 0; k < n; k++) {
+      const v0 = st.vTop + ((st.vBot - st.vTop) * k) / n, v1 = st.vTop + ((st.vBot - st.vTop) * (k + 1)) / n;
+      const top = ROOF_Y - ((ROOF_Y - groundH(lx - JX, (v0 + v1) / 2)) * (k + 0.5)) / n;
+      const gb = groundH(lx - JX, (v0 + v1) / 2) - 0.3;
+      bx(root, lw, top - gb, v1 - v0 + 0.02, mat.plaster, lx, (top + gb) / 2, JZ + (v0 + v1) / 2);
+    }
+    bx(root, 0.12, 0.9, st.vTop - H.v0, mat.wood, JX + st.u1, ROOF_Y + 0.45, JZ + (H.v0 + st.vTop) / 2); // 층계참 난간
+    // 빨랫줄 기둥 둘, 줄, 바람에 날리는 천
+    const [a, b] = LINE10;
+    for (const q of LINE10) bx(root, 0.08, 1.9, 0.08, mat.wood, q.x, ROOF_Y + 0.95, q.z);
+    bx(root, 0.03, 0.03, Math.hypot(b.x - a.x, b.z - a.z), mat.wood, a.x, ROOF_Y + 1.85, (a.z + b.z) / 2);
+    const clothG = new THREE.Group(); clothG.position.set(a.x, ROOF_Y + 1.85, (a.z + b.z) / 2);
+    const cloth = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 1.0, 8, 4), mat.cloth); cloth.position.y = -0.5; cloth.castShadow = true; clothG.add(cloth);
+    root.add(clothG);
+    parts.cloth = clothG; parts.clothMesh = cloth; parts.clothBase = Float32Array.from(cloth.geometry.attributes.position.array);
+    // 지붕 등잔 (불빛)
+    const l = SP.lamp10;
+    bx(root, 0.3, 0.35, 0.3, mat.stone, l.x, ROOF_Y + 0.17, l.z);
+    parts.roofLamp = oilLamp(root, l.x, ROOF_Y + 0.42, l.z);
+    const pl = new THREE.PointLight(0xffc878, 0, 9, 1.6); pl.position.set(l.x, ROOF_Y + 0.9, l.z); root.add(pl); parts.roofLight = pl;
+    // 앉을 깔개
+    const mat10 = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.04, 0.9), M(0x9a5a4a)); mat10.position.set(SP.seat10.x, ROOF_Y + 0.02, SP.seat10.z); root.add(mat10);
+    // 장대 위 놋뱀 (요 3:14, 민 21:9) — 멀리 언덕 위
+    const p = SP.pole, py = gy(p);
+    bx(root, 0.16, 7, 0.16, mat.wood, p.x, py + 3.5, p.z);
+    bx(root, 1.4, 0.12, 0.12, mat.wood, p.x, py + 6.4, p.z);
+    const snake = new THREE.Mesh(new THREE.TorusKnotGeometry(0.32, 0.06, 64, 8, 2, 5), mat.bronze); snake.position.set(p.x, py + 6.2, p.z); snake.scale.set(1, 2.2, 1); root.add(snake);
+    const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex(), color: 0xffd890, transparent: true, depthWrite: false, opacity: 0.0 }));
+    halo.scale.set(5, 5, 1); halo.position.set(p.x, py + 6.3, p.z); root.add(halo); parts.poleGlow = halo;
+  }
+  // Z7 성전 남쪽 문: 기둥 둘, 들보, 양옆 담
+  {
+    const G = GATE7, y = gy(G.c);
+    for (const s of [-1, 1]) { const q = G.at(s * 2.3, 0); bx(root, 0.9, 4.2, 0.9, mat.stone, q.x, y + 2.1, q.z, G.rot); }
+    bx(root, 5.6, 0.6, 1.0, mat.stoneDark, G.c.x, y + 4.4, G.c.z, G.rot - Math.PI / 2);
+    for (const s of [-1, 1]) { const q = G.at(s * 5.45, 0); bx(root, 5.3, 2.6, 0.6, mat.stoneDark, q.x, y + 1.3, q.z, G.rot - Math.PI / 2); }
+  }
+  // Z9 실로암 못: 둘레 단, 북쪽 계단 셋, 안쪽 한 칸, 물
+  {
+    const P = POOL9, O = P.out, c = W(O.cu, O.cv), b = P.base;
+    // 둘레 단 (가운데 물자리는 비워 둠: 네 조각)
+    const Wt = P.water, piece = (u0, u1, v0, v1, top) => { const q = W((u0 + u1) / 2, (v0 + v1) / 2); bx(root, u1 - u0, top - (b - 0.4), v1 - v0, mat.stone, q.x, (top + b - 0.4) / 2, q.z); };
+    piece(O.u0, Wt.u0, O.v0, O.v1, P.top); piece(Wt.u1, O.u1, O.v0, O.v1, P.top);
+    piece(Wt.u0, Wt.u1, Wt.v1, O.v1, P.top); piece(Wt.u0, Wt.u1, O.v0, P.inner.v0, P.top);
+    piece(Wt.u0, Wt.u1, P.inner.v0, P.inner.v1, P.innerY);
+    // 바깥 계단 셋
+    for (let k = 0; k < 3; k++) { const v0 = P.steps.v0 + k * 0.867; piece(P.steps.u0, P.steps.u1, v0, v0 + 0.867, b + 0.3 * (k + 1)); }
+    // 물 (바닥이 비치는 푸른 물)
+    const wq = W(Wt.cu, Wt.cv);
+    const floor = new THREE.Mesh(new THREE.BoxGeometry(Wt.w, 0.1, Wt.d), mat.stoneDark); floor.position.set(wq.x, b - 0.4, wq.z); root.add(floor);
+    const water = new THREE.Mesh(new THREE.PlaneGeometry(Wt.w, Wt.d), mat.water); water.rotation.x = -Math.PI / 2; water.position.set(wq.x, P.waterY, wq.z); root.add(water);
+    parts.pool = water;
+    void c;
+  }
+  return parts;
+}
+
 export function buildJohn({ scene, makeCart, makeSignpost }) {
   const root = new THREE.Group();
   root.name = 'john-village';
@@ -200,6 +382,7 @@ export function buildJohn({ scene, makeCart, makeSignpost }) {
     sp.rotation.y = s.id === 'light' ? Math.atan2(PLAZA_LIGHT.x - s.x, PLAZA_LIGHT.z - s.z) : Math.atan2(-(z.x - s.x), -(z.z - s.z)) + Math.PI;
     root.add(sp);
   }
+  const parts = mvp(root);
   scene.add(root);
-  return { root, cart, at: W };
+  return { root, cart, at: W, parts };
 }

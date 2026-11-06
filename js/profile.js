@@ -23,6 +23,12 @@ export const ITEMS = {
   bread: { name: '떡 한 덩이', verse: ['집에서 떡을 떼며 기쁨과 순전한 마음으로 음식을 먹고', '사도행전 2:46'] },
   lamp: { name: '등불', verse: ['이같이 너희 빛을 사람 앞에 비취게 하여 저희로 너희 착한 행실을 보고 하늘에 계신 너희 아버지께 영광을 돌리게 하라', '마태복음 5:16'] },
   stake: { name: '장막 말뚝', verse: ['네 장막터를 넓히며 네 처소의 휘장을 아끼지 말고 널리 펴되 너의 줄을 길게 하며 너의 말뚝을 견고히 할찌어다', '이사야 54:2'] },
+  // 요한복음 마을 1차 사건에서 받음 (js/john/events.js)
+  jn_scroll: { name: '요한의 두루마리', verse: ['오직 이것을 기록함은 너희로 예수께서 하나님의 아들 그리스도이심을 믿게 하려 함이요 또 너희로 믿고 그 이름을 힘입어 생명을 얻게 하려 함이니라', '요한복음 20:31'] },
+  jn_fig: { name: '무화과 잎', verse: ['나다나엘이 가로되 어떻게 나를 아시나이까 예수께서 대답하여 가라사대 빌립이 너를 부르기 전에 네가 무화과나무 아래 있을 때에 보았노라', '요한복음 1:48'] },
+  jn_jar: { name: '돌항아리', verse: ['예수께서 저희에게 이르시되 항아리에 물을 채우라 하신즉 아구까지 채우니', '요한복음 2:7'] },
+  jn_nightlamp: { name: '밤의 등잔', verse: ['진리를 좇는 자는 빛으로 오나니 이는 그 행위가 하나님 안에서 행한 것임을 나타내려 함이라 하시니라', '요한복음 3:21'] },
+  jn_siloam: { name: '실로암 물', verse: ['이르시되 실로암 못에 가서 씻으라 하시니 (실로암은 번역하면 보냄을 받았다는 뜻이라) 이에 가서 씻고 밝은 눈으로 왔더라', '요한복음 9:7'] },
 };
 // 수레바퀴 다섯 능력치
 export const STATS = [
@@ -136,7 +142,7 @@ export const GOODS = {
   salve: { name: '안약', price: 2, use: '3분 동안 아직 마치지 않은 부탁과 훈련의 사람 머리 위에 빛기둥이 서서 멀리서도 보여요', verse: ['안약을 사서 눈에 발라 보게 하라', '요한계시록 3:18'] },
 };
 // 받은 물품을 가게에 팔 때 값 (광주리는 팔지 않음)
-export const SELL = (id) => (id === 'basket' ? 0 : ['manna', 'mustard'].includes(id) ? 1 : ['scroll', 'incense', 'bread', 'lamp', 'stake'].includes(id) ? 5 : 3);
+export const SELL = (id) => (id === 'basket' || id === 'jn_scroll' ? 0 : ['manna', 'mustard'].includes(id) ? 1 : ['scroll', 'incense', 'bread', 'lamp', 'stake'].includes(id) ? 5 : 3);
 const touchWallet = (p) => { p.walletAt = Date.now(); };
 export function earn(p, n) { if (p.coins == null) p.coins = 0; p.coins += n; touchWallet(p); saveProfile(p); }
 export function spend(p, n) { if ((p.coins | 0) < n) return false; p.coins -= n; touchWallet(p); saveProfile(p); return true; }
