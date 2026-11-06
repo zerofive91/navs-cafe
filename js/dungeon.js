@@ -176,7 +176,8 @@ export function initDungeon(K) {
       // 붙들 말씀(현대어는 bible.js가 바꿔 보여 줌) + 등불
       opts = []; S.right = null; $('.opts').innerHTML = '';
       vb.innerHTML = `<span>${ref[0]} <em>${ref[1]}</em></span><i class="lamp"><b></b></i>`;
-      Object.assign(S, { p: 0, grace: 1.2, broken: false, wt: 0, wi: 0, lines: [T.lie, ...(T.hold?.more || [])], ax: me.x, az: me.z, prayed: false });
+      Object.assign(S, { p: 0, grace: 1.2, broken: false, wt: 0, wi: 0, lines: [T.lie, ...(T.hold?.more || [])], ax: me.x, az: me.z, prayed: false, lastT: performance.now() });
+      lampB = vb.querySelector('.lamp b');
     } else {
       S.right = T.id;
       opts = shuffle([T.id, ...T.no], hash(S.id + S.k + performance.now()));
@@ -204,7 +205,7 @@ export function initDungeon(K) {
     return BY[k]?.about ? `그 말씀은 ${BY[k].about}` : '';
   }
   function winTrial(S, i) {
-    S.beaten = true; S.fade = 0; S.wait = true;
+    S.beaten = true; S.fade = 0; S.wait = true; S.sz = S.g.scale.x; // 버티며 줄어든 크기에서 흩어지게
     box.classList.add('ok'); if (i != null) $(`.opt[data-i="${i}"]`)?.classList.add('hint');
     if (S.kind === 'fill') { const b = $('.verse .blank'); if (b) { b.textContent = S.words[0]; b.classList.add('on'); } }
     if (S.kind === 'hold') { lamp(1); $('.again').hidden = true; }
@@ -250,8 +251,12 @@ export function initDungeon(K) {
     }
   }
   // ---------- 버티기: 속삭임이 되풀이되는 동안 말씀을 붙들고 서 있기 ----------
-  const lamp = (k) => { const b = $('.verse .lamp b'); if (b) b.style.width = `${Math.round(k * 100)}%`; };
-  function holdStep(S, dt) {
+  let lampB = null; // 등불 막대 (meet에서 찾아 둠)
+  const lamp = (k) => { if (lampB) lampB.style.width = `${Math.round(k * 100)}%`; };
+  function holdStep(S) {
+    // 시간은 프레임 dt(main.js가 0.05로 자름)가 아니라 실제 지난 시간으로 잼: 느린 기기에서도 8~12초 그대로 (한 번에 0.25초까지)
+    const now = performance.now(), dt = Math.min(0.25, Math.max(0, (now - (S.lastT || now)) / 1000));
+    S.lastT = now;
     if (S.broken) return;
     if (S.grace > 0) { S.grace -= dt; S.ax = me.x; S.az = me.z; return; } // 멈춰 설 때까지는 자리를 따라감
     if (Math.hypot(me.x - S.ax, me.z - S.az) > HOLD_R) {
@@ -274,7 +279,7 @@ export function initDungeon(K) {
   }
   function again() {
     const S = cur; if (!S || S.kind !== 'hold' || !S.broken || S.wait) return;
-    Object.assign(S, { broken: false, p: 0, grace: 0.6, ax: me.x, az: me.z });
+    Object.assign(S, { broken: false, p: 0, grace: 0.6, ax: me.x, az: me.z, lastT: performance.now() });
     $('.again').hidden = true; note(PROMPT.hold); lamp(0);
   }
 
@@ -324,7 +329,7 @@ export function initDungeon(K) {
   }
   function hint() {
     if (!cur || cur.wait) return;
-    if (cur.kind === 'hold') { if (!cur.prayed) { cur.prayed = true; toast('기도하며 말씀을 붙들어요. 무릎 꿇은 채로도 버틸 수 있어요', 3); } return; }
+    if (cur.kind === 'hold') { if (!cur.prayed && !cur.broken) { cur.prayed = true; note('기도하며 말씀을 붙들어요. 무릎 꿇은 채로도 버틸 수 있어요'); } return; } // 알림 대신 창 안 글 (가로 폰에서 등불을 덮지 않게)
     const i = opts.indexOf(cur.right);
     $(`.opt[data-i="${i}"]`)?.classList.add('hint');
     toast('기도하니 마음에 떠오르는 말씀이 있어요', 3);
@@ -369,13 +374,13 @@ export function initDungeon(K) {
       const d = Math.hypot(me.x - S.x, me.z - S.z);
       S.g.visible = (!S.beaten || S.fade >= 0) && d < 70;
       if (!S.g.visible) continue;
-      if (S.fade >= 0) { S.fade += dt; const k = Math.max(0, 1 - S.fade / 1.2); S.g.scale.setScalar((S.big ? 1.9 : 1) * (1 + (1 - k) * 0.6)); S.parts.forEach((m) => { m.material.opacity = (m.isSprite ? 0.45 : 0.55) * k; }); if (k <= 0) { S.fade = -1; S.g.visible = false; } continue; }
+      if (S.fade >= 0) { S.fade += dt; const k = Math.max(0, 1 - S.fade / 1.2); S.g.scale.setScalar((S.sz || (S.big ? 1.9 : 1)) * (1 + (1 - k) * 0.6)); S.parts.forEach((m) => { m.material.opacity = (m.isSprite ? 0.45 : 0.55) * k; }); if (k <= 0) { S.fade = -1; S.g.visible = false; } continue; }
       S.parts.forEach((m, q) => { if (m.isMesh) m.position.set(Math.sin(t * (1.1 + q * 0.3) + q) * 0.45, 0.8 + q * 0.32 + Math.sin(t * 2 + q) * 0.12, Math.cos(t * (0.9 + q * 0.25) + q * 2) * 0.45); else m.material.rotation = t * 0.3 * (q % 2 ? 1 : -1); });
     }
     // 시험: 속삭임 곁에 오면 길을 막고 물음
     if (cur) {
       if (!cur.wait && Math.hypot(me.x - cur.x, me.z - cur.z) > 8) close();
-      else if (cur.kind === 'hold') { if (!cur.wait) holdStep(cur, dt); }
+      else if (cur.kind === 'hold') { if (!cur.wait) holdStep(cur); }
       else if (cur && !cur.wait && !cur.belt && wears('belt') && performance.now() - cur.metAt > 8000) { cur.belt = true; hint(); toast('진리의 허리띠: 진리가 비쳐요', 2.5); }
       if (cur && cur.big) bigPulse(t);
     } else if (!busy()) {
