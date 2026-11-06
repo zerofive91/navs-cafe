@@ -597,7 +597,7 @@ function availableActions() {
   const lyingNow = me.state === 'sit' && me.seat && (me.seat.kind === 'lie' || LIEABLE.has(me.seat.kind));
   if (!lyingNow && !inPool(me.x, me.z) && !me.slow) { if (me.state !== 'sit' && nearSeat(true)) place('recline'); else list.push('recline'); }
   if (me.state !== 'sit' && !me.slow) list.push('jump');
-  const gw = garden?.wants() || []; // 정원 빛나는 자리(빌립보 감옥·실로)에서는 기도·찬양이 반짝임
+  const gw = [...(garden?.wants() || []), ...(region?.wants() || [])]; // 정원 빛나는 자리(빌립보 감옥·실로)·요한 마을 기도 단계에서는 기도·찬양이 반짝임
   for (const n of ['pray', 'read', 'praise']) { list.push(n); if (gw.includes(n)) P.add(n); }
   if (nearestPerson(6)) list.push('share');
   list.push('wave');
@@ -1639,6 +1639,11 @@ function setEnv(env) {
 }
 region = initRegion({
   scene, me, profile, save: () => saveProfile(profile), toast, sfx, standUp, walkTo, interactive, occluders, setEnv,
+  // 요한복음 마을 사건(js/john/engine.js)이 쓰는 것: 마을을 처음 지을 때 넘겨받음
+  johnKit: {
+    scene, me, makeChar, npcs, profile, save: () => saveProfile(profile), toast, sfx, burst, fxSprite, walkTo, standUp, shot,
+    busy: () => busyOf('john')(), onChange: () => character?.showChip(), openLog: (k) => questLog?.open(k), lights: { hemi, sun },
+  },
   camBehind: () => { view.az = me.face + Math.PI; view.tx = me.x; view.tz = me.z; view.ty = me.y + 0.62; view.shot = null; view.lift = 0; },
   onSwitch: (id) => {
     document.body.classList.toggle('region-john', id === 'john');
@@ -1656,6 +1661,7 @@ const OPEN_WINDOWS = {
   guides: () => guides?.active(), garden: () => garden?.active(), wayguide: () => wayguide?.active(), warfare: () => warfare?.active(),
   quests: () => quests?.active(), shop: () => shop?.active(), story: () => story?.active?.(),
   region: () => region?.active(), // 마을을 옮기는 중
+  john: () => !!region?.engine?.active(), // 요한복음 마을 사건 말풍선 (시험·공부·암송·묵상 창 포함)
 };
 const busyOf = (self, ...skip) => {
   const off = new Set([self, ...skip]);
@@ -1749,7 +1755,7 @@ story = initStory({
   busy: busyOf('story'),
   onChange: () => character.showChip(),
 });
-questLog = initQuestLog({ me, quests, story, walkTo, toast });
+questLog = initQuestLog({ me, quests, story, walkTo, toast, john: () => region.engine, town: () => region.here() });
 requestAnimationFrame(frame);
 if (window.__pick) choose(window.__pick);
 // 첫 화면이 뜬 뒤 소품 모델을 천천히 불러와 바꿔 끼움

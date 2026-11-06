@@ -114,6 +114,55 @@ export const SIGNPOSTS = Object.entries(ZONES).map(([id, z]) => {
   return { id, name: z.name, ch: z.ch, n: z.n, ...p };
 });
 
+// ---------- 1차 MVP 사건 자리 (2026-11): 와 보라(Z1→Z2) · 가나(Z3) · 니고데모의 밤(Z10) · 성전 문(Z7)과 실로암(Z9) ----------
+// 1세기 돌집은 상자 도형. 이름 붙은 자리(SP)는 사건 진행(js/john/engine.js)과 모형(js/john/build.js)이 같이 씀
+const S = (u, v) => ({ u, v, ...W(u, v) });
+const rect = (u0, u1, v0, v1, h = 0) => ({ u0, u1, v0, v1, h, cu: (u0 + u1) / 2, cv: (v0 + v1) / 2, w: u1 - u0, d: v1 - v0 });
+const inRect = (r, u, v, pad = 0) => u > r.u0 - pad && u < r.u1 + pad && v > r.v0 - pad && v < r.v1 + pad;
+
+// Z2 요단 건너 베다니: 세례 요한의 물가, 작은 집과 문 앞 의자, 무화과나무
+export const HOUSE2 = rect(136.3, 140.7, 48.2, 51.8, 2.5);
+// Z3 가나: 잔치 집 마당(낮은 담), 집, 돌항아리 여섯, 긴 식탁, 우물
+export const YARD3 = rect(-104, -86, -146, -132, 1.05);
+export const YARD3_GAPS = { east: [-139, -134], south: [-93, -87] }; // 길이 지나는 담의 틈
+export const HOUSE3 = rect(-103.5, -96.5, -145.5, -141.5, 3.2);
+export const JARS = Array.from({ length: 6 }, (_, k) => S(-103 + k * 1.25, -140.6));
+export const TABLE3 = rect(-98.5, -92.5, -136.35, -135.25, 0.78);
+// Z10 윗동네: 니고데모 집 (평평한 지붕에 올라가는 바깥 계단, 지붕 위 등잔·빨랫줄)
+export const HOUSE10 = rect(-117, -110, 20, 26, 2.8);
+export const ROOF_Y = groundH(HOUSE10.cu, HOUSE10.cv) + HOUSE10.h;
+export const STAIR10 = { u0: -110, u1: -108, vTop: 22.5, vBot: 28.5 }; // 남쪽(땅)에서 북쪽(지붕 높이 층계참)으로 오름
+export const LINE10 = [S(-115.6, 20.7), S(-115.6, 25.3)]; // 빨랫줄 기둥 둘 (천은 가운데)
+// Z7 성전 뜰 남쪽 문 (실로암 쪽 길이 지나감)
+const C7 = ZONES.temple, GD = { u: -0.2061, v: 0.9785 }, GP = { u: 0.9785, v: 0.2061 };
+const gAt = (a, b) => S(C7.u + GD.u * 9 + GP.u * a + GD.u * b, C7.v + GD.v * 9 + GP.v * a + GD.v * b); // a: 문 옆으로, b: 문 바깥쪽으로
+export const GATE7 = { c: gAt(0, 0), rot: Math.atan2(GP.u, GP.v), d: GD, p: GP, at: gAt };
+// Z9 실로암 못: 돌로 쌓은 못. 북쪽 바깥 계단 셋으로 올라 둘레 단에 서고, 안쪽 한 칸 내려가 물에 손이 닿음
+export const POOL9 = { out: rect(-75, -65, 131.6, 141.5), steps: rect(-75, -65, 129, 131.6), inner: rect(-73, -67, 133.4, 134.6), water: rect(-73, -67, 134.6, 140), base: groundH(-70, 135) };
+POOL9.top = POOL9.base + 0.9; POOL9.innerY = POOL9.base + 0.6; POOL9.waterY = POOL9.base + 0.38;
+
+export const SP = {
+  // Z1 빛의 광장
+  john: S(PU + 3.5, PV + 6),           // 사도 요한 (마을 안내자)
+  lampAt: S(69.5, 124.3),              // 등불을 받는 자리 (광장 북서쪽 길 끝)
+  // Z2
+  baptist: S(120.5, 44.5), bapStand: S(122.6, 40.4), warm: S(118.8, 35.6),
+  andrew: S(124.6, 45.6), andrewPath: [S(127.5, 47.5), S(131.6, 49.2), S(133.6, 51.9)],
+  bench2: S(135.1, 50.0), fig: S(139.6, 31.4), nathan: S(138.3, 33.1), med2: S(124.2, 47.6),
+  // Z3
+  servant: S(-100.2, -139.6), master: S(-91.5, -135.8), well: S(-89.6, -136.8),
+  guests: [S(-97.2, -137.0), S(-94.4, -137.0)], feast: [S(-97.4, -134.6), S(-95.5, -134.6), S(-93.6, -134.6)],
+  // Z10
+  nico: S(-106.8, 29.6), nicoRoof: S(-111.6, 25.0), seat10: S(-113.2, 22.8), lamp10: S(-112.4, 23.9),
+  wind: [S(-116.4, 20.9), S(-116.4, 25.1), S(-111.8, 20.95)], lie10: S(-114.0, 24.9),
+  gazeAt: S(-113.6, 20.9), pole: S(-113.6, -8), walkers: [S(-121, 30.6), S(-104, 30.6)],
+  // Z7 · Z9
+  blindSeat: gAt(3.4, 1.3), blindMan: gAt(-3.4, 1.4), pharisee: [S(C7.u + 0.5, C7.v - 1.5), S(C7.u + 2.4, C7.v - 0.4)], outside: gAt(0.6, 14),
+  wash: S(-70, 134.1), med9: S(-72.8, 130.9),
+};
+// 이 둘레에는 나무를 두지 않음 (모형과 겹치지 않게)
+const CLEAR = [[ZONES.cana, 16], [ZONES.upper, 15], [ZONES.siloam, 13], [GATE7.c, 10], [SP.pole, 3], [ZONES.jordan, 14]];
+
 // ---------- 나무: 올리브·무화과·종려 (씨앗 고정, 길·구역·물에서 떨어진 곳) ----------
 export const TREES = [];
 {
@@ -131,6 +180,8 @@ export const TREES = [];
   }
 }
 
+for (let i = TREES.length - 1; i >= 0; i--) { const t = TREES[i]; if (CLEAR.some(([c, r]) => Math.hypot(t.u - c.u, t.v - c.v) < r)) TREES.splice(i, 1); }
+
 // ---------- 막힘 (원) ----------
 const obstacles = [];
 const block = (p, r, h = Infinity) => obstacles.push({ x: p.x, z: p.z, r, h });
@@ -139,6 +190,11 @@ for (const l of LAMPS) block(l, 0.35, 1.1);
 block(CART, 1.25, 1.3);
 for (const sp of SIGNPOSTS) block(sp, 0.25);
 for (const t of TREES) block(t, t.kind === 'palm' ? 0.35 : 0.5);
+// 사건 자리의 물건 (원으로 막음)
+block(SP.fig, 0.5); for (const j of JARS) block(j, 0.42, 1.0); block(SP.well, 0.85, 0.9);
+block(GATE7.at(2.3, 0), 0.5); block(GATE7.at(-2.3, 0), 0.5);
+for (const s of [-1, 1]) for (let a = 2.9; a <= 8.01; a += 0.5) block(GATE7.at(s * a, 0), 0.32);
+block(SP.pole, 0.25); block(SP.lamp10, 0.18, 1.2); for (const p of LINE10) block(p, 0.12);
 const BK = 4, buckets = new Map();
 const bkey = (i, j) => i * 4096 + j;
 for (const o of obstacles) {
@@ -156,18 +212,69 @@ for (const b of BENCHES) {
   seats.push({ x: b.x, z: b.z, face: Math.atan2(PLAZA_LIGHT.x - b.x, PLAZA_LIGHT.z - b.z), kind: 'gbench', approach: b.approach, taken: false, region: 'john' });
   b.seat = seats[seats.length - 1];
 }
+// 사건 자리의 앉을 곳: Z2 집 앞 의자, Z3 잔치 식탁, Z10 지붕 등잔 곁, Z9 못 계단
+const seat = (p, face, kind, ap) => { seats.push({ x: p.x, z: p.z, face, kind, approach: ap, taken: false, region: 'john' }); return seats[seats.length - 1]; };
+export const SEATS_J = {
+  bench2: seat(SP.bench2, -Math.PI / 2, 'gbench', W(SP.bench2.u - 0.9, SP.bench2.v)),
+  feast: SP.feast.map((p) => seat(p, Math.PI, 'gbench', W(p.u, p.v + 0.75))),
+  seat10: seat(SP.seat10, Math.PI / 2, 'floor', W(SP.seat10.u - 0.7, SP.seat10.v)),
+  med9: seat(SP.med9, 0, 'floor', W(SP.med9.u, SP.med9.v - 0.6)),
+};
 
 // ---------- 바닥·막힘·길값 (layout.js가 이 상자 안이면 이 함수로 넘김) ----------
 const BODY = 0.35;
+// 지붕·계단·못 둘레 단의 높이 (없으면 null → 땅 높이)
+function structY(u, v) {
+  if (inRect(HOUSE10, u, v)) return ROOF_Y;
+  const st = STAIR10;
+  if (u >= st.u0 && u <= st.u1 && v >= HOUSE10.v0 && v <= st.vBot) {
+    if (v <= st.vTop) return ROOF_Y;
+    const k = (st.vBot - v) / (st.vBot - st.vTop);
+    return groundH(u, v) * (1 - k) + ROOF_Y * k;
+  }
+  const P = POOL9;
+  if (inRect(P.steps, u, v)) return P.base + 0.3 * Math.min(3, 1 + Math.floor((v - P.steps.v0) / 0.867));
+  if (inRect(P.inner, u, v)) return P.innerY;
+  if (inRect(P.out, u, v)) return P.top;
+  return null;
+}
+// 선(벽)에서 몸 반지름 안이면 막힘
+const W2 = BODY + 0.12;
+const wallU = (u, v, u0, v0, v1) => Math.abs(u - u0) < W2 && v > v0 - W2 && v < v1 + W2; // 남북으로 놓인 벽 (u = u0)
+const wallV = (u, v, v0, u0, u1) => Math.abs(v - v0) < W2 && u > u0 - W2 && u < u1 + W2; // 동서로 놓인 벽 (v = v0)
+function blockedRect(u, v) {
+  // Z2 작은 집, Z3 잔치 집·식탁, 못물
+  if (inRect(HOUSE2, u, v, BODY)) return true;
+  if (inRect(HOUSE3, u, v, BODY)) return true;
+  if (inRect(TABLE3, u, v, BODY * 0.8)) return true;
+  if (inRect(POOL9.water, u, v, 0.05)) return true;
+  // Z3 마당 담 (길이 지나는 동쪽·남쪽에 틈)
+  const Y = YARD3, gE = YARD3_GAPS.east, gS = YARD3_GAPS.south;
+  if (wallU(u, v, Y.u0, Y.v0, Y.v1) || wallV(u, v, Y.v0, Y.u0, Y.u1)) return true;
+  if (wallU(u, v, Y.u1, Y.v0, gE[0]) || wallU(u, v, Y.u1, gE[1], Y.v1)) return true;
+  if (wallV(u, v, Y.v1, Y.u0, gS[0]) || wallV(u, v, Y.v1, gS[1], Y.u1)) return true;
+  // Z10 니고데모 집: 지붕 둘레 낮은 담 (동쪽 계단 층계참 쪽만 열림), 계단 난간
+  const H = HOUSE10, st = STAIR10;
+  if (wallU(u, v, H.u0, H.v0, H.v1) || wallV(u, v, H.v1, H.u0, H.u1) || wallV(u, v, H.v0, H.u0, st.u1)) return true;
+  if (wallU(u, v, H.u1, st.vTop, H.v1)) return true;               // 동쪽 담 (층계참 옆은 틈)
+  if (wallU(u, v, st.u1, H.v0, st.vBot - 1)) return true;           // 계단 바깥 난간
+  if (wallU(u, v, st.u0, H.v1, st.vBot - 0.6)) return true;         // 집 남쪽에서 계단 옆으로 떨어지지 않게
+  // Z9 실로암: 둘레 단의 동·서·남쪽 끝 (북쪽 계단으로만 오르내림)
+  const P = POOL9.out;
+  if (wallU(u, v, P.u0, P.v0 - 2.4, P.v1) || wallU(u, v, P.u1, P.v0 - 2.4, P.v1) || wallV(u, v, P.v1, P.u0, P.u1)) return true;
+  return false;
+}
 function floorY(x, z) {
   const u = x - JX, v = z - JZ;
   if (Math.hypot(u - PU, v - PV) < PLAZA.R) return PLAZA.y;
-  return groundH(u, v);
+  const sy = structY(u, v);
+  return sy == null ? groundH(u, v) : sy;
 }
 function isFree(x, z, hop = 0) {
   const u = x - JX, v = z - JZ;
   if (Math.abs(u) > EDGE_U || Math.abs(v) > EDGE_V) return false; // 마을 끝 (언덕과 숲)
   if (inLake(u, v)) return false; // 호수 (배 타기는 2차부터)
+  if (blockedRect(u, v)) return false; // 집·담·식탁·못 둘레
   if (riverD(u, v) < RIVER_HALF && !(v > FORD.v0 && v < FORD.v1)) return false; // 강 (여울로만 건넘)
   const list = buckets.get(bkey(Math.floor(x / BK), Math.floor(z / BK)));
   if (list) for (const o of list) {

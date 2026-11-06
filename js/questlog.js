@@ -11,7 +11,7 @@ export function walkToward(me, walkTo, t) {
   return true;
 }
 
-export function initQuestLog({ me, quests, story, walkTo, toast }) {
+export function initQuestLog({ me, quests, story, walkTo, toast, john = () => null, town = () => 'base' }) {
   const box = document.createElement('div');
   box.id = 'questLog'; box.hidden = true;
   document.body.appendChild(box);
@@ -20,8 +20,16 @@ export function initQuestLog({ me, quests, story, walkTo, toast }) {
 
   let last = '';
   function render() {
-    const q = quests.info(), s = story.info();
+    // 요한복음 마을에 있으면 그 마을 이야기만 (초보자 마을 부탁·큰 이야기는 그 마을에서)
+    const inJohn = town() === 'john';
+    const q = inJohn ? null : quests.info(), s = inJohn ? null : story.info(), j = inJohn ? john()?.info() : null;
     let h = '<button class="x" aria-label="닫기">×</button>';
+    if (j) {
+      h += `<section class="st jn"><h3>✦ 요한복음 마을 · ${esc(j.title)}${j.ch ? ` (${esc(j.ch)})` : ''}</h3>
+        <p class="now"><b>${j.running ? `지금 할 일 ${j.step} / ${j.steps}` : '다음 이야기'}</b>${esc(j.hint)}</p>
+        ${j.where ? `<p class="where">어디서: ${esc(j.where)} (금빛 기둥)</p>` : ''}${verse(j.verse)}
+        <div class="row">${j.running ? '<button class="quit" data-q="j">그만두기</button>' : ''}<button class="go" data-go="j">그곳으로 가기</button></div></section>`;
+    }
     if (q) {
       h += `<section><h3>📜 ${esc(q.name)}의 부탁 · ${esc(q.title)}</h3>
         <p class="now"><b>지금 할 일 ${q.back ? '(마지막)' : `${q.step} / ${q.steps}`}</b>${esc(q.hint)}</p>
@@ -34,19 +42,19 @@ export function initQuestLog({ me, quests, story, walkTo, toast }) {
         <p class="where">어디서: ${esc(s.where)} (금빛 기둥)</p>${verse(s.verse)}
         <div class="row"><button class="go" data-go="s">그곳으로 가기</button></div></section>`;
     }
-    if (!q && !s) { close(); return; }
+    if (!q && !s && !j) { close(); return; }
     if (h !== last) { const open = box.querySelector('details')?.open; box.innerHTML = h; last = h; if (open) box.querySelector('details').open = true; }
   }
-  function open(focus) { render(); if (!quests.info() && !story.info()) return; box.hidden = false; box.dataset.focus = focus; }
+  function open(focus) { render(); if (!last) return; if (!box.hidden && box.dataset.focus === focus) { close(); return; } box.hidden = false; box.dataset.focus = focus; }
   function close() { box.hidden = true; last = ''; }
 
   function go(kind) {
-    const it = kind === 'q' ? quests.info() : story.info();
+    const it = kind === 'q' ? quests.info() : kind === 'j' ? john()?.info() : story.info();
     if (!it) return;
     if (me.climb) { toast('먼저 나무에서 내려와요', 3); return; }
     if (!walkToward(me, walkTo, it.target)) { toast('그곳으로 가는 길을 찾지 못했어요. 지도에서 가까운 곳으로 가 보세요', 4); return; }
     close();
-    toast(`그곳으로 걸어가요 · ${kind === 'q' ? it.where || it.name + '에게' : `큰 이야기 ${it.k}장 금빛 기둥`}`, 3);
+    toast(`그곳으로 걸어가요 · ${kind === 'q' ? it.where || it.name + '에게' : kind === 'j' ? it.where || it.title : `큰 이야기 ${it.k}장 금빛 기둥`}`, 3);
   }
 
   box.addEventListener('pointerdown', (e) => e.stopPropagation()); // 끌어서 내려 보기(스크롤)가 되도록, 고르기는 click에서
@@ -56,6 +64,7 @@ export function initQuestLog({ me, quests, story, walkTo, toast }) {
     if (!b) return;
     if (b.classList.contains('x')) close();
     else if (b.classList.contains('go')) go(b.dataset.go);
+    else if (b.classList.contains('quit') && b.dataset.q === 'j') { john()?.quit(); render(); }
     else if (b.classList.contains('quit')) { quests.quit(); toast('부탁을 그만두었어요. 다시 그 사람에게 가면 처음부터 할 수 있어요', 4); render(); }
   });
   box.addEventListener('click', (e) => e.stopPropagation());

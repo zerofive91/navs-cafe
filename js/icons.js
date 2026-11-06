@@ -8,6 +8,13 @@ export const ICONS = {
   keys: svg('<rect x="3" y="9" width="26" height="15" rx="2.5"/><path d="M8 14h1M12 14h1M16 14h1M20 14h1M24 14h1M10 19h12"/>'),
   // 마을 수레 타기 (요한복음 마을 길목·빛의 광장)
   jcart: svg('<path d="M3 11h18l-1.5 8H5z"/><circle cx="9" cy="23" r="3.2"/><circle cx="17" cy="23" r="3.2"/><path d="M21 13l7-4M6 11c0-4 3-6 7-6s7 2 7 6"/>'),
+  // 요한복음 마을 사건 (2026-11): 등불 받기 · 물 긷기/붓기 · 잔 뜨기 · 건네기 · 바라보기 · 씻기
+  jn_lamp: svg('<path d="M5 19c3 3 13 3 17 0l4-3h-5"/><path d="M5 19c0-3 4-4 9-4s8 1 8 4"/><path d="M24 12c0-2 1-3 1-5 1 2 2 3 2 5a1.5 1.5 0 0 1-3 0z"/><path d="M10 26h10"/>'),
+  jn_water: svg('<path d="M9 9h14l-1 4c3 2 3 10-6 14-9-4-9-12-6-14z"/><path d="M8 9h16"/><path d="M16 15c-2 3-2 5 0 6 2-1 2-3 0-6z"/>'),
+  jn_draw: svg('<path d="M10 14h12l-1.5 12h-9z"/><path d="M9 14h14"/><path d="M12 18h8" opacity=".6"/><path d="M16 4v6M13 7l3 3 3-3"/>'),
+  jn_give: svg('<path d="M4 22h7l6 3 10-5"/><path d="M11 22c2-2 5-2 8-1"/><path d="M17 6h7l-1 8h-5z"/><path d="M18 9h5"/>'),
+  jn_look: svg('<path d="M3 17c4-6 9-9 13-9s9 3 13 9c-4 6-9 9-13 9s-9-3-13-9z"/><circle cx="16" cy="17" r="4"/><path d="M16 2v3M10 4l1.5 2.5M22 4l-1.5 2.5"/>'),
+  jn_wash: svg('<path d="M6 16c2-3 6-4 10-4s8 1 10 4"/><path d="M8 16l2 5h12l2-5"/><path d="M12 6c-1 2-1 3 0 4 1-1 1-2 0-4zM20 4c-1 2-1 3 0 4 1-1 1-2 0-4z"/><path d="M4 27c3-1.5 5-1.5 8 0s5 1.5 8 0 5-1.5 8 0"/>'),
   towns: svg('<path d="M3 26h26"/><path d="M5 26V15l5-4 5 4v11M17 26V12l5-5 5 5v14"/><path d="M9 26v-4h2v4M21 26v-4h2v4"/>'),
   map: svg('<path d="M4 8l7-3 10 3 7-3v19l-7 3-10-3-7 3z"/><path d="M11 5v19M21 8v19"/><circle cx="16" cy="14" r="1.6"/>'),
   gear: svg('<path d="M10 6h12l2 8-8 4-8-4z"/><path d="M8 14v8l8 5 8-5v-8"/><path d="M16 18v9"/>'),
