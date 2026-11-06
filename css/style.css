@@ -248,7 +248,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
   html.land .act { width: 44px; height: 44px; }
   html.land body #verse { top: 64px; width: min(calc(var(--vw) * 0.62), 560px); padding: 12px 18px; }
   html.land body #verse p { font-size: 19px; line-height: 1.45; margin-bottom: 6px; }
-  html.land body #verse cite { font-size: 12px; }
+  html.land body #verse cite { font-size: 13px; }
 
 
 /* 표적 체험 뒤 떠오르는 말씀 한 구절 */
@@ -306,7 +306,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 #musicPanel .mtoggle svg { width: 20px; height: 20px; }
 #musicPanel .mtrack { flex-direction: column; align-items: flex-start; gap: 1px; }
 #musicPanel .mtrack b { font-weight: 500; font-size: 15px; }
-#musicPanel .mtrack small { font-size: 12px; opacity: 0.65; }
+#musicPanel .mtrack small { font-size: 13px; opacity: 0.65; }
 #musicPanel .mtrack.now { background: #f1e4cf; }
 #musicPanel button:active { background: #efe3cf; }
 /* 가로 화면 (진짜 가로 또는 눕힌 화면, main.js resize가 html.land를 붙임) */
@@ -422,7 +422,7 @@ html.rot #rotBtn { top: calc(8px + env(safe-area-inset-top)); left: 12px; }
 /* 지도: 코스 시작점 고르기 */
 #map .courses { position: absolute; left: 0; right: 0; bottom: max(10px, env(safe-area-inset-bottom)); display: flex; gap: 8px; align-items: center; overflow-x: auto; padding: 6px 14px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
 #map .courses::-webkit-scrollbar { display: none; }
-#map .courses span { flex: none; color: #ffe2a8; font-size: 12px; font-weight: 700; opacity: 0.85; margin-left: 6px; }
+#map .courses span { flex: none; color: #ffe2a8; font-size: 13px; font-weight: 700; opacity: 0.85; margin-left: 6px; }
 #map .courses button { flex: none; border: 2px solid var(--c, #fff); border-radius: 18px; padding: 7px 12px; background: rgba(20, 28, 22, 0.85); color: #fff6e0; font: 600 13px system-ui, sans-serif; cursor: pointer; white-space: nowrap; }
 #map .courses button::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--c, #fff); margin-right: 6px; vertical-align: 1px; }
 #map .courses button:active { transform: scale(0.95); }
@@ -440,7 +440,7 @@ html.rot #rotBtn { top: calc(8px + env(safe-area-inset-top)); left: 12px; }
 #keyhelp h3 { grid-column: 1 / -1; margin: 0 0 4px; font: 700 17px "Noto Serif KR", serif; text-align: center; }
 #keyhelp h4 { margin: 8px 0 4px; font-size: 13px; color: #a07a40; letter-spacing: 0.1em; }
 #keyhelp p { display: flex; gap: 10px; align-items: center; margin: 4px 0; font-size: 13.5px; }
-#keyhelp kbd { flex: none; min-width: 64px; padding: 3px 7px; border-radius: 7px; background: #fff; border: 1px solid #d8c8a8; box-shadow: 0 2px 0 #d8c8a8; font: 600 12px system-ui, sans-serif; text-align: center; }
+#keyhelp kbd { flex: none; min-width: 64px; padding: 3px 7px; border-radius: 7px; background: #fff; border: 1px solid #d8c8a8; box-shadow: 0 2px 0 #d8c8a8; font: 600 13px system-ui, sans-serif; text-align: center; }
 #keyhelp .close { position: absolute; top: 8px; right: 10px; width: 34px; height: 34px; border: 0; border-radius: 17px; background: rgba(0, 0, 0, 0.06); font-size: 22px; color: #6b4c32; cursor: pointer; }
 @media (max-width: 520px) { #keyhelp .pad { grid-template-columns: 1fr; } }
 @media (hover: none) { .place.keys { display: none; } }
@@ -463,7 +463,7 @@ body.photo-mode > *:not(canvas):not(#photo) { visibility: hidden !important; }
 #creator .nm { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 700; }
 #creator input { flex: 1; min-width: 0; height: 42px; padding: 0 12px; border: 2px solid #e2d2b4; border-radius: 12px; background: #fff; color: #5a4030; font: 600 17px "Noto Serif KR", serif; user-select: text; -webkit-user-select: text; outline: none; }
 #creator input:focus { border-color: #c9a15e; }
-#creator .lb { margin: 10px 0 5px; font-size: 12.5px; font-weight: 700; color: #a07a40; letter-spacing: 0.08em; }
+#creator .lb { margin: 10px 0 5px; font-size: 13px; font-weight: 700; color: #a07a40; letter-spacing: 0.08em; }
 #creator .sw { display: flex; flex-wrap: wrap; gap: 8px; }
 #creator .sw button { width: 34px; height: 34px; border-radius: 50%; border: 3px solid #fff; background: var(--c); box-shadow: 0 1px 4px rgba(60, 40, 20, 0.3); cursor: pointer; padding: 0; }
 #creator .sw button.on { outline: 3px solid #c9a15e; outline-offset: 1px; }
@@ -477,7 +477,7 @@ body:has(#creator) #actions, body:has(#creator) #stick, body:has(#creator) #meCh
 #meChip { position: fixed; left: calc(12px + env(safe-area-inset-left)); top: calc(12px + env(safe-area-inset-top)); z-index: 6; height: 34px; max-width: calc(var(--vw) * 0.4); padding: 0 12px; border: 0; border-radius: 17px; display: flex; align-items: center; gap: 6px; background: rgba(255, 250, 240, 0.8); color: #6b4c32; box-shadow: 0 2px 10px rgba(60, 40, 20, 0.14); font-family: "Noto Serif KR", serif; cursor: pointer; }
 #meChip[hidden] { display: none; }
 #meChip b { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-#meChip small { flex: none; font-size: 11px; padding: 2px 7px; border-radius: 9px; background: #e6f0d4; color: #4f6b2f; font-weight: 700; }
+#meChip small { flex: none; font-size: 13px; padding: 2px 7px; border-radius: 9px; background: #e6f0d4; color: #4f6b2f; font-weight: 700; }
 @media (max-width: 760px), (max-height: 500px) { #meChip { top: auto; bottom: calc(146px + env(safe-area-inset-bottom)); } }
 #meCard { position: fixed; inset: 0; z-index: 56; display: grid; place-items: center; background: rgba(40, 30, 15, 0.35); font-family: "Noto Serif KR", serif; }
 #meCard .pad { position: relative; width: min(360px, calc(var(--vw) * 0.9)); max-height: calc(var(--vh) * 0.84); overflow: auto; padding: 18px 18px 14px; border-radius: 20px; background: rgba(255, 250, 238, 0.97); color: #5a4030; box-shadow: 0 10px 40px rgba(40, 30, 15, 0.35); }
@@ -486,14 +486,14 @@ body:has(#creator) #actions, body:has(#creator) #stick, body:has(#creator) #meCh
 #meCard .stage span { color: #a08868; font-weight: 500; font-size: 13px; }
 #meCard .bar { height: 8px; border-radius: 4px; background: #eadfca; overflow: hidden; }
 #meCard .bar i { display: block; height: 100%; background: linear-gradient(90deg, #b9d48a, #e8c46a); }
-#meCard .steps { margin: 5px 0 0; font-size: 12px; text-align: right; color: #a08868; }
-#meCard .lb { margin: 12px 0 6px; font-size: 12.5px; font-weight: 700; color: #a07a40; letter-spacing: 0.08em; }
+#meCard .steps { margin: 5px 0 0; font-size: 13px; text-align: right; color: #a08868; }
+#meCard .lb { margin: 12px 0 6px; font-size: 13px; font-weight: 700; color: #a07a40; letter-spacing: 0.08em; }
 #meCard .stats > div { display: grid; grid-template-columns: 38px 1fr 28px auto; align-items: center; gap: 8px; margin: 4px 0; font-size: 13px; }
 #meCard .stats span { font-weight: 700; color: #6b4c32; }
 #meCard .stats .sb { height: 7px; border-radius: 4px; background: #eadfca; overflow: hidden; }
 #meCard .stats .sb i { display: block; height: 100%; border-radius: 4px; }
-#meCard .stats b { font: 600 12px system-ui, sans-serif; color: #8f7458; text-align: right; }
-#meCard .stats em { font: 600 10.5px system-ui, sans-serif; font-style: normal; color: #4f6b2f; background: #e6f0d2; padding: 1px 6px; border-radius: 8px; }
+#meCard .stats b { font: 600 13px system-ui, sans-serif; color: #8f7458; text-align: right; }
+#meCard .stats em { font: 600 13px system-ui, sans-serif; font-style: normal; color: #4f6b2f; background: #e6f0d2; padding: 1px 6px; border-radius: 8px; }
 #meCard .items { display: flex; flex-wrap: wrap; gap: 6px; }
 #meCard .items button { border: 0; border-radius: 12px; padding: 7px 11px; background: #fff; color: #6b4c32; font: 600 13px "Noto Serif KR", serif; box-shadow: 0 1px 4px rgba(60, 40, 20, 0.15); cursor: pointer; }
 #meCard .none { font-size: 13px; color: #a08868; }
@@ -507,9 +507,9 @@ body:has(#creator) #actions, body:has(#creator) #stick, body:has(#creator) #meCh
 .npcb.ok { box-shadow: 0 0 0 3px #b9d48a, 0 6px 24px rgba(40, 30, 15, 0.25); }
 .npcb .who { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
 .npcb .who b { font-size: 14px; color: #8f6744; }
-.npcb .who .n { font-size: 11px; color: #b09878; font-family: system-ui, sans-serif; }
+.npcb .who .n { font-size: 13px; color: #b09878; font-family: system-ui, sans-serif; }
 .npcb .say { margin: 0; font-size: 15px; line-height: 1.55; word-break: keep-all; }
-.npcb .say small { display: block; margin-top: 6px; font-size: 12.5px; line-height: 1.5; color: #8f7458; }
+.npcb .say small { display: block; margin-top: 6px; font-size: 15px; line-height: 1.5; color: #8f7458; }
 .npcb .keys { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 8px; font: 500 13px system-ui, sans-serif; }
 .npcb .keys:empty { display: none; }
 .npcb .keys span { display: flex; align-items: center; gap: 6px; }
@@ -520,9 +520,9 @@ body:has(#creator) #actions, body:has(#creator) #stick, body:has(#creator) #meCh
 .tutAim { box-shadow: 0 0 0 3px #5fbf8a, 0 0 16px 6px rgba(95, 191, 138, 0.8) !important; animation: tutAim 1.2s ease-in-out infinite !important; }
 @keyframes tutAim { 50% { box-shadow: 0 0 0 4px #8ee0b0, 0 0 24px 10px rgba(110, 210, 150, 0.95); transform: scale(1.08); } }
 .npcb .keys .tt { font: 500 13.5px/1.5 "Noto Serif KR", serif; color: #7a5a3a; word-break: keep-all; }
-.npcb kbd { min-width: 28px; padding: 2px 7px; border-radius: 7px; background: #fff; border: 1px solid #d8c8a8; box-shadow: 0 2px 0 #d8c8a8; font: 700 12px system-ui, sans-serif; text-align: center; }
+.npcb kbd { min-width: 28px; padding: 2px 7px; border-radius: 7px; background: #fff; border: 1px solid #d8c8a8; box-shadow: 0 2px 0 #d8c8a8; font: 700 13px system-ui, sans-serif; text-align: center; }
 .npcb .row { display: flex; justify-content: flex-end; gap: 6px; margin-top: 8px; }
-.npcb .row button { border: 0; border-radius: 12px; height: 32px; padding: 0 12px; background: transparent; color: #a08868; font: 600 12.5px "Noto Serif KR", serif; cursor: pointer; }
+.npcb .row button { border: 0; border-radius: 12px; height: 32px; padding: 0 12px; background: transparent; color: #a08868; font: 600 13px "Noto Serif KR", serif; cursor: pointer; }
 .npcb .row button[hidden] { display: none; }
 .npcb .row .next { background: #8f6744; color: #fffaf0; padding: 0 16px; }
 .npcb.ok .row .skip { visibility: hidden; }
@@ -548,9 +548,9 @@ body:has(#creator) #actions, body:has(#creator) #stick, body:has(#creator) #meCh
 .npcb.trial .say { font-style: italic; }
 .npcb.trial .say small { color: #c8b8e0; font-style: normal; }
 .npcb.trial .opts { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
-.npcb.trial .opt { display: flex; gap: 8px; align-items: flex-start; text-align: left; border: 0; border-radius: 12px; padding: 8px 10px; background: rgba(255, 250, 238, 0.95); color: #5a4030; font: 500 13.5px/1.5 "Noto Serif KR", serif; word-break: keep-all; cursor: pointer; }
-.npcb.trial .opt kbd { flex: none; min-width: 22px; padding: 1px 5px; border-radius: 6px; background: #f1e6d2; font: 700 12px system-ui, sans-serif; text-align: center; }
-.npcb.trial .opt em { display: block; font-style: normal; font-size: 11.5px; color: #a08868; }
+.npcb.trial .opt { display: flex; gap: 8px; align-items: flex-start; text-align: left; border: 0; border-radius: 12px; padding: 8px 10px; background: rgba(255, 250, 238, 0.95); color: #5a4030; font: 500 15px/1.5 "Noto Serif KR", serif; word-break: keep-all; cursor: pointer; }
+.npcb.trial .opt kbd { flex: none; min-width: 22px; padding: 1px 5px; border-radius: 6px; background: #f1e6d2; font: 700 13px system-ui, sans-serif; text-align: center; }
+.npcb.trial .opt em { display: block; font-style: normal; font-size: 13px; color: #a08868; }
 .npcb.trial .opt.hint { box-shadow: 0 0 0 3px #ffd56a; }
 .npcb.trial .opt.no { background: #6a5a72; color: #d8cce0; }
 .npcb.trial.ok .opt:not(.hint) { opacity: 0.6; }
@@ -559,7 +559,7 @@ body.trialing #verse { visibility: hidden; } /* 고르는 동안은 시험 창�
 #map .courses button small { color: #e8b84a; font-size: 0.85em; }
 
 /* 정원의 부탁: 지금 하는 부탁 */
-#questChip { position: fixed; left: calc(12px + env(safe-area-inset-left)); top: calc(54px + env(safe-area-inset-top)); z-index: 6; max-width: min(360px, calc(var(--vw) * 0.6)); padding: 7px 12px; border-radius: 14px; background: rgba(255, 246, 220, 0.9); color: #6b4c32; box-shadow: 0 2px 10px rgba(60, 40, 20, 0.14); font: 600 12.5px/1.45 "Noto Serif KR", serif; word-break: keep-all; pointer-events: auto; cursor: pointer; }
+#questChip { position: fixed; left: calc(12px + env(safe-area-inset-left)); top: calc(54px + env(safe-area-inset-top)); z-index: 6; max-width: min(360px, calc(var(--vw) * 0.6)); padding: 7px 12px; border-radius: 14px; background: rgba(255, 246, 220, 0.9); color: #6b4c32; box-shadow: 0 2px 10px rgba(60, 40, 20, 0.14); font: 600 13px/1.45 "Noto Serif KR", serif; word-break: keep-all; pointer-events: auto; cursor: pointer; }
 #questChip::before { content: "📜 "; }
 #questChip[hidden] { display: none; }
 @media (max-width: 760px), (max-height: 500px) { #questChip { top: auto; bottom: calc(186px + env(safe-area-inset-bottom)); max-width: calc(var(--vw) - 110px); } }
@@ -590,7 +590,7 @@ body.trialing #verse { visibility: hidden; } /* 고르는 동안은 시험 창�
 
 /* 지갑 (내 카드) */
 #meCard .purse { margin: 0; font-size: 14px; font-weight: 700; color: #7a5a20; }
-#meCard .purse span { font-weight: 500; font-size: 12px; color: #a08868; }
+#meCard .purse span { font-weight: 500; font-size: 13px; color: #a08868; }
 #meCard .items.goods { margin-top: 6px; }
 #meCard .items.goods button { background: #fff6dc; }
 /* 숲길 시험의 등잔 기름 */
@@ -609,12 +609,12 @@ body.trialing #verse { visibility: hidden; } /* 고르는 동안은 시험 창�
 #shop .tabs .on { background: #7a3a7a; color: #fffaf0; }
 #shop .it { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #efe2c8; }
 #shop .it > div { flex: 1; min-width: 0; font-size: 14px; }
-#shop .it small { display: block; font-size: 12px; color: #8f7458; line-height: 1.45; word-break: keep-all; }
-#shop .it .have { font-size: 11.5px; color: #7a3a7a; }
-#shop .it button { flex: none; border: 0; border-radius: 10px; padding: 8px 10px; background: #8f6744; color: #fffaf0; font: 600 12.5px system-ui, sans-serif; cursor: pointer; }
+#shop .it small { display: block; font-size: 13px; color: #8f7458; line-height: 1.45; word-break: keep-all; }
+#shop .it .have { font-size: 13px; color: #7a3a7a; }
+#shop .it button { flex: none; border: 0; border-radius: 10px; padding: 8px 10px; background: #8f6744; color: #fffaf0; font: 600 13px system-ui, sans-serif; cursor: pointer; }
 #shop .it button:disabled { background: #d8c8a8; cursor: default; }
 #shop .money { display: flex; flex-direction: column; gap: 6px; margin: 0 0 10px; font-size: 13.5px; }
-#shop .money em { font-style: normal; font-size: 11.5px; color: #a08868; margin-left: 4px; }
+#shop .money em { font-style: normal; font-size: 13px; color: #a08868; margin-left: 4px; }
 #shop .none { font-size: 13px; color: #8f7458; }
 #shop .msg { min-height: 1.3em; margin: 8px 0 0; font-size: 13px; color: #7a3a7a; word-break: keep-all; }
 #shop .close { position: absolute; top: 8px; right: 10px; width: 32px; height: 32px; border: 0; border-radius: 16px; background: rgba(0, 0, 0, 0.06); font-size: 21px; color: #6b4c32; cursor: pointer; }
@@ -630,7 +630,7 @@ body.bigtrial #trial { box-shadow: 0 0 0 2px #6a4a9a, 0 10px 40px rgba(20, 10, 4
 #meCard .items.pets button.locked, #meCard .items.gear button.locked { opacity: 0.55; }
 
 /* 성경 큰 이야기 진행 */
-#storyChip { position: fixed; left: calc(12px + env(safe-area-inset-left)); top: calc(92px + env(safe-area-inset-top)); z-index: 6; max-width: min(360px, calc(var(--vw) * 0.6)); padding: 7px 12px; border-radius: 14px; background: rgba(255, 240, 200, 0.92); color: #7a5a20; box-shadow: 0 2px 10px rgba(60, 40, 20, 0.14); font: 600 12.5px/1.45 "Noto Serif KR", serif; word-break: keep-all; pointer-events: auto; cursor: pointer; }
+#storyChip { position: fixed; left: calc(12px + env(safe-area-inset-left)); top: calc(92px + env(safe-area-inset-top)); z-index: 6; max-width: min(360px, calc(var(--vw) * 0.6)); padding: 7px 12px; border-radius: 14px; background: rgba(255, 240, 200, 0.92); color: #7a5a20; box-shadow: 0 2px 10px rgba(60, 40, 20, 0.14); font: 600 13px/1.45 "Noto Serif KR", serif; word-break: keep-all; pointer-events: auto; cursor: pointer; }
 #storyChip::before { content: "✦ "; color: #d8a020; }
 #storyChip[hidden] { display: none; }
 @media (max-width: 760px), (max-height: 500px) { #storyChip { top: calc(150px + env(safe-area-inset-top)); max-width: calc(var(--vw) - 110px); } }
@@ -646,12 +646,12 @@ body.bigtrial #trial { box-shadow: 0 0 0 2px #6a4a9a, 0 10px 40px rgba(20, 10, 4
 #questLog h3 { margin: 0 24px 6px 0; font-size: 14px; color: #6b4c32; }
 #questLog .st h3 { color: #8a6418; }
 #questLog p { margin: 4px 0; }
-#questLog .now b { display: block; font-size: 12px; color: #a07040; }
+#questLog .now b { display: block; font-size: 13px; color: #a07040; }
 #questLog .where { color: #4a6a5a; font-weight: 600; }
-#questLog details summary { cursor: pointer; color: #8a6a4a; font-size: 12.5px; margin: 4px 0; }
+#questLog details summary { cursor: pointer; color: #8a6a4a; font-size: 13px; margin: 4px 0; }
 #questLog .ask { color: #6b5440; }
-#questLog blockquote { margin: 6px 0; padding: 6px 10px; border-left: 3px solid #e0c080; background: rgba(255, 240, 200, 0.5); border-radius: 6px; font-size: 12.5px; }
-#questLog cite { display: block; font-style: normal; font-size: 11.5px; color: #a07c50; margin-top: 2px; }
+#questLog blockquote { margin: 6px 0; padding: 6px 10px; border-left: 3px solid #e0c080; background: rgba(255, 240, 200, 0.5); border-radius: 6px; font-size: 15px; }
+#questLog cite { display: block; font-style: normal; font-size: 13px; color: #a07c50; margin-top: 2px; }
 #questLog .row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
 #questLog .row button { border: 0; border-radius: 12px; padding: 7px 14px; font: 600 13px "Noto Serif KR", serif; cursor: pointer; background: rgba(140, 100, 60, 0.12); color: #6b4c32; }
 #questLog .row .go { background: #e8b860; color: #4a3010; }
@@ -660,9 +660,9 @@ body.bigtrial #trial { box-shadow: 0 0 0 2px #6a4a9a, 0 10px 40px rgba(20, 10, 4
 @media (min-width: 761px) and (min-height: 501px) { #scrollChip { top: calc(134px + env(safe-area-inset-top)); } #questLog { top: calc(174px + env(safe-area-inset-top)); max-height: calc(var(--vh) - 240px); } }
 .npcb .guide { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .npcb .guide[hidden] { display: none; }
-.npcb .guide button { border: 1px solid rgba(143, 103, 68, 0.3); border-radius: 12px; padding: 5px 11px; background: rgba(255, 246, 225, 0.9); color: #6b4c32; font: 600 12.5px "Noto Serif KR", serif; cursor: pointer; }
+.npcb .guide button { border: 1px solid rgba(143, 103, 68, 0.3); border-radius: 12px; padding: 5px 11px; background: rgba(255, 246, 225, 0.9); color: #6b4c32; font: 600 13px "Noto Serif KR", serif; cursor: pointer; }
 .npcb .row .goq { background: #e8b860; color: #4a3010; padding: 0 14px; }
-#meCard .items.bible .none { flex-basis: 100%; font-size: 11.5px; }
+#meCard .items.bible .none { flex-basis: 100%; font-size: 13px; }
 /* 영적 전쟁 훈련소 (2026-11): 성경 속 장면 + 속삭임 + 이긴 이야기 */
 #wtrial { max-height: calc(var(--vh) - 96px); overflow-y: auto; }
 #wtrial .scene { margin: 0 0 6px; font: 500 13px/1.5 "Noto Serif KR", serif; color: #cdbfe0; word-break: keep-all; }
@@ -674,12 +674,12 @@ body.bigtrial #trial { box-shadow: 0 0 0 2px #6a4a9a, 0 10px 40px rgba(20, 10, 4
 #dress { position: fixed; left: 0; right: 0; bottom: 0; z-index: 62; display: flex; justify-content: center; padding: 0 12px max(12px, env(safe-area-inset-bottom)); pointer-events: none; }
 #dress .pad { pointer-events: auto; width: min(420px, 100%); max-height: calc(var(--vh) * 0.46); overflow: auto; padding: 14px 16px 12px; border-radius: 22px; background: rgba(255, 250, 238, 0.96); color: #5a4030; box-shadow: 0 10px 40px rgba(40, 30, 15, 0.3); font-family: "Noto Serif KR", serif; touch-action: pan-y; }
 #dress h3 { margin: 0 0 2px; font-size: 16px; text-align: center; }
-#dress .sub { margin: 0 0 8px; font-size: 12px; color: #a08868; text-align: center; word-break: keep-all; }
+#dress .sub { margin: 0 0 8px; font-size: 13px; color: #a08868; text-align: center; word-break: keep-all; }
 #dress .items { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
 #dress .items button { border: 0; border-radius: 12px; padding: 7px 11px; background: #fff; color: #6b4c32; font: 600 13px "Noto Serif KR", serif; box-shadow: 0 1px 4px rgba(60, 40, 20, 0.15); cursor: pointer; }
 #dress .items button.on { background: #fff2c8; box-shadow: 0 0 0 2px #e0b850; }
 #dress .items button.locked { opacity: 0.55; }
-#dress .does { min-height: 1.4em; margin: 8px 0 0; font-size: 12.5px; line-height: 1.5; color: #7a5a3a; text-align: center; word-break: keep-all; }
+#dress .does { min-height: 1.4em; margin: 8px 0 0; font-size: 13px; line-height: 1.5; color: #7a5a3a; text-align: center; word-break: keep-all; }
 #dress .go { display: block; width: 100%; height: 40px; margin-top: 8px; border: 0; border-radius: 14px; background: #8f6744; color: #fffaf0; font: 700 14px "Noto Serif KR", serif; cursor: pointer; }
 /* 병거 타기 (2026-11): 갈 곳 고르기 */
 #trip { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; background: rgba(40, 30, 15, 0.4); font-family: "Noto Serif KR", serif; }
@@ -698,10 +698,10 @@ body.bigtrial #trial { box-shadow: 0 0 0 2px #6a4a9a, 0 10px 40px rgba(20, 10, 4
 /* 가로 화면 (진짜 가로 또는 눕힌 화면, main.js resize가 html.land를 붙임) */
 /* 시험 창: 세 말씀을 나란히 */
   html.land .npcb { bottom: calc(8px + env(safe-area-inset-bottom)); max-height: calc(var(--vh) - 70px); }
-  html.land .npcb .say { font-size: 14px; line-height: 1.45; }
+  html.land .npcb .say { font-size: 15px; line-height: 1.45; }
   html.land .npcb.trial .opts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-  html.land .npcb.trial .opt { font-size: 12.5px; line-height: 1.4; padding: 6px 8px; }
-  html.land #wtrial .scene { font-size: 12px; }
+  html.land .npcb.trial .opt { font-size: 15px; line-height: 1.4; padding: 6px 8px; }
+  html.land #wtrial .scene { font-size: 13px; }
   html.land #wtrial, html.land #trial { width: min(760px, calc(var(--vw) - 230px)); max-height: calc(var(--vh) - 70px); }
   html.land #meCard .pad { width: min(560px, calc(var(--vw) * 0.92)); }
   html.land #trip .list { grid-template-columns: repeat(3, 1fr); }
@@ -714,7 +714,7 @@ body.bigtrial #trial { box-shadow: 0 0 0 2px #6a4a9a, 0 10px 40px rgba(20, 10, 4
 #verse { transition: opacity 1.6s ease, transform 1.6s ease, top 0.35s ease; }
 #verse.tight { padding: 10px 14px; }
 #verse.tight p { font-size: clamp(15px, 3.6vw, 19px); margin-bottom: 4px; }
-#verse.tight cite { font-size: 11.5px; }
+#verse.tight cite { font-size: 13px; }
 /* 첫 화면(혼자·다같이·모임)에서는 게임 화면의 단추·알림이 비치지 않게 (2026-11-03) */
 body.at-door > :not(#enter):not(canvas):not(#acct):not(#roomkey):not(script) { visibility: hidden !important; }
 body.at-door #enter { z-index: 100; }
@@ -723,7 +723,7 @@ body.at-door #enter { z-index: 100; }
 #wtalk .opts { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
 #wtalk .opts button { text-align: left; border: 1.5px solid #e4cfa6; border-radius: 12px; background: #fffaf0; padding: 8px 12px; font: inherit; color: #5a4128; cursor: pointer; }
 #wtalk .opts button b { display: block; font-size: 15px; }
-#wtalk .opts button small { display: block; color: #8a7458; font-size: 12px; margin-top: 2px; }
+#wtalk .opts button small { display: block; color: #8a7458; font-size: 13px; margin-top: 2px; }
 #wtalk .opts button:active { transform: scale(0.98); }
 #map .guideMe { position: absolute; top: max(12px, env(safe-area-inset-top)); left: 14px; height: 44px; padding: 0 16px; border-radius: 22px; border: 0; background: #ffe9b8; color: #5a4128; font: 700 14px system-ui, sans-serif; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
 /* 가로 화면 (진짜 가로 또는 눕힌 화면, main.js resize가 html.land를 붙임) */
@@ -732,7 +732,7 @@ body.at-door #enter { z-index: 100; }
 
 /* 내 카드: 내 모습과 장비 (2026-11-03). 장비를 바꾸면 이 모습도 바로 바뀜 */
 #meCard canvas.me { display: block; width: 104px; height: 130px; margin: 0 auto 6px; border-radius: 14px; background: #eadfca; box-shadow: inset 0 0 0 1px rgba(160, 122, 64, 0.25); }
-#meCard .does { margin: 6px 0 0; font-size: 12px; color: #8a7458; min-height: 1em; }
+#meCard .does { margin: 6px 0 0; font-size: 13px; color: #8a7458; min-height: 1em; }
 /* 가로 화면 (진짜 가로 또는 눕힌 화면, main.js resize가 html.land를 붙임) */
 /* 가로 화면: 왼쪽에 내 모습이 늘 보이게 (내려 보아도 따라옴) */
   html.land #meCard .pad { display: grid; grid-template-columns: 150px 1fr; column-gap: 16px; align-items: start; }
@@ -740,6 +740,6 @@ body.at-door #enter { z-index: 100; }
   html.land #meCard .pad > canvas.me { grid-column: 1; grid-row: 1 / span 40; position: sticky; top: 0; width: 150px; height: 188px; margin: 0; }
 
 /* 꾸미기 (cosmetic.js) */
-#shop .kind { margin: 12px 0 0; font-size: 12.5px; font-weight: 700; color: #a07a40; letter-spacing: 0.08em; }
+#shop .kind { margin: 12px 0 0; font-size: 13px; font-weight: 700; color: #a07a40; letter-spacing: 0.08em; }
 #meCard .items.cos button.on { background: #f6e6f6; color: #6a2a6a; box-shadow: 0 0 0 2px #b07ab0; }
-#meCard .cosdoes { margin: 6px 0 0; font-size: 12.5px; color: #8f7458; }
+#meCard .cosdoes { margin: 6px 0 0; font-size: 13px; color: #8f7458; }
