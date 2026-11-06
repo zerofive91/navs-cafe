@@ -179,7 +179,7 @@ export const TRAIN = (() => {
   const W = P.t_word, R = P.t_pray, F = P.t_fellow, X = P.t_witness, O = P.t_obey;
   return {
     word: { zone: W, npc: W.at(0, -4.6), pillars: [-6, -3, 0, 3, 6].map((u) => ({ ...W.at(u, 2.2), stand: W.at(u, 0.6) })) },
-    pray: { zone: R, npc: R.at(0, 4.4), altars: [[-3.4, -2.2], [3.4, -2.2], [-3.4, 1.6], [3.4, 1.6]].map(([u, v]) => ({ ...R.at(u, v), stand: R.at(u * 0.62, v - 0.9) })) },
+    pray: { zone: R, npc: R.at(0, 4.4), altars: [[-4.4, -2.2], [0, -2.2], [4.4, -2.2], [2.2, 1.6], [-2.2, 1.6]].map(([u, v]) => ({ ...R.at(u, v), stand: R.at(u * 0.62, v - 0.9) })) },
     fellow: { zone: F, npc: F.at(5.6, -1.6), npc2: F.at(7.4, -1.2), table: F.at(6.5, 1.6), pile: F.at(-6.5, 1.2) },
     witness: { zone: X, npc: X.at(-7.2, -4), road: [X.at(-7, 1.5), X.at(7, 1.5)] },
     obey: {

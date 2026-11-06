@@ -1608,6 +1608,18 @@ Object.assign(ACTIONS, park.actions);
 const leisure = initLeisure({ scene, me, camera, renderer, view, lights: [hemi, sun, warm], act, sfx, burst, walkTo, faceTo, standUp, nearestPerson, toast, ICONS, LIEABLE });
 Object.assign(ACTIONS, leisure.actions);
 const scrolls = initScrolls({ scene, me, sfx, fxSprite, burst, icon: ICONS.scroll });
+// 열려 있는 창 등록부 (2026-11): 말풍선·안내·훈련 등 창이 하나라도 열려 있으면 다른 말풍선은 열리지 않음
+//   새 모듈이 생기면 여기 한 줄만 보태면 됨. busyOf(자기 이름, ...보지 않을 이름)은 자기 자신을 뺀 나머지를 살핌
+//   story는 훈련·시험·부탁·가게가 예전부터 보지 않아 같은 동작을 유지함 (보게 하려면 해당 인자만 지우기)
+const OPEN_WINDOWS = {
+  tut: () => tut?.active(), character: () => character?.isOpen(), training: () => training?.active(), dungeon: () => dungeon?.active(),
+  guides: () => guides?.active(), garden: () => garden?.active(), wayguide: () => wayguide?.active(), warfare: () => warfare?.active(),
+  quests: () => quests?.active(), shop: () => shop?.active(), story: () => story?.active?.(),
+};
+const busyOf = (self, ...skip) => {
+  const off = new Set([self, ...skip]);
+  return () => { for (const k in OPEN_WINDOWS) if (!off.has(k) && OPEN_WINDOWS[k]()) return true; return false; };
+};
 const saveMe = () => saveProfile(profile);
 tut = initTutorial({
   me, profile, save: saveMe, toast, sfx, burst, walkTo, faceTo, map, lying, outdoors: () => outdoors(me),
@@ -1625,13 +1637,14 @@ training = initTraining({
   scene, me, makeChar, npcs, profile, save: saveMe, toast, sfx, burst, fxSprite,
   quests: () => quests,
   goTo: (p, say) => { if (me.climb) { toast('먼저 나무에서 내려와요', 3); return; } if (walkToward(me, walkTo, p)) toast(say, 3); else toast('그곳으로 가는 길을 찾지 못했어요', 3); },
-  busy: () => !!tut?.active() || !!character?.isOpen() || !!dungeon?.active() || !!guides?.active() || !!garden?.active() || !!wayguide?.active() || !!warfare?.active() || !!quests?.active() || !!shop?.active(),
+  busy: busyOf('training', 'story'),  // story를 보지 않음(기존 동작 유지)
   onChange: () => character.showChip(),
 });
 Object.assign(ACTIONS, training.actions);
 dungeon = initDungeon({
   scene, me, profile, save: saveMe, toast, sfx, burst, fxSprite,
-  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!warfare?.active() || !!guides?.active() || !!garden?.active() || !!wayguide?.active() || !!quests?.active() || !!shop?.active(),
+  busy: busyOf('dungeon', 'story'),  // story를 보지 않음(기존 동작 유지)
+  resting: () => restK > 0.5, // 쉼 모드(앉아 쉬는 중)면 승리 반짝임을 절반으로
   onChange: () => character.showChip(),
   courseName: (id) => (COURSE_META[id] ? COURSE_META[id].name : id),
   gear: () => gear, shot,
@@ -1640,17 +1653,17 @@ Object.assign(ACTIONS, dungeon.actions);
 guides = initGuides({
   me, makeChar, npcs, profile, save: saveMe, toast, sfx, burst, dungeon,
   goTo: (p, say) => { if (walkToward(me, walkTo, p)) toast(say, 3); else toast('그곳으로 가는 길을 찾지 못했어요', 3); },
-  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!dungeon?.active() || !!warfare?.active() || !!garden?.active() || !!wayguide?.active() || !!quests?.active() || !!shop?.active() || !!story?.active?.(),
+  busy: busyOf('guides'),
   onChange: () => character.showChip(),
 });
 warfare = initWarfare({
   scene, me, makeChar, npcs, profile, save: saveMe, toast, sfx, burst, fxSprite,
-  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!dungeon?.active() || !!guides?.active() || !!garden?.active() || !!wayguide?.active() || !!quests?.active() || !!shop?.active() || !!story?.active?.(),
+  busy: busyOf('warfare'),
   onChange: () => character.showChip(),
 });
 garden = initGarden({
   scene, me, makeChar, npcs, profile, save: saveMe, toast, sfx, burst, walkTo,
-  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!dungeon?.active() || !!guides?.active() || !!wayguide?.active() || !!warfare?.active() || !!quests?.active() || !!shop?.active() || !!story?.active?.(),
+  busy: busyOf('garden'),
   onChange: () => character.showChip(),
 });
 wayguide = initWayguide({
@@ -1659,7 +1672,7 @@ wayguide = initWayguide({
   goTo: (p, say) => { if (me.climb) { toast('먼저 나무에서 내려와요', 3); return; } if (walkToward(me, walkTo, p)) toast(say, 3); else toast('그곳으로 가는 길을 찾지 못했어요. 지도에서 가까운 곳으로 가 보세요', 4); },
   openMap: () => map.open(),
   tutActive: () => !!tut?.active(),
-  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!dungeon?.active() || !!guides?.active() || !!garden?.active() || !!warfare?.active() || !!quests?.active() || !!shop?.active() || !!story?.active?.(),
+  busy: busyOf('wayguide'),
 });
 // 지도 화면의 길잡이 단추: 어디로 갈지 모를 때 가 볼 만한 곳을 골라 줌
 {
@@ -1671,7 +1684,7 @@ wayguide = initWayguide({
 gear = initGear({ me, profile, scene, toast, sfx, burst, TIER });
 quests = initQuests({
   scene, me, makeChar, npcs, profile, save: saveMe, toast, sfx, burst, fxSprite, lying, nearestFree,
-  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!dungeon?.active() || !!guides?.active() || !!garden?.active() || !!wayguide?.active() || !!warfare?.active() || !!shop?.active(),
+  busy: busyOf('quests', 'story'),  // story를 보지 않음(기존 동작 유지)
   onChange: () => character.showChip(),
 });
 Object.assign(ACTIONS, quests.actions);
@@ -1684,7 +1697,7 @@ shop = initShop({
     ...Object.values(training?.T || {}).filter((d) => d.who && d.who.av && !profile.train?.[d.stat]).map((d) => d.who),
     ...(guides?.list || []).filter((g) => profile.trails?.[g.id] !== 'done' && dungeon?.open(g.id) !== false).map((g) => g.n),
   ],
-  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!dungeon?.active() || !!guides?.active() || !!garden?.active() || !!wayguide?.active() || !!warfare?.active() || !!quests?.active(),
+  busy: busyOf('shop', 'story'),  // story를 보지 않음(기존 동작 유지)
   onChange: () => character.showChip(),
 });
 Object.assign(ACTIONS, shop.actions);
@@ -1692,7 +1705,7 @@ pets = initPets({ scene, me, profile, toast, sfx, burst, onChange: () => charact
 Object.assign(ACTIONS, pets.actions);
 story = initStory({
   scene, me, makeChar, npcs, profile, save: saveMe, toast, sfx, burst, fxSprite,
-  busy: () => !!tut?.active() || !!character?.isOpen() || !!training?.active() || !!dungeon?.active() || !!guides?.active() || !!garden?.active() || !!wayguide?.active() || !!warfare?.active() || !!quests?.active() || !!shop?.active(),
+  busy: busyOf('story'),
   onChange: () => character.showChip(),
 });
 questLog = initQuestLog({ me, quests, story, walkTo, toast });

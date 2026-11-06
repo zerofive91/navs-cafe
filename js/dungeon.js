@@ -271,9 +271,9 @@ export function initDungeon(K) {
     save(); onChange?.();
     setTimeout(() => {
       showVerse('dg-win', { cooldown: 0, title: `${courseName(id)} ${stars(id)} 이겼어요` });
-      toast(`걸음 +${n}, 말씀 +5, 순종 +5, ${pay} 데나리온`, 5);
-      for (let q = 0; q < 10; q++) setTimeout(() => burst(me.x + (Math.random() - 0.5) * 3, me.y + 1 + Math.random() * 2, me.z + (Math.random() - 0.5) * 3), q * 120);
-      if (up) setTimeout(() => toast(`${profile.name || '나'}님이 ${up.name}${josa(up.name)} 자랐어요! 이제 ${stars2(up)} 길이 열려요`, 6), 4000);
+      // 알림은 하나로 (R3): 보상과 성장 소식을 한 번에. 쉼 모드(앉아 쉬는 중)에서는 반짝임을 절반으로
+      toast(`걸음 +${n}, 말씀 +5, 순종 +5, ${pay} 데나리온` + (up ? ` · ${profile.name || '나'}님이 ${up.name}${josa(up.name)} 자랐어요! 이제 ${stars2(up)} 길이 열려요` : ''), up ? 7 : 5);
+      for (let q = 0; q < (K.resting?.() ? 5 : 10); q++) setTimeout(() => burst(me.x + (Math.random() - 0.5) * 3, me.y + 1 + Math.random() * 2, me.z + (Math.random() - 0.5) * 3), q * 120);
     }, 2400);
   }
   const josa = (w) => { const c = w.charCodeAt(w.length - 1) - 0xac00; return c >= 0 && c < 11172 && c % 28 && c % 28 !== 8 ? '으로' : '로'; };
