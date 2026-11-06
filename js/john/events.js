@@ -151,7 +151,7 @@ export const EV = {
     study: { q: '니고데모는 언제 그분을 찾아왔나요?', a: ['밤', '새벽', '한낮'], ok: 0, v: 'jn-3-2' },
     memo: { v: 'jn-3-16', parts: 4 },
     med: { q: '거듭났다는 것은 내게 무엇인가요?', at: 'lie10', lie: true, sec: 20, v: 'jn-3-3', where: '니고데모 집 지붕' },
-    done: '저는 그 밤의 말씀을 오래 품었어요. 언젠가 다시 그분 곁에 설 거예요. 이 등잔을 가져가요. 다음은 성전 문 곁, 날 때부터 소경이었던 사람의 이야기예요.',
+    done: '저는 그 밤의 말씀을 오래 품었어요. 언젠가 다시 그분 곁에 설 거예요. 이 등잔을 가져가요. 다음은 사마리아 수가, 야곱의 우물이에요.',
     begin: (X) => X.walkNpc('nico', [X.P.nicoRoof], true),
     steps: (X) => [
       { hint: '계단으로 지붕에 올라 등잔 곁에 앉아요 (J 또는 앉기)', go: X.P.seat10, where: '니고데모 집 지붕 (동쪽 바깥 계단)',
@@ -493,7 +493,8 @@ export const EV = {
   // ---------- (2차 나) 💡 선한 목자의 음성 (10:1-30, Z7 동쪽 양 우리): 세 소리 가운데 목자의 음성만 따라 양의 문으로, 문·목자 등불 ----------
   shepherd: {
     id: 'shepherd', ch: '10:1-30', zone: 'temple', title: '선한 목자', sign: 0, lamp: ['door', 'shepherd'], lampName: '문 등불·목자 등불', who: '목자', npc: 'shepherd',
-    stat: 'prayer', reward: { steps: 12, stat: 3, coin: 2, items: ['jn_doorlamp', 'jn_shepherdlamp'] }, after: 'siloam', time: 'winter', reset: ['shepherd'],
+    stat: 'prayer', reward: { steps: 12, stat: 3, coin: 2, items: ['jn_doorlamp', 'jn_shepherdlamp'] }, after: 'siloam', reset: ['shepherd'],
+    begin: (X) => X.sky('winter', 'temple'), // 수전절, 겨울 (10:22). 사건을 할 때만 (성전 뜰의 다른 사건 하늘을 바꾸지 않게)
     listen: '저는 성전 동쪽 길가의 이 양 우리를 지키는 목자예요. 양은 목자의 음성을 알아서 따라가고, 타인의 음성은 따르지 않아요(10:4-5). 오늘은 당신이 양이 되어 들어 봐요. 여러 곳에서 부르는 소리가 들리면, 말씀과 맞는 음성만 따라가요.',
     read: ['jn-10-1', 'jn-10-2', 'jn-10-3', 'jn-10-4', 'jn-10-5', 'jn-10-7', 'jn-10-9', 'jn-10-10', 'jn-10-11', 'jn-10-14', 'jn-10-27', 'jn-10-28'],
     study: { q: '양들은 무엇을 알기에 목자를 따라가나요?', a: ['그의 음성', '그의 옷', '그의 지팡이'], ok: 0, v: 'jn-10-4' },
@@ -503,7 +504,7 @@ export const EV = {
     steps: (X) => [
       { hint: '양 우리 남쪽 문 앞 빛나는 자리에 서요', go: X.P.foldFront, where: '성전 동쪽 길가 양 우리',
         until: (r, dt) => { r.t = X.near(X.P.foldFront, 1.3) ? (r.t || 0) + dt : 0; return r.t > 1.2; },
-        leave: () => X.verse(['jn-10-1', 'jn-10-2', 'jn-10-3'], '양은 그의 음성을 듣나니') },
+        leave: () => X.verse(['jn-10-3'], '양은 그의 음성을 듣나니') }, // 한 구절만: 바로 뒤 목소리 패널이 카드를 가리지 않게 (10:1-2는 본문 읽기에)
       { hint: () => `세 곳에서 부르는 소리가 들려요. 말씀과 맞는 목자의 음성이 나는 번호 자리로 가요 ${X.trial.progress()}`, go: X.P.foldFront, ring: false, where: '양 우리 문 앞',
         enter: (r, next) => X.trial.voices({
           who: '세 곳에서 부르는 소리', then: next,
@@ -557,7 +558,7 @@ export const EV = {
           buttons: [{ t: '나중에', cls: 'later' }, { t: '"주여 그러하외다"', cls: 'next', fn: next }],
         }),
         leave: () => X.verse(['jn-11-25', 'jn-11-26', 'jn-11-27'], '나는 부활이요 생명이니') },
-      { hint: '집 서쪽 벽 의자의 마리아에게 가서 "선생님이 부르신다" 전해요 (11:28)', go: () => X.npcAt('mary12'), where: '베다니 마르다와 마리아의 집 서쪽', talk: 'mary12',
+      { hint: '마리아에게 가서 "선생님이 부르신다" 전해요 (11:28)', go: () => X.npcAt('mary12'), where: '베다니 마르다와 마리아의 집 서쪽', talk: 'mary12',
         open: (r, next) => X.ui.open({
           who: '마리아', sub: '나사로야 나오라', text: '선생님이 오셔서 저를 부르신다고요?', quote: 'jn-11-28',
           buttons: [{ t: '나중에', cls: 'later' }, { t: '함께 가요', cls: 'next', fn: () => { X.rise('mary12'); X.follow('mary12'); next(); } }],
@@ -572,9 +573,9 @@ export const EV = {
         },
         leave: () => { X.unfollow('martha'); X.unfollow('mary12'); X.verse(['jn-11-39', 'jn-11-40'], '돌을 옮겨 놓으라'); } },
       { hint: () => `무덤 어귀의 돌을 옮겨 놓아요 (E를 거듭 눌러요) · ${X.stoneK()}/4`, go: X.P.stoneAt, where: '베다니 굴 무덤 어귀', place: 'jn_push', at: () => X.P.stoneAt, r: 2.3,
-        act: () => { const open = X.pushStone(); if (open) { X.verse(['jn-11-41', 'jn-11-43'], '나사로야 나오라'); setTimeout(() => X.lazarusOut(), 2600); } return open; } },
+        act: () => { const open = X.pushStone(); if (open) { X.verse(['jn-11-41', 'jn-11-43'], '나사로야 나오라'); X.lazarusLater(2600); } return open; } },
       { hint: '나사로의 수족을 동인 베를 풀어 주어요 (E)', go: X.P.lazarusTomb, where: '베다니 굴 무덤 앞', place: 'jn_untie', at: () => X.P.lazarusTomb, r: 2.4,
-        enter: () => setTimeout(() => X.lazarusOut(), 2600),
+        enter: () => X.lazarusLater(2600),
         act: () => { X.lazarusOut(); X.untie(); X.verse(['jn-11-44'], '풀어 놓아 다니게 하라'); } },
       { hint: '무덤 곁 빛에서 부활 등불을 받아요 (E 또는 반짝이는 단추)', go: X.P.warmTomb, where: '베다니 굴 무덤 곁', place: 'jn_lamp', at: () => X.P.warmTomb, r: 2.2,
         act: () => { X.carry('lamp'); X.sfx('orb', 0.3, 1.2); X.burst(X.P.warmTomb.x, 1.6, X.P.warmTomb.z); X.toast('"나는 부활이요 생명이니" (11:25)', 4); } },

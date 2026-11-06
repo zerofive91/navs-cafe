@@ -109,6 +109,8 @@ export function initJerusalem({ root, me, parts, N, person, GREET, toast, sfx, b
     me.action = 'strain'; setTimeout(() => { if (me.action === 'strain') me.action = null; }, 700);
     return T.k >= 4;
   }
+  let lgen = 0; // reset마다 늘어남: 그만두기·마침 뒤에 늦게 도는 타이머가 나사로를 다시 세우지 않게
+  const lazarusLater = (ms) => { const g = lgen; setTimeout(() => { if (g === lgen) lazarusOut(); }, ms); };
   function lazarusOut() {
     if (L.out) return;
     L.out = true; L.wrapped = true;
@@ -167,6 +169,7 @@ export function initJerusalem({ root, me, parts, N, person, GREET, toast, sfx, b
 
   // ---------- 되돌리기 (그만두기·마침·처음) ----------
   function reset() {
+    lgen++;
     stream(false); accusersOn(false);
     for (const s of stalls) s.cleared = false;
     matUp = false; T.k = 0; L.out = false; L.wrapped = true; fragOn = false; planted = false; growT = 0;
@@ -271,7 +274,7 @@ export function initJerusalem({ root, me, parts, N, person, GREET, toast, sfx, b
       liftMat: () => { matUp = true; }, stream,
       accusers: accusersOn, accLeave, accGone,
       voiceMarks,
-      pushStone, stoneK: () => T.k, lazarusOut, untie, mournersTo,
+      pushStone, stoneK: () => T.k, lazarusOut, lazarusLater, untie, mournersTo,
       fragrance: (on) => { fragOn = on; }, plant,
       // 앉아 있던 사람을 일으켜 걷게 함 (마리아 11:29)
       npcGo: (k, p) => { const n = N[k]; standNpc(n); n.state = 'idle'; n.path = findPath(n, p); if (!n.path.length) { const q = nearestFree(p) || p; n.x = q.x; n.z = q.z; } n.home = { x: p.x, z: p.z }; n.state = n.path.length ? 'walk' : 'idle'; },
