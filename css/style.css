@@ -526,6 +526,7 @@ body:has(#creator) #actions, body:has(#creator) #stick, body:has(#creator) #meCh
 .npcb .row button[hidden] { display: none; }
 .npcb .row .next { background: #8f6744; color: #fffaf0; padding: 0 16px; }
 .npcb.ok .row .skip { visibility: hidden; }
+.npcb:focus { outline: none; } /* 말풍선 상자 자체(dialog.js tabindex=-1)는 테두리 없이, 단추는 기본 포커스 표시 */
 @media (max-width: 760px), (max-height: 500px) {
   .npcb { bottom: auto; top: calc(62px + env(safe-area-inset-top)); width: calc(var(--vw) - 24px); max-width: 480px; padding: 10px 14px 6px; }
   .npcb .say { font-size: 14px; }
@@ -710,7 +711,7 @@ body.bigtrial #trial { box-shadow: 0 0 0 2px #6a4a9a, 0 10px 40px rgba(20, 10, 4
 #shop .pad, #trip .pad { max-height: calc(var(--vh) - 24px); }
 /* 가로 화면 (진짜 가로 또는 눕힌 화면, main.js resize가 html.land를 붙임) */
 /* 시험 창: 세 말씀을 나란히 */
-  html.land .npcb { bottom: calc(8px + env(safe-area-inset-bottom)); max-height: calc(var(--vh) - 70px); }
+  html.land .npcb { top: auto; bottom: calc(8px + env(safe-area-inset-bottom)); max-height: calc(var(--vh) - 70px); } /* top을 풀어야 내용 높이만큼 (예전엔 top 62px·bottom 8px이 둘 다 걸려 늘 320px) */
   html.land .npcb .say { font-size: 15px; line-height: 1.45; }
   html.land .npcb.trial .opts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
   html.land .npcb.trial .opt { font-size: 15px; line-height: 1.4; padding: 6px 8px; }
@@ -746,14 +747,16 @@ body.at-door > :not(#enter):not(canvas):not(#acct):not(#roomkey):not(script) { v
 body.at-door #enter { z-index: 100; }
 
 /* 문 앞 안내자·길잡이 (wayguide.js) */
-#wtalk .opts { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
-#wtalk .opts button { text-align: left; border: 1.5px solid #e4cfa6; border-radius: 12px; background: #fffaf0; padding: 8px 12px; font: inherit; color: #5a4128; cursor: pointer; }
-#wtalk .opts button b { display: block; font-size: 15px; }
-#wtalk .opts button small { display: block; color: #8a7458; font-size: 13px; margin-top: 2px; }
-#wtalk .opts button:active { transform: scale(0.98); }
+.npcb .pick { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.npcb .pick:empty { display: none; }
+.npcb .pick button { text-align: left; border: 1.5px solid #e4cfa6; border-radius: 12px; background: #fffaf0; padding: 8px 12px; font: inherit; color: #5a4128; cursor: pointer; }
+.npcb .pick button b { display: block; font-size: 15px; }
+.npcb .pick button small { display: block; color: #8a7458; font-size: 13px; margin-top: 2px; }
+.npcb .pick button:active { transform: scale(0.98); }
 #map .guideMe { position: absolute; top: max(12px, env(safe-area-inset-top)); left: 14px; height: 44px; padding: 0 16px; border-radius: 22px; border: 0; background: #ffe9b8; color: #5a4128; font: 700 14px system-ui, sans-serif; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
 /* 가로 화면 (진짜 가로 또는 눕힌 화면, main.js resize가 html.land를 붙임) */
-  html.land #wtalk .opts { display: grid; grid-template-columns: repeat(3, 1fr); }
+  html.land .npcb .pick { display: grid; grid-template-columns: repeat(3, 1fr); }
+  html.land .npcb .pick:empty { display: none; }
 
 
 /* 내 카드: 내 모습과 장비 (2026-11-03). 장비를 바꾸면 이 모습도 바로 바뀜 */
@@ -929,3 +932,7 @@ html.land #still { bottom: calc(8px + env(safe-area-inset-bottom)); width: min(4
 html.land #still .breath { width: 72px; height: 72px; }
 html.land #still .lines, html.land #still .lines p { font-size: 16px; }
 html.land #still .lines { height: 6.2em; }
+
+/* 말풍선 자리 고르기 (dialog.js open의 at): 기본은 위 규칙대로(컴퓨터 아래 가운데, 폰 세로 위, 가로 아래) */
+html .npcb[data-at="top"] { top: calc(62px + env(safe-area-inset-top)); bottom: auto; }
+html .npcb[data-at="bottom"] { top: auto; bottom: calc(8px + env(safe-area-inset-bottom)); }
