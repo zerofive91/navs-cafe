@@ -5,6 +5,7 @@
 //   연습이므로 틀려도 넘어지지 않고, 왜 맞지 않는지 알려 준 뒤 다시 고름. 막히면 기도(X)하면 맞는 말씀이 떠오름
 //   처음 이긴 시험돌마다 말씀·순종이 자라고, 네 돌을 다 이기면 바울이 선한 싸움의 말씀을 들려줌
 import { offerTalk as offerTalkGate } from './talkgate.js';
+import { createDialog } from './dialog.js';
 import * as THREE from 'three';
 import { WARFARE, floorY } from './layout.js';
 import { VERSES, showVerse } from './verses.js';
@@ -200,23 +201,12 @@ export function initWarfare(K) {
   shade.visible = false; scene.add(shade);
   let fade = -1;
 
-  // ---------- 바울과 말하기 ----------
-  const talk = document.createElement('div');
-  talk.className = 'npcb'; talk.id = 'wtalk'; talk.hidden = true;
-  talk.innerHTML = '<div class="who"><b>바울</b><span class="n">영적 전쟁 훈련소</span></div><p class="say"></p><div class="guide"><button data-g="how">하는 방법</button><button data-g="prog">진행 보기</button></div><div class="row"><button class="later">나중에</button><button class="next">실전 연습</button></div>';
-  document.body.appendChild(talk);
-  const $t = (s) => talk.querySelector(s);
-  let offer = false, closedFor = false;
-  talk.addEventListener('pointerdown', (e) => e.stopPropagation()); // 끌어서 내려 보기(스크롤)가 되도록, 고르기는 click에서
-  talk.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const g = e.target.closest('[data-g]');
-    if (g) return guide(g.dataset.g);
-    if (e.target.classList.contains('later')) { closedFor = true; hideTalk(); }
-    if (e.target.classList.contains('next')) { hideTalk(); closedFor = true; start('real'); }
-  });
-  const hideTalk = () => { talk.hidden = true; offer = false; if (!run) document.body.classList.remove('talking'); };
+  // ---------- 바울과 말하기 (dialog.js). id는 길잡이(#wtalk)와 겹치지 않게 #ptalk ----------
+  const dlg = createDialog({ id: 'ptalk' });
+  let offer = false;
+  const hideTalk = () => { dlg.close(); offer = false; };
   const allWon = () => CATS.every((c) => won(c.id));
+  const GUIDE = [{ label: '하는 방법', on: () => guide('how') }, { label: '진행 보기', on: () => guide('prog') }];
   function offerTalk() {
     offer = true;
     const first = !CATS.some((c) => won(c.id)) && !rec().met;
@@ -225,17 +215,25 @@ export function initWarfare(K) {
       ? '저는 바울이에요. 우리의 싸움은 혈과 육이 아니라 어둠의 속삭임과의 싸움이에요. 믿음의 선진들과 사도들도 유혹, 미혹, 두려움, 교만의 시험을 겪었어요. 네 시험돌 앞 빛나는 자리에 서면 그들이 겪은 시험이 다가와요. 그들처럼 말씀으로 이겨 봐요.'
       : allWon() ? `${profile.name || '친구'}님은 네 시험을 다 이겨 봤어요. 실전 연습에서는 네 갈래가 섞여서 다섯 번 와요. 어떤 속삭임인지 먼저 알아채는 게 싸움의 반이에요.`
         : `다시 왔군요! 아직 이기지 않은 시험돌: ${CATS.filter((c) => !won(c.id)).map((c) => c.name).join(', ')}. 시험돌 앞에 서거나, 섞어서 하는 실전 연습을 해 봐요.`;
-    $t('.say').textContent = say;
-    const v = document.createElement('small'); v.textContent = `${VERSES['wf-soldier'][0]} (${VERSES['wf-soldier'][1]})`; $t('.say').append(v);
-    talk.hidden = false; document.body.classList.add('talking');
+    dlg.open({
+      who: '바울', n: '영적 전쟁 훈련소', say, verse: 'wf-soldier',
+      guide: GUIDE,
+      choices: [
+        { label: '나중에', cls: 'later', on: hideTalk },
+        { label: '실전 연습', cls: 'next', main: true, on: () => { hideTalk(); start('real'); } },
+      ],
+      esc: hideTalk,
+    });
   }
   function guide(kind) {
+    let say;
     if (kind === 'how') {
-      $t('.say').textContent = `네 시험돌(유혹·미혹·두려움·교만) 앞 빛나는 자리에 서면 성경 속 인물이 겪은 시험이 ${ROUND}번 와요. 어둠의 속삭임을 듣고, 세 말씀 가운데 그 속삭임을 이기는 말씀을 골라요 (1·2·3). 막히면 기도(X 또는 기도 단추)하면 맞는 말씀이 떠올라요. 연습이라 틀려도 넘어지지 않고 다시 고를 수 있어요. 처음 이긴 돌마다 말씀 +3, 순종 +2, 걸음 +5, 2 데나리온을 받아요.`;
+      say = `네 시험돌(유혹·미혹·두려움·교만) 앞 빛나는 자리에 서면 성경 속 인물이 겪은 시험이 ${ROUND}번 와요. 어둠의 속삭임을 듣고, 세 말씀 가운데 그 속삭임을 이기는 말씀을 골라요 (1·2·3). 막히면 기도(X 또는 기도 단추)하면 맞는 말씀이 떠올라요. 연습이라 틀려도 넘어지지 않고 다시 고를 수 있어요. 처음 이긴 돌마다 말씀 +3, 순종 +2, 걸음 +5, 2 데나리온을 받아요.`;
     } else {
       const R = rec();
-      $t('.say').textContent = CATS.map((c) => `${c.name} ${won(c.id) ? `✓ (${R[c.id]}번 이김)` : '아직'}`).join(' · ') + ` · 실전 ${R.real | 0}번 이김` + (allWon() ? '. 네 시험을 다 이겼어요!' : '.');
+      say = CATS.map((c) => `${c.name} ${won(c.id) ? `✓ (${R[c.id]}번 이김)` : '아직'}`).join(' · ') + ` · 실전 ${R.real | 0}번 이김` + (allWon() ? '. 네 시험을 다 이겼어요!' : '.');
     }
+    dlg.update({ say, verse: '' });
   }
 
   // ---------- 시험 창 ----------
