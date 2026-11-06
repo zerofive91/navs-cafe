@@ -6,7 +6,7 @@
 import * as THREE from 'three';
 import { VILLAGE_GATE, floorY, REGIONS, regionIdAt } from './layout.js';
 import { ensureNav, nearestFree } from './nav.js';
-import { REGION as JOHN, CART as JOHN_CART } from './john/layout.js';
+import { REGION as JOHN, CART as JOHN_CART, JN_ACTS } from './john/layout.js';
 import { VERSES, showVerse } from './verses.js';
 
 export const TOWNS = [
@@ -181,7 +181,7 @@ export function initRegion(K) {
     active: () => busy,
     locked: () => busy,
     available: () => (busy ? [] : [...(nearCart() && me.state !== 'walk' ? [['place', 'jcart']] : []), ...(eng?.available() || [])]),
-    actions: { jcart: board, ...Object.fromEntries(['jn_lamp', 'jn_water', 'jn_draw', 'jn_give', 'jn_look', 'jn_wash'].map((k) => [k, jnAct(k)])) },
+    actions: { jcart: board, ...Object.fromEntries(JN_ACTS.map((k) => [k, jnAct(k)])) },
     get engine() { return eng; },
     wants: () => (eng && state.id === 'john' ? eng.wants() : []),
     // 지도에서 다른 마을을 고르면: 이 마을의 수레 곁으로 걸어감

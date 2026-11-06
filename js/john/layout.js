@@ -108,6 +108,10 @@ export const CART = (() => {
   const c = W(PU - 1.5, PV + 18), stand = W(PU - 1.2, PV + 15.4), arrive = W(PU + 1.5, PV + 11.5);
   return { ...c, rot: 0, stand, arrive, look: W(PU, PV) }; // 끌채는 동쪽으로 (도착해 광장을 볼 때 화면을 가리지 않게)
 })();
+// "나는…" 등불 일곱의 자리 (LAMPS 차례대로): 떡(6:35)·빛(8:12)·문(10:7)·목자(10:11)·부활(11:25)·길(14:6)·포도나무(15:5)
+export const LAMP_IDS = ['bread', 'light', 'door', 'shepherd', 'life', 'way', 'vine'];
+// 사건의 그 자리 단추 이름 (region.js가 main.js ACTIONS에 미리 등록하고, 엔진이 생기면 넘김. 아이콘은 js/icons.js)
+export const JN_ACTS = ['jn_lamp', 'jn_water', 'jn_draw', 'jn_give', 'jn_look', 'jn_wash', 'jn_put', 'jn_boat', 'jn_row', 'jn_call'];
 // 구역 팻말 (빈 자리마다 하나)
 export const SIGNPOSTS = Object.entries(ZONES).map(([id, z]) => {
   const p = id === 'light' ? W(PU + 4.5, PV + 15.5) : W(z.u - z.r * 0.55, z.v - z.r * 0.55);
@@ -160,8 +164,45 @@ export const SP = {
   blindSeat: gAt(3.4, 1.3), blindMan: gAt(-3.4, 1.4), pharisee: [S(C7.u + 0.5, C7.v - 1.5), S(C7.u + 2.4, C7.v - 0.4)], outside: gAt(0.6, 14),
   wash: S(-70, 134.1), med9: S(-72.8, 130.9),
 };
+
+// ---------- 2차 가 사건 자리 (2026-11): 수가 우물(Z6) · 가나 길목과 가버나움(Z4: 회당·신하의 집·물가) · 벳새다 들녘(Z5) · 호수 배 길 ----------
+// Z6 수가: 야곱의 우물, 동네 집 둘(문은 동쪽), 희어진 밭(요 4:35, 걸어 들어갈 수 있음), 우물가 그늘 의자
+export const WELL6 = S(-26, -36);
+export const HOUSES6 = [rect(-50, -44, -40, -35, 2.6), rect(-48, -42, -29, -24, 2.6)];
+export const FIELD6 = rect(-13, -1, -50, -38);
+// Z4 가버나움: 회당(지붕 없는 돌담, 남쪽 문, 안쪽 동·서 벽에 돌 의자 — 1세기 회당처럼), 왕의 신하의 집(문은 북쪽 길 쪽)
+export const SYN4 = rect(-8, 2, -138, -129, 2.6);
+export const SYN4_DOOR = [-4.2, -1.8]; // 남쪽 담의 문 (u 사이)
+export const HOUSE4 = rect(21, 27, -107, -102, 2.8);
+// 호수 배 길 (요 6:16-21): 벳새다 북쪽 물가에서 바다를 건너 가버나움 물가로. mid까지는 노를 젓고, 그 뒤는 빛을 맞아들이면 곧 닿음
+export const BOAT = {
+  dockE: S(82, -118.6), dockW: S(23, -131.5),
+  route: [S(82.5, -124.5), S(70, -140), S(52, -152), S(36, -146), S(27.5, -136.5)], mid: 0.48,
+};
+export const LAKE_AT = { ...W(LAKE.u, LAKE.v), r: LAKE.ru }; // 밤바다 하늘을 바꿀 자리 (호수 가운데)
+// Z5 벳새다 들녘: 무리를 앉힐 잔디 세 곳 (요 6:10 그 곳에 잔디가 많은지라), 언덕 위 따뜻한 빛 (6:3 산에 오르사)
+export const GROUPS5 = [S(97, -85), S(101, -81), S(96.8, -72.4)];
+Object.assign(SP, {
+  // Z6
+  well6: WELL6, dockE: BOAT.dockE, dockW: BOAT.dockW, med4: S(19.6, -127.6),
+  woman: S(-29.2, -34.2), warm6: S(-24.2, -37.8), jar6: S(-27.4, -37.6), seat6: S(-31.5, -40.5), shade6: S(-33.8, -42.6),
+  vil: [S(-42.6, -37.5), S(-40.6, -26.5), S(-37, -47.5)], come6: [S(-22.4, -33.6), S(-21.4, -36.4), S(-22.8, -39.8)],
+  fieldLook: S(-15.2, -44), field: S(-7, -44),
+  // Z3 → Z4 왕의 신하
+  official: S(-80.5, -135.2), warm3: S(-78.4, -131.8),
+  servants: [S(24, -110), S(25.4, -110.6)], servPath: [S(24, -110.5), S(12, -118), S(-26, -123.2)],
+  house4: S(24, -108.4), son: S(25.6, -108.8), seat4: S(19.6, -104.5),
+  // Z4 회당
+  synDoor: S(-3, -127.2), warm4: S(-3, -136), peterSyn: S(-0.6, -134.4), synW: S(-7, -133.4), synE: S(1, -133.4),
+  synIn: [S(-5.6, -134.8), S(-4.2, -132.6), S(-1.6, -133.2), S(-6.2, -131.6), S(-0.4, -131.6)], synOut: [S(-3, -129.2), S(-3, -124.6), S(3.5, -121.2)],
+  // 물가 (밤바다)
+  peterShore: S(84.8, -117.4), boatW: S(27.5, -136.5),
+  // Z5
+  philip: S(88.4, -82.4), andrew5: S(86.6, -80.6), boy: S(95.2, -76.4), warm5: S(101.6, -72.8), med5: S(101.8, -66.8),
+});
 // 이 둘레에는 나무를 두지 않음 (모형과 겹치지 않게)
-const CLEAR = [[ZONES.cana, 16], [ZONES.upper, 15], [ZONES.siloam, 13], [GATE7.c, 10], [SP.pole, 3], [ZONES.jordan, 14]];
+const CLEAR = [[ZONES.cana, 16], [ZONES.upper, 15], [ZONES.siloam, 13], [GATE7.c, 10], [SP.pole, 3], [ZONES.jordan, 14],
+  [ZONES.sychar, 26], [FIELD6, 0], [ZONES.galilee, 16], [S(SYN4.cu, SYN4.cv), 11], [S(HOUSE4.cu, HOUSE4.cv), 8], [SP.warm3, 6], [BOAT.dockE, 7], [BOAT.dockW, 7], [ZONES.bethsaida, 20], [SP.servPath[1], 6]];
 
 // ---------- 나무: 올리브·무화과·종려 (씨앗 고정, 길·구역·물에서 떨어진 곳) ----------
 export const TREES = [];
@@ -180,7 +221,7 @@ export const TREES = [];
   }
 }
 
-for (let i = TREES.length - 1; i >= 0; i--) { const t = TREES[i]; if (CLEAR.some(([c, r]) => Math.hypot(t.u - c.u, t.v - c.v) < r)) TREES.splice(i, 1); }
+for (let i = TREES.length - 1; i >= 0; i--) { const t = TREES[i]; if (CLEAR.some(([c, r]) => (c.u0 != null ? inRect(c, t.u, t.v, 3) : Math.hypot(t.u - c.u, t.v - c.v) < r))) TREES.splice(i, 1); }
 
 // ---------- 막힘 (원) ----------
 const obstacles = [];
@@ -195,6 +236,7 @@ block(SP.fig, 0.5); for (const j of JARS) block(j, 0.42, 1.0); block(SP.well, 0.
 block(GATE7.at(2.3, 0), 0.5); block(GATE7.at(-2.3, 0), 0.5);
 for (const s of [-1, 1]) for (let a = 2.9; a <= 8.01; a += 0.5) block(GATE7.at(s * a, 0), 0.32);
 block(SP.pole, 0.25); block(SP.lamp10, 0.18, 1.2); for (const p of LINE10) block(p, 0.12);
+block(WELL6, 0.85, 0.9); block(SP.shade6, 0.4);
 const BK = 4, buckets = new Map();
 const bkey = (i, j) => i * 4096 + j;
 for (const o of obstacles) {
@@ -219,6 +261,11 @@ export const SEATS_J = {
   feast: SP.feast.map((p) => seat(p, Math.PI, 'gbench', W(p.u, p.v + 0.75))),
   seat10: seat(SP.seat10, Math.PI / 2, 'floor', W(SP.seat10.u - 0.7, SP.seat10.v)),
   med9: seat(SP.med9, 0, 'floor', W(SP.med9.u, SP.med9.v - 0.6)),
+  // 2차 가: 우물가 그늘 의자, 신하의 집 곁 의자, 회당 안 돌 의자 둘
+  seat6: seat(SP.seat6, Math.atan2(WELL6.x - SP.seat6.x, WELL6.z - SP.seat6.z), 'gbench', W(SP.seat6.u + 0.6, SP.seat6.v + 0.5)),
+  seat4: seat(SP.seat4, Math.PI / 2, 'gbench', W(SP.seat4.u + 0.8, SP.seat4.v)),
+  synW: seat(SP.synW, Math.PI / 2, 'gbench', W(SP.synW.u + 0.8, SP.synW.v)),
+  synE: seat(SP.synE, -Math.PI / 2, 'gbench', W(SP.synE.u - 0.8, SP.synE.v)),
 };
 
 // ---------- 바닥·막힘·길값 (layout.js가 이 상자 안이면 이 함수로 넘김) ----------
@@ -262,6 +309,11 @@ function blockedRect(u, v) {
   // Z9 실로암: 둘레 단의 동·서·남쪽 끝 (북쪽 계단으로만 오르내림)
   const P = POOL9.out;
   if (wallU(u, v, P.u0, P.v0 - 2.4, P.v1) || wallU(u, v, P.u1, P.v0 - 2.4, P.v1) || wallV(u, v, P.v1, P.u0, P.u1)) return true;
+  // 2차 가: 수가 동네 집, 신하의 집, 가버나움 회당 담 (남쪽 문만 열림)
+  if (HOUSES6.some((h) => inRect(h, u, v, BODY)) || inRect(HOUSE4, u, v, BODY)) return true;
+  const Sy = SYN4, sd = SYN4_DOOR;
+  if (wallU(u, v, Sy.u0, Sy.v0, Sy.v1) || wallU(u, v, Sy.u1, Sy.v0, Sy.v1) || wallV(u, v, Sy.v0, Sy.u0, Sy.u1)) return true;
+  if (wallV(u, v, Sy.v1, Sy.u0, sd[0]) || wallV(u, v, Sy.v1, sd[1], Sy.u1)) return true;
   return false;
 }
 function floorY(x, z) {
