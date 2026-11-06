@@ -2,6 +2,8 @@
 //   와 보라(1장) · 가나의 혼인잔치(2장) · 니고데모, 밤에(3장) · 실로암(9장)
 //   2차 가 (갈릴리·사마리아): 야곱의 우물(4장) · 말씀을 믿고 가다(4장, 표적 ②) · 오병이어(6장, ④) · 밤바다(6장, ⑤) · 생명의 떡(6장, 💡 떡 등불)
 //   2차 나 (예루살렘·베다니): 아버지 집(2장) · 베데스다(5장, ③) · 세상의 빛(7-8장, 💡 빛 등불) · 선한 목자(10장, 💡 문·목자 등불) · 나사로야 나오라(11장, ⑦ 💡 부활 등불) · 나드 향유(12장)
+//   3차 (다락방·수난·부활): 발 씻기심(13장) · 길·포도나무(14-17장, 💡 길·포도나무 등불) · 동산과 숯불(18장) · 진리 · 다 이루었다(18-19장) · 마리아야(20장) · 닫힌 문 · 도마(20장) · 디베랴 바다의 아침(21장)
+//     quiet: 수난 두 사건은 시험·보상 없이 기록만. 장소 도구는 js/john/passion.js
 //   lamp는 등불 하나(문자열) 또는 여럿(배열). 장소 도구(장사판·돌·무리 등)는 js/john/jerusalem.js
 //   두 사건이 한 증인을 쓰면(베드로) stand에 그 사건 때 설 자리(SP 이름)를 적음. reset: 그만두거나 마치면 제자리로 돌릴 사람
 //   필수: 듣기(l, 증인의 말) · 읽기(r, 말씀 카드) · 적용(a, 말씀대로 해 보는 단계)
@@ -10,8 +12,9 @@
 //   (X.P 자리, X.near·X.sitting·X.praying, X.verse, X.sky, X.carry, X.trial, X.walkNpc·X.follow, X.blur, X.water …)
 //   말씀 키(jn-)는 js/verses.js, 현대어 짝은 js/bible-modern.js. 예수님은 사람 모습으로 두지 않고 따뜻한 빛으로만 (기획서 0장)
 
-// 여는 차례 (큰 줄기는 장 순서. 2차 가에서 4·6장, 2차 나에서 2·5·7-8·10-12장을 채움. 마친 사건은 언제든 다시)
-export const ORDER = ['come', 'cana', 'temple', 'nico', 'well', 'official', 'bethesda', 'loaves', 'sea', 'bread', 'light', 'siloam', 'shepherd', 'lazarus', 'nard'];
+// 여는 차례 (큰 줄기는 장 순서. 2차 가에서 4·6장, 2차 나에서 2·5·7-8·10-12장, 3차에서 13-21장을 채움. 마친 사건은 언제든 다시)
+export const ORDER = ['come', 'cana', 'temple', 'nico', 'well', 'official', 'bethesda', 'loaves', 'sea', 'bread', 'light', 'siloam', 'shepherd', 'lazarus', 'nard',
+  'wash', 'way', 'arrest', 'truth', 'mary', 'thomas', 'morning'];
 
 export const EV = {
   // ---------- ① 와 보라 (1:1-51, Z1 → Z2): 마을 안내를 겸함 ----------
@@ -620,5 +623,334 @@ export const EV = {
         act: () => { X.plant(); X.verse(['jn-12-24', 'jn-12-26'], '한 알의 밀') } },
     ],
   },
+  // ===================== 3차: 다락방·수난·부활 (13-21장, Z10 다락방 · Z11 수난과 동산 · Z4 디베랴 바닷가) =====================
+  //   장소 도구(대야·닫히는 문·검·횃불·무리·향품·무덤 돌·그물·어린 양)는 js/john/passion.js
+  //   quiet: 수난 구역의 두 사건(동산과 숯불, 진리 · 다 이루었다)은 시험·보상 없이 머물러 묵상하고 기록만 (기획서 9장 결정 4)
+  //   쉼 단계(X.rested)는 앉아서 몇 초 머물면 다음으로. 앉아 있으면 머무름 묵상(js/stillness.js)이 열리고, 하는 동안은 끝날 때까지 기다림
+
+  // ---------- (3차) 발 씻기심 (13:1-35, Z10 다락방): 수건과 대야를 들고, 교만을 내려놓고, 제자들의 발을 씻기기 ----------
+  wash: {
+    id: 'wash', ch: '13:1-35', zone: 'upper', title: '발 씻기심', sign: 0, who: '시몬 베드로', npc: 'peter', stand: 'peterUpper', time: 'eve',
+    stat: 'fellow', reward: { steps: 12, stat: 3, coin: 2, items: ['jn_towel'] }, after: 'nard',
+    listen: '유월절 전, 저녁 잡수시던 자리에서 그분이 일어나셨어요(13:4). 수건을 허리에 두르시고 대야에 물을 담아 우리 발을 씻기기 시작하셨지요. 저는 "내 발을 절대로 씻기지 못하시리이다" 했어요(13:8). 이번엔 당신이 수건과 대야를 들고 해 봐요.',
+    read: ['jn-13-1', 'jn-13-4', 'jn-13-5', 'jn-13-6', 'jn-13-7', 'jn-13-8', 'jn-13-9', 'jn-13-14', 'jn-13-15', 'jn-13-34', 'jn-13-35'],
+    study: { q: '그분은 제자들의 발을 씻기기 전에 무엇을 허리에 두르셨나요?', a: ['수건', '띠', '겉옷'], ok: 0, v: 'jn-13-4' },
+    memo: { v: 'jn-13-34', parts: 4 },
+    med: { q: '오늘 내가 낮아져 발을 씻겨 줄 한 사람은 누구인가요?', at: 'up10', sec: 20, v: 'jn-13-14', where: '다락방 식탁' },
+    done: '주와 선생이신 분이 먼저 우리 발을 씻기셨어요. 너희도 서로 발을 씻기라 하셨지요(13:14). 이 수건과 대야를 가져가요. 그날 밤 그분은 이 방에서 오래 말씀하셨어요. 도마에게 가 봐요.',
+    steps: (X) => [
+      { hint: '다락방 문 앞 빛나는 자리에 서요', go: X.P.upDoor, where: '윗동네 다락방 남쪽 문',
+        until: (r, dt) => { r.t = X.near(X.P.upDoor, 1.3) ? (r.t || 0) + dt : 0; return r.t > 1.2; },
+        leave: () => X.verse(['jn-13-1', 'jn-13-4'], '끝까지 사랑하시니라') },
+      { hint: '방 안 대야 곁에서 수건과 대야를 들어요 (E 또는 반짝이는 단추)', go: X.P.basinAt, where: '다락방 서쪽 벽 곁', place: 'jn_towel', at: () => X.P.basinAt, r: 2.2,
+        act: () => { X.basin(false); X.carry('basin'); X.sfx('cup', 0.18, 0.8); X.verse(['jn-13-5'], '대야에 물을 담아') } },
+      { hint: '마음속에서 속삭임이 들려요. 무엇을 내려놓을까요?', go: X.P.basinAt, ring: false, where: '다락방',
+        enter: (r, next) => X.trial.drop({
+          who: '어둠의 속삭임', lie: '"네가 왜 남의 발을 씻겨? 그건 종이 하는 일이야. 너는 그럴 사람이 아니잖아."',
+          q: '손에 든 대야는 그대로 두고, 마음의 교만을 내려놓아요',
+          opts: [
+            { t: '"맞아, 나는 그럴 사람이 아니야" 하고 대야를 내려놓아요', why: '주와 선생이신 분이 먼저 우리 발을 씻기셨어요. 너희도 서로 발을 씻기라 하셨지요 (13:14)' },
+            { t: '교만을 내려놓고 무릎을 꿇어요', ok: true },
+            { t: '"나보다 낮은 사람 발만 씻겨 줄게"', why: '그분은 끝까지 사랑하셨어요 (13:1). 내가 사랑을 고르면 섬김도 고르게 돼요' },
+          ],
+          drop: () => X.dropFx(), win: 'jn-13-15', then: next,
+        }) },
+      { hint: () => `제자들 곁에서 한 사람씩 발을 씻겨요 (E) · ${X.washed()}/5`, go: () => X.nextFeet(), where: '다락방 식탁 둘레', place: 'jn_feet', at: () => X.nextFeet(), r: 2.0,
+        act: () => X.washFeet() },
+      { hint: '베드로에게 말을 걸어요', go: () => X.npcAt('peter'), where: '다락방 동쪽', talk: 'peter',
+        open: (r, next) => X.ui.open({
+          who: '시몬 베드로', sub: '발 씻기심', text: '주여, 주께서 내 발을 씻기시나이까? 제 발은 절대로 씻기지 못하십니다!', quote: 'jn-13-6',
+          buttons: [{ t: '나중에', cls: 'later' }, { t: '"내가 너를 씻기지 아니하면…"', cls: 'next', fn: next }],
+        }),
+        leave: () => X.verse(['jn-13-7', 'jn-13-8', 'jn-13-9'], '손과 머리도') },
+      { hint: '베드로의 발을 씻겨요 (E)', go: () => X.npcAt('peter'), where: '다락방 동쪽', place: 'jn_feet', at: () => X.npcAt('peter'), r: 2.2,
+        act: () => { X.washPeter(); X.carry(null); X.basin(true); X.verse(['jn-13-14', 'jn-13-15', 'jn-13-34', 'jn-13-35'], '서로 사랑하라'); } },
+    ],
+  },
+
+  // ---------- (3차) 💡 길·포도나무 (13:30-17:26, Z10 다락방): 시험 없이 앉아서 말씀을 차례로 듣고, 머물고, 기도. 길·포도나무 등불 ----------
+  way: {
+    id: 'way', ch: '14:1-17:26', zone: 'upper', title: '길·포도나무', sign: 0, lamp: ['way', 'vine'], lampName: '길 등불·포도나무 등불', who: '도마', npc: 'thomas', time: 'night',
+    stat: 'prayer', reward: { steps: 12, stat: 3, coin: 2, items: ['jn_waylamp', 'jn_vinelamp'] }, after: 'wash',
+    listen: '그날 밤 유다가 나간 뒤(13:30), 그분은 이 방에서 오래 말씀하셨어요. 저는 "어디로 가시는지 알지 못하거늘 그 길을 어찌 알겠삽나이까" 하고 여쭈었지요(14:5). 오늘은 시험이 없어요. 식탁에 앉아 말씀을 차례로 듣고, 포도나무 곁에 머물러요.',
+    read: ['jn-13-30', 'jn-14-1', 'jn-14-2', 'jn-14-3', 'jn-14-5', 'jn-14-6', 'jn-14-27', 'jn-15-4', 'jn-15-5', 'jn-15-12', 'jn-16-33', 'jn-17-17', 'jn-17-21'],
+    study: { q: '"내가 곧 길이요" 하시기 전에 도마는 무엇을 여쭈었나요?', a: ['그 길을 어찌 알겠느냐고', '언제 다시 오시느냐고', '누가 크냐고'], ok: 0, v: 'jn-14-5' },
+    memo: { v: 'jn-14-6', parts: 4 },
+    med: { q: '"내 안에 거하라" 하셨어요. 오늘 그분 안에 머문다는 것은 무엇일까요?', at: 'vineSeat', sec: 20, v: 'jn-15-4', where: '다락방 포도나무 곁' },
+    done: '길을 몰라 여쭈었는데, 그분은 "내가 곧 길이요" 하셨어요. 그리고 포도나무에 붙어 있으라 하셨지요. 길 등불과 포도나무 등불이 빛의 광장 등잔 둘을 밝혀요. 이제 기드론 시내 건너편, 동산으로 가요.',
+    steps: (X) => [
+      { hint: '다락방 식탁에 앉아요 (J 또는 앉기)', go: X.P.up10, where: '다락방 식탁',
+        until: (r, dt) => { r.t = X.sitting(X.P.up10, 2.0) ? (r.t || 0) + dt : 0; return r.t > 1.2; },
+        leave: () => X.verse(['jn-13-30', 'jn-14-1', 'jn-14-2', 'jn-14-3'], '근심하지 말라') },
+      { hint: '식탁 건너편 도마에게 말을 걸어요', go: () => X.npcAt('thomas'), where: '다락방 식탁', talk: 'thomas',
+        open: (r, next) => X.ui.open({
+          who: '도마', sub: '길·포도나무', text: '그분이 가시는 곳을 우리가 안다고 하셨는데… 저는 정말 몰랐어요. 그래서 여쭈었지요.', quote: 'jn-14-5',
+          buttons: [{ t: '나중에', cls: 'later' }, { t: '그분의 대답을 들어요', cls: 'next', fn: next }],
+        }),
+        leave: () => X.verse(['jn-14-6', 'jn-14-27'], '내가 곧 길이요') },
+      { hint: '방 북쪽 포도나무 시렁을 바라봐요 (E)', go: X.P.vineLook, where: '다락방 북동쪽 포도나무', place: 'jn_look', at: () => X.P.vineLook, r: 2.4,
+        act: () => { X.look(X.P.vine10); X.verse(['jn-15-4', 'jn-15-5'], '나는 포도나무요'); } },
+      { hint: '포도나무 곁 돌에 앉아 머물러요 (J 앉기). 머무름 묵상이 열리면 해도 좋아요', go: X.P.vineSeat, where: '다락방 북동쪽 포도나무 곁',
+        until: (r, dt) => X.rested(r, dt, X.P.vineSeat, 1.6, 8),
+        leave: () => X.verse(['jn-15-12', 'jn-16-33'], '내 안에 거하라') },
+      { hint: '방 가운데 서서 그분의 기도를 따라 기도해요 (X 기도)', go: X.P.prayUp, where: '다락방 가운데',
+        until: (r, dt) => { r.t = X.praying() && X.near(X.P.prayUp, 2.4) ? (r.t || 0) + dt : 0; return r.t > 1.6; },
+        leave: () => X.verse(['jn-17-17', 'jn-17-21'], '아버지의 말씀은 진리니이다') },
+      { hint: '방 동쪽 빛에서 길 등불과 포도나무 등불을 받아요 (E 또는 반짝이는 단추)', go: X.P.warmUp, where: '다락방 동쪽 등잔 곁', place: 'jn_lamp', at: () => X.P.warmUp, r: 2.2,
+        enter: () => X.warm('up', X.P.warmUp),
+        act: () => { X.carry('lamp'); X.sfx('orb', 0.3, 1.2); X.burst(X.P.warmUp.x, 1.6, X.P.warmUp.z); X.toast('길 등불과 포도나무 등불을 받았어요 (14:6, 15:5)', 4); } },
+    ],
+  },
+
+  // ---------- (3차) 동산과 숯불 (18:1-27, Z11): 곁에서 보는 사람. 시험·보상 없이 기록만. 여종의 물음엔 어느 대답이든 받음 → 디베랴 바다의 아침에서 회복 ----------
+  arrest: {
+    id: 'arrest', ch: '18:1-27', zone: 'passion', title: '동산과 숯불', sign: 0, quiet: true, who: '다른 제자', npc: 'other', stand: 'otherKidron',
+    stat: 'prayer', reward: { steps: 0, stat: 0, coin: 0, items: [] }, after: 'way', reset: ['other'],
+    begin: (X) => X.sky('kidron', X.passionZone, 6),
+    listen: '저는 대제사장과 아는 사람이라, 그 밤 그분을 따라 대제사장의 집 뜰에까지 들어갔어요(18:15). 오늘은 곁에서 보는 사람이 되어 함께 가요. 시험도 보상도 없어요. 보고, 머물고, 기록만 남겨요. 먼저 기드론 시내 건너 동산으로 가요.',
+    read: ['jn-18-1', 'jn-18-3', 'jn-18-4', 'jn-18-5', 'jn-18-6', 'jn-18-10', 'jn-18-11', 'jn-18-15', 'jn-18-17', 'jn-18-18', 'jn-18-25', 'jn-18-26', 'jn-18-27'],
+    study: { q: '그분이 "내로라" 하셨을 때 잡으러 온 무리는 어떻게 되었나요?', a: ['물러가서 땅에 엎드러졌다', '곧 그분을 잡았다', '흩어져 달아났다'], ok: 0, v: 'jn-18-6' },
+    memo: { v: 'jn-18-11', parts: 4 },
+    med: { q: '두려울 때 "나는 아니라" 하고 싶었던 자리를 떠올려요. 그 자리에도 그분이 "내로라" 하고 서 계세요.', at: 'olive11', sec: 20, v: 'jn-18-5', where: '기드론 건너 동산 감람나무 아래' },
+    done: '그 밤 베드로는 세 번 "나는 아니라" 했어요. 그래도 이야기는 여기서 끝나지 않아요. 숯불 곁의 그 대답은, 디베랴 바닷가 숯불 곁에서 그분이 다시 물으실 때 이어져요(21:9, 21:15). 이 이야기는 시험도 보상도 없이 기록에만 남아요.',
+    steps: (X) => [
+      { hint: '기드론 시내 건너 동산 어귀 빛나는 자리로 가요', go: X.P.gethAt, where: '기드론 시내 건너편 동산',
+        enter: () => X.peterAt('geth'),
+        until: (r, dt) => { r.t = X.near(X.P.gethAt, 1.6) ? (r.t || 0) + dt : 0; return r.t > 1; },
+        leave: () => X.verse(['jn-18-1'], '거기 동산이 있는데') },
+      { hint: '감람나무 아래 앉아 잠시 머물러요 (J 앉기)', go: X.P.olive11, where: '동산 감람나무 아래',
+        until: (r, dt) => X.rested(r, dt, X.P.olive11, 1.6, 8),
+        leave: () => { X.torches('geth'); X.verse(['jn-18-3', 'jn-18-4', 'jn-18-5', 'jn-18-6'], '내로라'); } },
+      { hint: '베드로가 검을 빼어 들었어요(18:10). 베드로 곁에서 "검을 집에 꽂으라" 하신 말씀대로 해요 (E)', go: () => X.npcAt('peter'), where: '동산 어귀', place: 'jn_sheathe', at: () => X.npcAt('peter'), r: 2.4,
+        act: () => { X.sheathe(); X.verse(['jn-18-10', 'jn-18-11'], '검을 집에 꽂으라'); } },
+      { hint: '그분을 데려간 무리를 따라 대제사장의 집 뜰 대문으로 가요', go: X.P.courtGate, where: '대제사장의 집 뜰 북쪽 대문',
+        enter: () => { X.torches('court'); X.peterAt('court'); X.walkNpc('other', [X.P.courtGate], true); },
+        until: () => X.near(X.P.courtGate, 1.8),
+        leave: () => X.verse(['jn-18-15'], '대제사장의 집 뜰에') },
+      { hint: '뜰 안 숯불 곁에 서서 불을 쬐어요', go: X.P.fireStand, where: '대제사장의 집 뜰 숯불 곁',
+        until: (r, dt) => { r.t = X.near(X.P.fireStand, 1.4) ? (r.t || 0) + dt : 0; return r.t > 1; },
+        leave: () => X.verse(['jn-18-18'], '그 때가 추운고로') },
+      { hint: '문 지키는 여종이 당신을 봐요. 여종에게 말을 걸어요', go: () => X.npcAt('maid'), where: '대제사장의 집 뜰', talk: 'maid',
+        open: (r, next) => {
+          const reply = (t) => () => { X.toast(t, 6); next(); };
+          X.ui.open({
+            who: '문 지키는 여종', sub: '동산과 숯불', text: '너도 이 사람의 제자 중 하나가 아니냐?', quote: 'jn-18-17',
+            note: '어떻게 대답해도 괜찮아요. 이 밤의 이야기는 디베랴 바다의 아침에서 이어져요.',
+            buttons: [
+              { t: '"네, 저도 그분을 따라요"', cls: 'next', fn: reply('그렇게 말할 수 있었다면 감사한 일이에요. 그 밤 베드로는 그러지 못했어요 (18:17)') },
+              { t: '(아무 말도 못 해요)', fn: reply('말이 나오지 않을 때도 있어요. 그분은 그 침묵도 아세요') },
+              { t: '"나는 아니라"', fn: reply('베드로도 그렇게 말했어요 (18:17). 그분은 그 대답으로 끝내지 않으셨어요') },
+            ],
+          });
+        } },
+      { hint: '숯불 곁에 머물러 베드로를 지켜봐요. 말씀 카드를 끝까지 읽어요', go: X.P.fireStand, ring: false, where: '대제사장의 집 뜰 숯불 곁',
+        enter: () => X.verse(['jn-18-25', 'jn-18-26', 'jn-18-27'], '곧 닭이 울더라'),
+        until: (r, dt) => { if (X.near(X.P.fireStand, 4)) r.t = (r.t || 0) + dt; return r.t > 9; },
+        leave: () => X.toast('베드로의 이야기는 디베랴 바다의 아침에서 이어져요 (21장)', 5) },
+    ],
+  },
+
+  // ---------- (3차) 진리 · 다 이루었다 (18:28-19:42, Z11): 관정 → 무리 사이에서 기도 → 십자가 아래 머물기 → 니고데모와 향품. 시험·보상 없이 기록만 ----------
+  truth: {
+    id: 'truth', ch: '18:28-19:42', zone: 'passion', title: '진리 · 다 이루었다', sign: 0, quiet: true, who: '다른 제자', npc: 'other', stand: 'otherPraet',
+    stat: 'prayer', reward: { steps: 0, stat: 0, coin: 0, items: [] }, after: 'arrest', reset: ['other'],
+    begin: (X) => X.sky('dawn', X.passionZone, 6),
+    listen: '새벽에 사람들이 그분을 관정으로 끌고 갔어요(18:28). 저는 그 뒤로 십자가 곁까지 따라갔지요(19:26). 오늘도 곁에서 보는 사람이 되어 함께 가요. 시험도 보상도 없어요. 소리치는 무리 사이에서는 소리치지 말고 기도해요.',
+    read: ['jn-18-28', 'jn-18-37', 'jn-18-38', 'jn-19-15', 'jn-19-17', 'jn-19-25', 'jn-19-26', 'jn-19-27', 'jn-19-28', 'jn-19-30', 'jn-19-39', 'jn-19-40', 'jn-19-41'],
+    study: { q: '니고데모가 가져온 몰약과 침향 섞은 것은 얼마쯤이었나요?', a: ['백 근쯤', '한 근', '삼백 데나리온어치'], ok: 0, v: 'jn-19-39' },
+    memo: { v: 'jn-19-30', parts: 3 },
+    med: { q: '"다 이루었다" 하신 말씀 앞에서, 내가 아직 붙들고 있는 것은 무엇인가요?', at: 'crossSeat', sec: 20, v: 'jn-19-30', where: '골고다 십자가 아래' },
+    done: '그분은 "다 이루었다" 하셨어요(19:30). 밤에 찾아왔던 니고데모가 이제는 드러내 놓고 장사를 도왔지요. 이 이야기는 시험도 보상도 없이 기록에만 남아요. 이제 안식 후 첫날, 막달라 마리아에게 가 봐요.',
+    steps: (X) => [
+      { hint: '관정(총독 관저) 앞 돌 깐 뜰의 빛나는 자리에 서요', go: X.P.praetAt, where: '관정 앞 돌 깐 뜰',
+        until: (r, dt) => { r.t = X.near(X.P.praetAt, 1.4) ? (r.t || 0) + dt : 0; return r.t > 1; },
+        leave: () => X.verse(['jn-18-28'], '새벽이라') },
+      { hint: '관정 앞의 빌라도에게 말을 걸어요', go: () => X.npcAt('pilate'), where: '관정 앞', talk: 'pilate',
+        open: (r, next) => X.ui.open({
+          who: '빌라도', sub: '진리 · 다 이루었다', text: '그는 진리에 대하여 증거하러 왔다고 하더군. 진리가 무엇이냐?', quote: 'jn-18-37',
+          buttons: [{ t: '나중에', cls: 'later' }, { t: '말없이 그분의 말씀을 떠올려요', cls: 'next', fn: next }],
+        }),
+        leave: () => X.verse(['jn-18-37', 'jn-18-38'], '진리가 무엇이냐') },
+      { hint: '무리가 소리쳐요(19:15). 따라 소리치지 말고 그 자리에서 기도해요 (X 기도)', go: X.P.praetAt, where: '관정 앞',
+        enter: () => { X.mob(true); X.verse(['jn-19-15'], '없이 하소서'); },
+        until: (r, dt) => { r.t = X.praying() && X.near(X.P.praetAt, 4) ? (r.t || 0) + dt : 0; return r.t > 3; },
+        leave: () => X.mob(false) },
+      { hint: '골고다로 가요. 세 십자가 아래 빛나는 자리에 서요', go: X.P.crossAt, where: '골고다 (관정 동쪽 작은 언덕)',
+        enter: () => { X.mother(true); X.walkNpc('other', [X.P.otherCross], true); X.verse(['jn-19-17'], '골고다'); },
+        until: (r, dt) => { r.t = X.near(X.P.crossAt, 1.3) ? (r.t || 0) + dt : 0; return r.t > 1; },
+        leave: () => X.verse(['jn-19-25', 'jn-19-26', 'jn-19-27'], '보라 네 어머니라') },
+      { hint: '십자가 아래 돌에 앉아 머물러요 (J 앉기). 서두르지 않아도 돼요', go: X.P.crossSeat, where: '골고다 십자가 아래',
+        until: (r, dt) => X.rested(r, dt, X.P.crossSeat, 1.6, 10),
+        leave: () => X.verse(['jn-19-28', 'jn-19-30'], '다 이루었다') },
+      { hint: '니고데모가 왔어요. 니고데모에게 말을 걸어요', go: () => X.npcAt('nico19'), where: '골고다 동쪽 길', talk: 'nico19',
+        enter: () => X.nicoCome(true),
+        open: (r, next) => X.ui.open({
+          who: '니고데모', sub: '진리 · 다 이루었다', text: '전에 밤에 그분을 찾아갔던 니고데모예요(3:2). 몰약과 침향 섞은 것을 백 근쯤 가져왔어요. 함께 동산의 새 무덤으로 가요.', quote: 'jn-19-39',
+          buttons: [{ t: '나중에', cls: 'later' }, { t: '향품을 함께 들어요', cls: 'next', fn: () => { X.carry('spice'); X.follow('nico19'); next(); } }],
+        }) },
+      { hint: '동산 안 새 무덤 앞에 향품을 놓아요 (E)', go: X.P.tombFront, where: '동산 안 새 무덤 앞', place: 'jn_spice', at: () => X.P.tombFront, r: 2.2,
+        act: () => { X.carry(null); X.spice(); X.unfollow('nico19'); X.verse(['jn-19-39', 'jn-19-40', 'jn-19-41'], '새 무덤'); } },
+    ],
+  },
+
+  // ---------- (3차) 마리아야 (20:1-18, Z11 동산 무덤): 새벽 달리기 → 개켜진 수건 → 우는 마리아 곁 → 이름을 부르심 (내 닉네임과 10:3) ----------
+  mary: {
+    id: 'mary', ch: '20:1-18', zone: 'passion', title: '마리아야', sign: 0, who: '막달라 마리아', npc: 'magdalene',
+    stat: 'witness', reward: { steps: 12, stat: 3, coin: 2, items: ['jn_cloth'] }, after: 'truth', reset: ['magdalene', 'other'],
+    begin: (X) => X.sky('darkdawn', X.passionZone, 6),
+    listen: '안식 후 첫날 이른 아침 아직 어두울 때에, 저는 무덤에 왔다가 돌이 옮겨진 것을 보았어요(20:1). 베드로와 그 다른 제자에게 달려가 알렸더니, 둘이 같이 달음질했지요(20:4). 당신도 무덤까지 달려가 봐요.',
+    read: ['jn-20-1', 'jn-20-2', 'jn-20-3', 'jn-20-4', 'jn-20-6', 'jn-20-7', 'jn-20-8', 'jn-20-11', 'jn-20-14', 'jn-20-15', 'jn-20-16', 'jn-20-17', 'jn-20-18', 'jn-10-3'],
+    study: { q: '머리를 쌌던 수건은 어떻게 놓여 있었나요?', a: ['딴 곳에 개켜 있었다', '세마포와 함께 흩어져 있었다', '없어졌다'], ok: 0, v: 'jn-20-7' },
+    memo: { v: 'jn-20-16', parts: 3 },
+    med: { q: '그분이 내 이름을 부르신다면, 그 부름에 무엇이라 대답하고 싶나요?', at: 'garden11', sec: 20, v: 'jn-10-3', where: '동산 무덤 곁 의자' },
+    done: '그분은 제 이름을 부르셨어요. 그 목자는 자기 양의 이름을 각각 불러요(10:3). "내가 주를 보았다"(20:18), 이 말을 전하러 가요. 이 개켜진 수건을 가져가요. 다음은 그날 저녁, 다락방의 도마예요.',
+    steps: (X) => [
+      { hint: '동산 안 새 무덤까지 달려가요 (20:4)', go: X.P.tombFront, where: '동산 안 새 무덤',
+        enter: () => { X.walkNpc('other', [X.P.garden11], true); X.verse(['jn-20-1', 'jn-20-2'], '아직 어두울 때에'); },
+        until: () => X.near(X.P.tombFront, 1.6),
+        leave: () => X.verse(['jn-20-3', 'jn-20-4'], '둘이 같이 달음질하더니') },
+      { hint: '몸을 굽혀 무덤 안을 들여다봐요 (E)', go: X.P.tombFront, where: '새 무덤 어귀', place: 'jn_look', at: () => X.P.tombFront, r: 2.2,
+        act: () => { X.clothShow(); X.look(X.tombMouth); X.verse(['jn-20-6', 'jn-20-7', 'jn-20-8'], '딴 곳에 개켜 있더라'); } },
+      { hint: '무덤 밖에서 울고 있는 마리아 곁에 가만히 서요', go: X.P.maryCry, where: '새 무덤 동쪽',
+        enter: () => X.maryCry(true),
+        until: (r, dt) => { r.t = X.near(X.P.maryCry, 2.2) ? (r.t || 0) + dt : 0; return r.t > 2; },
+        leave: () => X.verse(['jn-20-11'], '울면서') },
+      { hint: '뒤로 돌이켜, 동산의 따뜻한 빛을 바라봐요 (E)', go: X.P.warmGarden, where: '동산 서쪽 길', place: 'jn_look', at: () => X.P.warmGarden, r: 2.6,
+        enter: () => X.warm('garden', X.P.warmGarden),
+        act: () => { X.look(X.P.warmGarden); X.verse(['jn-20-14', 'jn-20-15'], '누구를 찾느냐'); } },
+      { hint: '마리아에게 말을 걸어요', go: () => X.npcAt('magdalene'), where: '새 무덤 동쪽', talk: 'magdalene',
+        open: (r, next) => X.ui.open({
+          who: '막달라 마리아', sub: '마리아야', text: '동산지기인 줄 알았어요. 그런데 그분이 "마리아야" 하고 부르셨어요! 저는 돌이켜 "랍오니여" 했지요(20:16).', quote: 'jn-20-16',
+          buttons: [{ t: '나중에', cls: 'later' }, { t: '그 부름을 들어요', cls: 'next', fn: () => nameCard(X, next) }],
+        }),
+        leave: () => { X.sky(null); X.verse(['jn-20-16', 'jn-20-17', 'jn-20-18'], '마리아야'); } },
+    ],
+  },
+
+  // ---------- (3차) 닫힌 문 · 도마 (20:19-31, Z10 다락방): 닫힌 방의 평강 → 여드레 뒤 의심의 안개를 말씀으로 걷어 내기 → 고백 ----------
+  thomas: {
+    id: 'thomas', ch: '20:19-31', zone: 'upper', title: '닫힌 문 · 도마', sign: 0, who: '도마', npc: 'thomas', time: 'evening',
+    stat: 'word', reward: { steps: 12, stat: 3, coin: 2, items: ['jn_confess'] }, after: 'mary', reset: ['thomas'],
+    listen: '그 첫날 저녁, 제자들이 문들을 닫고 모여 있을 때 그분이 오셨대요(20:19). 저는 그 자리에 없었어요(20:24). 그래서 "보지 않고는 믿지 아니하겠노라" 했지요. 오늘은 제 자리에 앉아 그날 저녁을 지켜봐 줘요. 저는 잠시 나가 있을게요.',
+    read: ['jn-20-19', 'jn-20-20', 'jn-20-21', 'jn-20-22', 'jn-20-24', 'jn-20-25', 'jn-20-26', 'jn-20-27', 'jn-20-28', 'jn-20-29', 'jn-20-30', 'jn-20-31'],
+    study: { q: '도마가 다시 제자들과 함께 있을 때 그분이 오신 것은 언제였나요?', a: ['여드레를 지나서', '사흘 뒤', '이튿날 아침'], ok: 0, v: 'jn-20-26' },
+    memo: { v: 'jn-20-29', parts: 4 },
+    med: { q: '보지 못하고 믿는 나에게 "복되도다" 하세요. 오늘 믿음으로 고백할 한 마디는 무엇인가요?', at: 'up10w', sec: 20, v: 'jn-20-29', where: '다락방 식탁' },
+    done: '저는 "나의 주시며 나의 하나님이시니이다" 고백했어요. 그분은 보지 못하고 믿는 자들이 복되다 하셨어요. 그게 바로 당신이에요(20:29). 이 고백을 가져가요. 마지막 이야기는 디베랴 바다의 아침이에요. 바닷가의 베드로에게 가 봐요.',
+    end: (X) => { X.door(false); X.thomasSit(); },
+    steps: (X) => [
+      { hint: '다락방 식탁에 앉아요 (J 또는 앉기). 문들이 닫혀요', go: X.P.up10, where: '다락방 식탁',
+        enter: () => { X.thomasAway(true); X.door(true); },
+        until: (r, dt) => { r.t = X.sitting(X.P.up10, 2.0) ? (r.t || 0) + dt : 0; return r.t > 1.2; },
+        leave: () => { X.warm('up', X.P.warmUp); X.verse(['jn-20-19', 'jn-20-20', 'jn-20-21', 'jn-20-22'], '너희에게 평강이 있을찌어다'); } },
+      { hint: '도마가 돌아왔어요. 문 곁의 도마에게 말을 걸어요', go: () => X.npcAt('thomas'), where: '다락방 남쪽 문 안', talk: 'thomas',
+        enter: () => { X.warm('up', null); X.thomasAway(false, 'door'); },
+        open: (r, next) => X.ui.open({
+          who: '도마', sub: '닫힌 문 · 도마', text: '"우리가 주를 보았노라" 다들 그러는데… 저는 그 손의 못자국을 보고 손가락을 넣어 보지 않고는 믿지 않겠어요.', quote: 'jn-20-25',
+          buttons: [{ t: '나중에', cls: 'later' }, { t: '"여드레 뒤에 함께 있어 봐요"', cls: 'next', fn: next }],
+        }),
+        leave: () => { X.thomasSit(); X.verse(['jn-20-24', 'jn-20-25', 'jn-20-26'], '여드레를 지나서'); } },
+      { hint: '의심의 안개가 방을 덮어요. 말씀으로 한 겹씩 걷어 내요', go: X.P.up10, ring: false, where: '다락방',
+        enter: (r, next) => X.trial.clear({
+          who: '의심의 속삭임', then: next,
+          layers: [
+            { lie: '"보지 않고는 못 믿어. 눈에 보이는 것만 확실해."', opts: [{ v: 'jn-20-27', ok: true }, { v: 'jn-18-38', why: '빌라도는 "진리가 무엇이냐" 묻고는 대답을 듣지 않고 나갔어요. 그분은 "네 손을 내밀어 보라" 하며 먼저 다가오세요 (20:27)' }] },
+            { lie: '"다들 떠나는데 너 혼자 믿어서 뭐 해."', opts: [{ v: 'jn-6-66', why: '떠나간 제자들의 이야기예요. 그분은 문이 닫힌 방에도 오셔서 가운데 서셨어요 (20:26)' }, { v: 'jn-20-26', ok: true }] },
+            { lie: '"이미 늦었어. 너는 그날 그 자리에 없었잖아."', opts: [{ v: 'jn-11-39', why: '"나흘이 되었으니" 하던 무덤 앞에서도 그분께는 늦지 않았어요. 그날 없던 사람에게도 복이 있다 하셨어요 (20:29)' }, { v: 'jn-20-29', ok: true }] },
+          ],
+          win: 'jn-20-28',
+        }) },
+      { hint: '방 가운데에서 도마와 함께 무릎 꿇고 고백해요 (X 기도)', go: X.P.prayUp, where: '다락방 가운데',
+        until: (r, dt) => { r.t = X.praying() && X.near(X.P.prayUp, 2.4) ? (r.t || 0) + dt : 0; return r.t > 1.6; },
+        leave: () => { X.door(false); X.verse(['jn-20-28', 'jn-20-29', 'jn-20-30', 'jn-20-31'], '나의 주시며 나의 하나님'); } },
+    ],
+  },
+
+  // ---------- (3차) 디베랴 바다의 아침 (21:1-25, Z4 바닷가): 빈 그물 → 오른편 → 153 → 숯불 조반 → 세 번의 물음 → 비교의 속삭임 → 어린 양 먹이기. 21:25로 마을이 닫힘 ----------
+  morning: {
+    id: 'morning', ch: '21:1-25', zone: 'galilee', title: '디베랴 바다의 아침', sign: 0, who: '시몬 베드로', npc: 'peter', stand: 'peterMorn',
+    stat: 'obey', reward: { steps: 15, stat: 3, coin: 3, items: ['jn_coals'] }, after: 'thomas',
+    begin: (X) => X.sky('night', X.shoreZone, 8),
+    listen: '그 후에 저는 "나는 물고기 잡으러 가노라" 했어요(21:3). 그 밤에 아무것도 잡지 못했지요. 숯불 곁에서 세 번 "나는 아니라" 했던 저를, 그분은 바닷가 숯불 곁으로 다시 부르셨어요. 함께 그물을 던져 봐요. 먼저 배 왼편 물가로요.',
+    read: ['jn-21-1', 'jn-21-3', 'jn-21-4', 'jn-21-5', 'jn-21-6', 'jn-21-7', 'jn-21-9', 'jn-21-11', 'jn-21-12', 'jn-21-13', 'jn-21-15', 'jn-21-16', 'jn-21-17', 'jn-21-19', 'jn-21-21', 'jn-21-22', 'jn-21-24', 'jn-21-25'],
+    study: { q: '그물에 든 큰 고기는 몇 마리였나요?', a: ['일백 쉰 세 마리', '일백 마리', '열 두 마리'], ok: 0, v: 'jn-21-11' },
+    memo: { v: 'jn-21-22', parts: 4 },
+    med: { q: '"네가 나를 사랑하느냐" 물으시는 그분께 오늘 어떻게 대답하나요? 내가 먹일 어린 양은 누구인가요?', at: 'fireSeat', sec: 20, v: 'jn-21-15', where: '디베랴 바닷가 숯불 곁' },
+    done: '세 번 "나는 아니라" 했던 저에게, 그분은 세 번 물으시고 세 번 맡기셨어요. 그리고 "너는 나를 따르라" 하셨지요(21:22). 이 숯불 조반을 가져가요.',
+    steps: (X) => [
+      { hint: () => `배 왼편 물가에서 그물을 던져요 (E) · ${X.casts()}/2`, go: X.P.castL, where: '디베랴 바닷가 배 곁', place: 'jn_net', at: () => X.P.castL, r: 2.2,
+        enter: () => X.verse(['jn-21-1', 'jn-21-3'], '이 밤에 아무 것도'),
+        act: () => X.castNet(false) },
+      { hint: '날이 새어 가요. 바닷가의 빛에서 들린 말씀대로, 배 오른편 물가에서 그물을 던져요 (E)', go: X.P.castR, where: '디베랴 바닷가 배 오른편', place: 'jn_net', at: () => X.P.castR, r: 2.2,
+        enter: () => { X.sky('daybreak', X.shoreZone, 8); X.warm('shore', X.P.warmShore); X.verse(['jn-21-4', 'jn-21-5', 'jn-21-6'], '배 오른편에 그물을 던지라'); },
+        act: () => X.castNet(true) },
+      { hint: () => `그물을 뭍으로 끌어 올려요 (E를 거듭) · ${X.fishN()}/153`, go: X.P.castR, where: '디베랴 바닷가 배 오른편', place: 'jn_pull', at: () => X.P.castR, r: 2.4,
+        enter: () => X.verse(['jn-21-7'], '주시라'),
+        act: () => { const full = X.pullNet(); if (full) X.verse(['jn-21-11'], '일백 쉰 세 마리'); return full; } },
+      { hint: '숯불 곁에 앉아요 (J 앉기). 숯불 위에 생선과 떡이 있어요', go: X.P.fireSeat, where: '디베랴 바닷가 숯불',
+        until: (r, dt) => { r.t = X.sitting(X.P.fireSeat, 1.8) ? (r.t || 0) + dt : 0; return r.t > 1.2; },
+        leave: () => X.verse(['jn-21-9', 'jn-21-12', 'jn-21-13'], '와서 조반을 먹으라') },
+      { hint: '조반을 먹은 뒤, 베드로에게 말을 걸어요', go: () => X.npcAt('peter'), where: '디베랴 바닷가 숯불 곁', talk: 'peter',
+        open: (r, next) => loveAsk(X, next) },
+      { hint: '곁에서 속삭임이 들려요. 어떤 말씀을 붙들까요?', go: X.P.fireSeat, ring: false, where: '디베랴 바닷가',
+        enter: (r, next) => X.trial.pick({
+          who: '비교의 속삭임', lie: '사랑하시는 그 제자가 뒤따라와요(21:20). "저 사람은 어떻게 되나요? 왜 나만 이런 길을 가요?"',
+          q: '남과 견주는 소리 앞에서 붙들 말씀을 골라요',
+          opts: [
+            { v: 'jn-21-21', why: '베드로가 바로 이렇게 여쭈었어요. 그분의 대답은 "네게 무슨 상관이냐"였지요 (21:22)' },
+            { v: 'jn-20-25', why: '"보지 않고는 믿지 아니하겠노라"는 내 조건을 앞세운 말이에요. 그분은 "너는 나를 따르라" 하세요 (21:22)' },
+            { v: 'jn-21-22', ok: true },
+          ],
+          win: 'jn-21-19', then: next,
+        }) },
+      { hint: () => `"내 양을 먹이라" 바닷가의 어린 양을 먹여요 (E) · 남은 ${X.lambsLeft()}`, go: () => X.nextLamb(), where: '디베랴 바닷가 풀밭', place: 'jn_feed', at: () => X.nextLamb(), r: 2.2,
+        act: () => X.feedLamb() },
+      { hint: '바닷가의 따뜻한 빛 곁에 서요', go: X.P.warmShore, where: '디베랴 바닷가',
+        until: (r, dt) => { r.t = X.near(X.P.warmShore, 1.6) ? (r.t || 0) + dt : 0; return r.t > 1; },
+        leave: () => X.verse(['jn-21-24', 'jn-21-25'], '이 세상이라도') },
+    ],
+  },
 };
 const me = (X) => X.me;
+
+// ---------- (3차) 이름 부르기·사랑의 물음 ----------
+// 받침이 있으면 "아", 없으면 "야" (한글 끝 글자만 봄. 한글이 아니면 이름 그대로). 이름이 없으면 null
+const hasBatchim = (name) => { const c = name.charCodeAt(name.length - 1); return c >= 0xac00 && c <= 0xd7a3 ? (c - 0xac00) % 28 > 0 : null; };
+export function callName(name) {
+  name = String(name || '').trim(); if (!name) return null;
+  const b = hasBatchim(name);
+  return { voc: b == null ? name : name + (b ? '아' : '야'), obj: name + (b == null ? '을(를)' : b ? '을' : '를') };
+}
+// 마리아야 (20:16) 다음 카드: 내 닉네임과 10:3 "자기 양의 이름을 각각 불러" (기획서 9장 결정 9)
+function nameCard(X, next) {
+  const c = callName(X.myName());
+  X.ui.open({
+    who: '이름을 부르시는 목자', sub: '마리아야',
+    text: c ? `"${c.voc}" 그분은 마리아의 이름을 부르셨듯이, 오늘 ${c.obj} 이름으로 부르세요.` : '그분은 마리아의 이름을 부르셨듯이, 오늘 당신의 이름도 부르세요.',
+    quote: 'jn-10-3',
+    buttons: [{ t: '"랍오니여" (선생님)', cls: 'next', fn: next }],
+  });
+}
+// 나를 사랑하느냐 (21:15-17): 세 번 묻고 세 번 맡기심. 머뭇거리는 대답도 받으시고 똑같이 맡기심
+function loveAsk(X, next) {
+  const Q = [
+    { v: 'jn-21-15', t: '조반을 먹은 뒤 그분이 저에게 물으셨어요. "요한의 아들 시몬아 네가 이 사람들보다 나를 더 사랑하느냐" 오늘은 당신에게도 물으세요.', give: '"내 어린 양을 먹이라" (21:15)' },
+    { v: 'jn-21-16', t: '두 번째로 물으세요. "네가 나를 사랑하느냐"', give: '"내 양을 치라" (21:16)' },
+    { v: 'jn-21-17', t: '세 번째로 물으세요. 저는 근심했어요. 숯불 곁에서 세 번 "나는 아니라" 했던 그 밤처럼, 세 번이에요.', give: '"내 양을 먹이라" (21:17)' },
+  ];
+  const ask = (i) => {
+    const q = Q[i];
+    const go = (shy) => () => {
+      X.toast(shy ? `그분은 그 대답도 받으시고, 똑같이 맡기세요. ${q.give}` : q.give, 5);
+      if (i < 2) X.later(900, () => ask(i + 1)); else next();
+    };
+    X.ui.open({
+      who: '시몬 베드로', sub: `나를 사랑하느냐 · ${i + 1}/3`, text: q.t, quote: q.v,
+      buttons: [
+        { t: i < 2 ? '"주여 그러하외다, 주께서 아시나이다"' : '"주여 모든 것을 아시오매, 주께서 아시나이다"', cls: 'next', fn: go(false) },
+        { t: '"…아직 자신이 없어요"', fn: go(true) },
+      ],
+    });
+  };
+  ask(0);
+}

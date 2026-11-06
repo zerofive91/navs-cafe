@@ -73,6 +73,7 @@ const HILLS = [
   { u: -66, v: -58, h: 7.5, s: 17 },   // 그리심 산 (요 4:20 이 산에서)
   { u: -60, v: 85, h: 1.6, s: 55 },    // 예루살렘 언덕
   { u: 18, v: 128, h: 3.4, s: 16 },    // 감람산 (기드론 건너)
+  { u: 8, v: 179.4, h: 1.0, s: 2.6 },   // 골고다 작은 언덕 (3차, 요 19:17)
   { u: -140, v: -175, h: 6, s: 26 },   // 바깥 언덕들 (끝자락)
   { u: 150, v: -10, h: 5, s: 30 },
   { u: -150, v: 120, h: 6, s: 28 },
@@ -112,7 +113,8 @@ export const CART = (() => {
 export const LAMP_IDS = ['bread', 'light', 'door', 'shepherd', 'life', 'way', 'vine'];
 // 사건의 그 자리 단추 이름 (region.js가 main.js ACTIONS에 미리 등록하고, 엔진이 생기면 넘김. 아이콘은 js/icons.js)
 export const JN_ACTS = ['jn_lamp', 'jn_water', 'jn_draw', 'jn_give', 'jn_look', 'jn_wash', 'jn_put', 'jn_boat', 'jn_row', 'jn_call',
-  'jn_clear', 'jn_lift', 'jn_push', 'jn_untie', 'jn_pour', 'jn_plant']; // 2차 나: 장사판 치우기 · 자리 들기 · 돌 옮기기 · 베 풀기 · 향유 붓기 · 밀 심기
+  'jn_clear', 'jn_lift', 'jn_push', 'jn_untie', 'jn_pour', 'jn_plant', // 2차 나: 장사판 치우기 · 자리 들기 · 돌 옮기기 · 베 풀기 · 향유 붓기 · 밀 심기
+  'jn_towel', 'jn_feet', 'jn_sheathe', 'jn_spice', 'jn_net', 'jn_pull', 'jn_feed']; // 3차: 수건과 대야 · 발 씻기기 · 검 꽂기 · 향품 놓기 · 그물 던지기 · 그물 끌어 올리기 · 어린 양 먹이기
 // 구역 팻말 (빈 자리마다 하나)
 export const SIGNPOSTS = Object.entries(ZONES).map(([id, z]) => {
   const p = id === 'light' ? W(PU + 4.5, PV + 15.5) : W(z.u - z.r * 0.55, z.v - z.r * 0.55);
@@ -244,12 +246,54 @@ Object.assign(SP, {
   // 나드 향유 (12장): 잔치 식탁(북쪽 긴 의자 가운데), 식탁 머리의 빛, 밭에 밀 심을 자리
   table12: S(43.8, 69.25), warm12t: S(47.7, 70.5), plantAt: S(51, 64.6),
 });
-// 마을 돌 테두리(구역 빈 자리 표시)가 2차 나 모형을 지나가면 그 돌은 빼고 그림 (build.js zoneStones)
-export const noStone = (u, v) => [HOLY7, rect(-51.6, -46.9, 48.8, 63.2), rect(-23, -5, 94.5, 108.5), rect(38, 48, 61, 72.5), PLOT12, FOLD7].some((r) => inRect(r, u, v, 0.8)) || Math.hypot(u - TOMB12.rock.u, v - TOMB12.rock.v) < TOMB12.r + 1.2;
+// ---------- 3차 사건 자리 (2026-11): 다락방(Z10) · 수난과 동산(Z11: 기드론·감람나무 동산·대제사장 뜰·관정·골고다·동산 무덤) · 디베랴 바닷가 아침(Z4) ----------
+// Z10 다락방: 니고데모 집 동쪽의 큰 방 (지붕 없는 돌담, 남쪽 문). 긴 식탁, 남쪽 긴 의자는 내 자리, 북쪽은 제자들. 문 밖 동쪽에 포도나무 시렁
+export const UPPER10 = rect(-104, -94, 9, 19, 2.6);
+export const UPPER10_DOOR = [-100.2, -97.8]; // 남쪽 담의 문 (u 사이). 도마 이야기에서 닫힘 (그림만, 20:19)
+export const TABLE10 = rect(-102, -96, 12.6, 13.8, 0.78);
+// Z11: 서쪽부터 대제사장 집 뜰(북쪽 대문, 숯불) · 관정 앞 돌을 깐 뜰 · 골고다 언덕 · 동산의 새 무덤 · 기드론 시내 건너 감람나무 동산
+export const COURT11 = rect(-43, -31, 168, 180, 2.0);
+export const COURT11_GATE = [-38.4, -35.6]; // 북쪽 담의 대문
+export const HOUSE11 = rect(-42.6, -36.6, 176.4, 179.6, 3.0);
+export const PAVE11 = rect(-21, -7, 172, 179.4);      // 돌을 깐 뜰 (19:13), 걸어 다님
+export const HALL11 = rect(-20, -8, 179.4, 182.6, 4.4); // 관정 앞면
+export const TOMB11 = { rock: S(25, 179.6), r: 3.0, mouth: S(22.44, 178.35), stone: S(21.5, 177.9), rolled: S(21.3, 180.7) };
+export const KIDRON = [[31, 150], [32.4, 162], [33, 172], [33.6, 183]]; // 기드론 시내 (얕은 물, 걸어서 건넘 · 그림만)
+export const CROSSES11 = [S(5.4, 179.2), S(8, 179.8), S(10.6, 179.2)];
+export const OLIVES11 = [S(38.4, 159.4), S(45.6, 160), S(41.4, 156.6), S(46.2, 164.6), S(37, 164.4)];
+// 디베랴 바닷가 (21장): 가버나움 동쪽 물가에 매어 둔 배, 배 왼편·오른편 물가, 숯불, 어린 양 셋
+export const SHORE21 = { boat: S(41, -126.2), dir: Math.atan2(27, -24) };
+export const SHORE_ZONE = { ...S(36, -121), r: 14 };
+export const PASSION_ZONE = { ...S(2, 170), r: 46 };
+Object.assign(SP, {
+  // Z10 다락방 (13-17장, 20장)
+  upDoor: S(-99, 20.6), upIn: S(-99, 17.6), up10: S(-99.6, 14.75), up10w: S(-101.4, 14.75), thomasSeat: S(-97.8, 14.75),
+  dis13: [S(-101.6, 11.65), S(-99.8, 11.65), S(-98, 11.65), S(-96.4, 11.65)], peterUpper: S(-95.6, 16.9),
+  basinAt: S(-102.6, 17.3), warmUp: S(-95.2, 13.2), vine10: S(-95.4, 21.4), vineLook: S(-95.4, 22.7), vineSeat: S(-92.9, 21.9), prayUp: S(-97, 16.9),
+  // Z11 감람나무 동산·기드론 (18:1-11)
+  otherKidron: S(28.4, 170.4), gethAt: S(42.4, 164.6), olive11: S(41.2, 162.4), peterGeth: S(43.9, 163.2),
+  torchFrom: [S(57, 165.4), S(58.6, 166.2), S(56, 166.8)], torchAt: [S(45.8, 167.6), S(44.2, 168.6), S(42.4, 168.4)],
+  // 대제사장 집 뜰 (18:15-27)
+  courtGate: S(-37, 166.3), fire11: S(-35.6, 173.4), fireStand: S(-37.2, 172.2), peterFire: S(-34.5, 172.4),
+  maid: S(-36.4, 169.7), servant18: S(-33.8, 174.8), torchCourt: [S(-40.2, 172.4), S(-39, 174.9), S(-33.2, 176.4)],
+  // 관정 (18:28-19:16)
+  pilate: S(-14, 178.5), praetAt: S(-14, 175.2), otherPraet: S(-11.2, 175.9), mob: [S(-17.6, 173.6), S(-10.4, 173.4), S(-14.8, 172.4)],
+  // 골고다·동산 무덤 (19:17-42, 20:1-18)
+  crossAt: S(8, 176.5), crossSeat: S(8, 174.9), mother19: S(6.3, 176.7), otherCross: S(9.7, 176.7),
+  nico19: S(14.6, 174.2), tombFront: S(20.4, 177.1), warmGarden: S(16.8, 175.2), garden11: S(16.2, 177.4),
+  magdalene: S(13.4, 172.6), maryCry: S(19.6, 178.9), warmCross: S(8, 178.4),
+  // 디베랴 바닷가 (21장)
+  peterMorn: S(36.3, -118.3), castL: S(37.2, -124.6), castR: S(39.4, -122.4), fire21: S(34.4, -119.7), fireSeat: S(34.4, -118.3),
+  warmShore: S(36.9, -121.3), dis21: [S(32.5, -119.9), S(33.2, -121.4)], lambs: [S(28.4, -120.4), S(30.8, -118.8), S(27, -117.8)],
+});
+// 마을 돌 테두리(구역 빈 자리 표시)가 2차 나·3차 모형을 지나가면 그 돌은 빼고 그림 (build.js zoneStones)
+export const noStone = (u, v) => [HOLY7, rect(-51.6, -46.9, 48.8, 63.2), rect(-23, -5, 94.5, 108.5), rect(38, 48, 61, 72.5), PLOT12, FOLD7,
+  UPPER10, COURT11, PAVE11, HALL11, rect(3, 13, 173.5, 181)].some((r) => inRect(r, u, v, 0.8)) || Math.hypot(u - TOMB12.rock.u, v - TOMB12.rock.v) < TOMB12.r + 1.2 || Math.hypot(u - TOMB11.rock.u, v - TOMB11.rock.v) < TOMB11.r + 1.2;
 // 이 둘레에는 나무를 두지 않음 (모형과 겹치지 않게)
 const CLEAR = [[ZONES.cana, 16], [ZONES.upper, 15], [ZONES.siloam, 13], [GATE7.c, 10], [SP.pole, 3], [ZONES.jordan, 14],
   [ZONES.sychar, 26], [FIELD6, 0], [ZONES.galilee, 16], [S(SYN4.cu, SYN4.cv), 11], [S(HOUSE4.cu, HOUSE4.cv), 8], [SP.warm3, 6], [BOAT.dockE, 7], [BOAT.dockW, 7], [ZONES.bethsaida, 20], [SP.servPath[1], 6],
-  [HOLY7, 0], [S(-58, 54), 13], [FOLD7, 0], [S(-30, 66), 9], [ZONES.bethesda, 18], [ZONES.bethany, 17], [TOMB12.rock, 9], [SP.warmMeet, 5]];
+  [HOLY7, 0], [S(-58, 54), 13], [FOLD7, 0], [S(-30, 66), 9], [ZONES.bethesda, 18], [ZONES.bethany, 17], [TOMB12.rock, 9], [SP.warmMeet, 5],
+  [UPPER10, 0], [SP.vine10, 4], [S(-37, 174), 11], [S(-14, 177), 10], [S(8, 177), 7], [S(21, 178), 8], [S(42, 162), 10], [SP.otherKidron, 5], [S(34, -120), 10]];
 
 // ---------- 나무: 올리브·무화과·종려 (씨앗 고정, 길·구역·물에서 떨어진 곳) ----------
 export const TREES = [];
@@ -288,6 +332,10 @@ block(WELL6, 0.85, 0.9); block(SP.shade6, 0.4);
 for (const u of PORTICO7.us) for (const v of PORTICO7.vs) block(S(u, v), 0.26);
 for (const c of POOL8.cols) block(c, 0.24);
 block(SP.jar7, 0.4, 0.9); block(TOMB12.rock, TOMB12.r);
+// 3차: 다락방 대야·식탁 머리 등잔, 포도나무 시렁, 뜰 숯불, 십자가 셋, 동산 무덤 바위, 감람나무, 바닷가 숯불
+block(SP.basinAt, 0.32, 0.9); block(SP.warmUp, 0.22, 1.2); block(SP.vine10, 0.3);
+block(SP.fire11, 0.6, 0.5); for (const c of CROSSES11) block(c, 0.22); block(TOMB11.rock, TOMB11.r);
+for (const o of OLIVES11) block(o, 0.4); block(SP.fire21, 0.6, 0.5);
 const BK = 4, buckets = new Map();
 const bkey = (i, j) => i * 4096 + j;
 for (const o of obstacles) {
@@ -322,6 +370,14 @@ export const SEATS_J = {
   mat8: seat(SP.mat8, -Math.PI / 2, 'floor', W(SP.mat8.u + 0.2, SP.mat8.v + 0.7)),
   foldSeat: seat(SP.foldSeat, 0, 'floor', W(SP.foldSeat.u, SP.foldSeat.v + 0.7)),
   feast12: [42, 43.8, 45.6].map((u) => seat(S(u, 69.25), 0, 'gbench', W(u, 68.55))),
+  // 3차: 다락방 남쪽 긴 의자 둘(북쪽을 봄), 포도나무 곁 돌, 감람나무 그늘, 십자가 아래 돌, 동산 의자, 바닷가 숯불 곁
+  up10: seat(SP.up10, Math.PI, 'gbench', W(SP.up10.u, SP.up10.v + 0.7)),
+  up10w: seat(SP.up10w, Math.PI, 'gbench', W(SP.up10w.u, SP.up10w.v + 0.7)),
+  vineSeat: seat(SP.vineSeat, Math.atan2(SP.vine10.x - SP.vineSeat.x, SP.vine10.z - SP.vineSeat.z), 'floor', W(SP.vineSeat.u + 0.7, SP.vineSeat.v)),
+  olive11: seat(SP.olive11, Math.PI, 'floor', W(SP.olive11.u, SP.olive11.v + 0.7)),
+  crossSeat: seat(SP.crossSeat, 0, 'floor', W(SP.crossSeat.u, SP.crossSeat.v - 0.7)),
+  garden11: seat(SP.garden11, Math.atan2(TOMB11.rock.x - SP.garden11.x, TOMB11.rock.z - SP.garden11.z), 'gbench', W(SP.garden11.u - 0.7, SP.garden11.v)),
+  fireSeat: seat(SP.fireSeat, Math.PI, 'floor', W(SP.fireSeat.u, SP.fireSeat.v + 0.7)),
 };
 
 // ---------- 바닥·막힘·길값 (layout.js가 이 상자 안이면 이 함수로 넘김) ----------
@@ -375,6 +431,15 @@ function blockedRect(u, v) {
   const F = FOLD7, fd = FOLD7_DOOR;
   if (wallU(u, v, F.u0, F.v0, F.v1) || wallU(u, v, F.u1, F.v0, F.v1) || wallV(u, v, F.v0, F.u0, F.u1)) return true;
   if (wallV(u, v, F.v1, F.u0, fd[0]) || wallV(u, v, F.v1, fd[1], F.u1)) return true;
+  // 3차: 다락방 담(남쪽 문만 열림)과 식탁, 대제사장 집 뜰 담(북쪽 대문만 열림)과 집, 관정 앞면
+  const U = UPPER10, ud = UPPER10_DOOR;
+  if (wallU(u, v, U.u0, U.v0, U.v1) || wallU(u, v, U.u1, U.v0, U.v1) || wallV(u, v, U.v0, U.u0, U.u1)) return true;
+  if (wallV(u, v, U.v1, U.u0, ud[0]) || wallV(u, v, U.v1, ud[1], U.u1)) return true;
+  if (inRect(TABLE10, u, v, BODY * 0.8)) return true;
+  const Ct = COURT11, cg = COURT11_GATE;
+  if (wallU(u, v, Ct.u0, Ct.v0, Ct.v1) || wallU(u, v, Ct.u1, Ct.v0, Ct.v1) || wallV(u, v, Ct.v1, Ct.u0, Ct.u1)) return true;
+  if (wallV(u, v, Ct.v0, Ct.u0, cg[0]) || wallV(u, v, Ct.v0, cg[1], Ct.u1)) return true;
+  if (inRect(HOUSE11, u, v, BODY) || inRect(HALL11, u, v, BODY)) return true;
   return false;
 }
 function floorY(x, z) {
