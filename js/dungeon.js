@@ -7,6 +7,7 @@ import * as THREE from 'three';
 import { TRAILS, R_PARK, floorY } from './layout.js';
 import { VERSES, showVerse } from './verses.js';
 import { STAGES, stageOf, addSteps, addStat, earn, useGood, GOODS } from './profile.js';
+import { TRIALS } from './dungeon-trials.js';
 
 // 별 하나: 새싹부터, 별 둘: 제자부터, 별 셋: 일꾼부터
 export const TIER = {
@@ -18,43 +19,25 @@ export const TIER_STAGE = { 1: '새싹', 2: '제자', 3: '일꾼' };
 export const stars = (id) => (TIER[id] ? '★'.repeat(TIER[id]) : '');
 const REWARD = { 1: 30, 2: 50, 3: 80 };
 
-// 거짓 속삭임과 그것을 이기는 말씀 (개역한글). 함께 보이는 두 구절은 이 거짓과 상관없는 말씀
-const W = {
-  A: ['사람이 떡으로만 살것이 아니요 하나님의 입으로 나오는 모든 말씀으로 살 것이라', '마태복음 4:4'],
-  B: ['주 너의 하나님을 시험치 말라', '마태복음 4:7'],
-  C: ['주 너의 하나님께 경배하고 다만 그를 섬기라', '마태복음 4:10'],
-  D: ['내게 능력 주시는 자 안에서 내가 모든 것을 할 수 있느니라', '빌립보서 4:13'],
-  E: ['그들은 혹시 잊을찌라도 나는 너를 잊지 아니할 것이라', '이사야 49:15'],
-  F: ['두려워 말며 놀라지 말라 네가 어디로 가든지 네 하나님 여호와가 너와 함께 하느니라', '여호수아 1:9'],
-  G: ['너희 죄가 주홍 같을찌라도 눈과 같이 희어질 것이요', '이사야 1:18'],
-  H: ['내일 일을 위하여 염려하지 말라', '마태복음 6:34'],
-  I: ['우리는 그의 만드신바라 그리스도 예수 안에서 선한 일을 위하여 지으심을 받은 자니', '에베소서 2:10'],
-  J: ['내 멍에는 쉽고 내 짐은 가벼움이라', '마태복음 11:30'],
-  K: ['거짓을 버리고 각각 그 이웃으로 더불어 참된 것을 말하라', '에베소서 4:25'],
-  L: ['너는 내게 부르짖으라 내가 네게 응답하겠고', '예레미야 33:3'],
-  M: ['시험 당할 즈음에 또한 피할 길을 내사 너희로 능히 감당하게 하시느니라', '고린도전서 10:13'],
-};
-const LIES = {
-  A: ['배고프지? 이 돌로 떡을 만들어 먹어. 말씀은 나중에 봐도 돼.', 'KG'],
-  B: ['여기서 뛰어내려 봐. 하나님이 정말 지키시는지 시험해 보자.', 'HI'],
-  C: ['나에게 한 번만 절하면 이 숲을 다 너에게 줄게.', 'GD'],
-  D: ['너는 못 해. 너무 약하잖아.', 'KB'],
-  E: ['하나님은 너를 잊으셨어. 아무도 너를 기억하지 않아.', 'AK'],
-  F: ['저 앞은 너무 무서워. 혼자서는 못 지나가.', 'KA'],
-  G: ['네 잘못은 너무 커서 용서받을 수 없어.', 'AB'],
-  H: ['내일 일이 걱정되지? 밤새 걱정해야 해.', 'KC'],
-  I: ['넌 쓸모없어. 아무것도 할 줄 모르잖아.', 'BH'],
-  J: ['이 길은 너무 어려워. 그냥 돌아가자.', 'KC'],
-  K: ['조금만 속이면 쉬워져. 아무도 몰라.', 'EH'],
-  L: ['기도해도 소용없어. 아무도 안 들어.', 'KA'],
-  M: ['이번 유혹은 너무 세. 넘어질 수밖에 없어.', 'KA'],
-};
-const SMALL = 'ABCDEGHIKL'.split(''), BIG = 'FJM'.split('');
-for (const [k, v] of Object.entries(W)) VERSES['dg-' + k] = v;
-VERSES['dg-rise'] = ['나의 대적이여 나로 인하여 기뻐하지 말찌어다 나는 엎드러질찌라도 일어날 것이요 어두운데 앉을찌라도 여호와께서 나의 빛이 되실 것임이로다', '미가 7:8'];
-VERSES['dg-win'] = ['그러나 이 모든 일에 우리를 사랑하시는 이로 말미암아 우리가 넉넉히 이기느니라', '로마서 8:37'];
-VERSES['dg-sword'] = ['하나님의 말씀은 살았고 운동력이 있어 좌우에 날선 어떤 검보다도 예리하여 혼과 영과 및 관절과 골수를 찔러 쪼개기까지 하며 또 마음의 생각과 뜻을 감찰하나니', '히브리서 4:12'];
-VERSES['dg-enter'] = ['우리의 씨름은 혈과 육에 대한 것이 아니요 정사와 권세와 이 어두움의 세상 주관자들과 하늘에 있는 악의 영들에게 대함이라', '에베소서 6:12'];
+// 시험 자료(속삭임·틀린 보기·이기는 까닭)는 js/dungeon-trials.js, 말씀은 js/verses.js의 'dg-<id>'
+//   길마다 자기 세트가 있고(없으면 common), 작은 시험은 시드로 섞은 차례에서 최근 본 문항을 뒤로 미뤄 고름
+const BY = {};
+for (const list of Object.values(TRIALS)) for (const T of list) BY[T.id] = T;
+// 최근 본 문항: 이 기기에만 { 길 id: [가장 최근 id, ...] } (계정에 올리지 않음, 못 쓰면 이번만)
+const SEEN_KEY = 'navs-cafe-dg-seen';
+let seen = {};
+try { seen = JSON.parse(localStorage.getItem(SEEN_KEY) || '{}') || {}; } catch (e) { seen = {}; }
+function markSeen(course, id) {
+  const list = (Array.isArray(seen[course]) ? seen[course] : []).filter((x) => x !== id);
+  list.unshift(id); seen[course] = list.slice(0, 8);
+  try { localStorage.setItem(SEEN_KEY, JSON.stringify(seen)); } catch (e) { /* 이번만 */ }
+}
+// 시드 차례를 지키되, 본 적 없는 문항이 먼저, 본 문항은 오래전에 본 것부터
+function pick(course, list, seed) {
+  const order = shuffle(list, seed), recent = Array.isArray(seen[course]) ? seen[course] : [];
+  const rank = (T) => { const i = recent.indexOf(T.id); return i < 0 ? -1 : recent.length - i; };
+  return order.map((T, i) => [T, i]).sort((a, b) => rank(a[0]) - rank(b[0]) || a[1] - b[1]).map((x) => x[0]);
+}
 
 const hash = (s) => { let h = 7; for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; };
 const shuffle = (a, seed) => { const r = a.slice(); let s = seed || 1; for (let i = r.length - 1; i > 0; i--) { s = (s * 1103515245 + 12345) >>> 0; const j = s % (i + 1); [r[i], r[j]] = [r[j], r[i]]; } return r; };
@@ -100,7 +83,9 @@ export function initDungeon(K) {
     for (let k = 0; k < n - 1; k++) gaps.add(Math.max(0, Math.min(last - 2, Math.round(((k + 1) * (last - 1)) / n) - 1)));
     gaps.add(last - 1);
     const seed = hash(id);
-    const small = shuffle(SMALL, seed), big = BIG[seed % BIG.length];
+    const pool = TRIALS[id] || TRIALS.common;
+    const small = pick(id, pool.filter((T) => !T.big), seed), bigs = pick(id, pool.filter((T) => T.big), seed);
+    const big = bigs[0] || pick(id, TRIALS.common.filter((T) => T.big), seed)[0];
     const list = [...gaps].sort((a, b) => a - b);
     byCourse[id] = [];
     list.forEach((gi, k) => {
@@ -112,7 +97,7 @@ export function initDungeon(K) {
       for (let q = 0; q < 3; q++) { const s = fxSprite('circle_05', 0x2a2038, 2.6); s.material.blending = THREE.NormalBlending; s.material.opacity = 0.45; s.position.y = 1 + q * 0.5; g.add(s); parts.push(s); }
       g.scale.setScalar(isBig ? 1.9 : 1);
       g.position.set(p.x, gy(p), p.z); scene.add(g);
-      const S = { id, k, g, parts, x: p.x, z: p.z, back: st[gi], lie: isBig ? big : small[k % small.length], big: isBig, beaten: false, fade: -1 };
+      const S = { id, k, g, parts, x: p.x, z: p.z, back: st[gi], lie: (isBig || !small.length ? big : small[k % small.length]).id, big: isBig, beaten: false, fade: -1 };
       shades.push(S); byCourse[id].push(S);
     });
   }
@@ -153,14 +138,15 @@ export function initDungeon(K) {
     if (S.big) bigOn(S);
     me.path = []; me.task = null; if (me.state === 'walk') me.state = 'idle';
     me.face = Math.atan2(S.x - me.x, S.z - me.z);
-    const [lie, wrong] = LIES[S.lie];
-    opts = shuffle([S.lie, ...wrong.split('')], hash(S.id + S.k + performance.now()));
+    const T = BY[S.lie];
+    markSeen(S.id, T.id);
+    opts = shuffle([T.id, ...T.no], hash(S.id + S.k + performance.now()));
     const list = byCourse[S.id];
     $('.who b').textContent = S.big ? '큰 시험 · 어둠의 속삭임' : '어둠의 속삭임';
     $('.n').textContent = `${courseName(S.id)} · ${list.indexOf(S) + 1} / ${list.length}`;
-    $('.say').textContent = `"${lie}"`;
+    $('.say').textContent = `"${T.lie}"`;
     const sm = document.createElement('small'); sm.textContent = '어떤 말씀으로 대답할까요? (1·2·3, 막히면 X 기도)'; $('.say').append(sm);
-    $('.opts').innerHTML = opts.map((k, i) => `<button class="opt" data-i="${i}"><kbd>${i + 1}</kbd><span>${W[k][0]} <em>${W[k][1]}</em></span></button>`).join('');
+    $('.opts').innerHTML = opts.map((k, i) => `<button class="opt" data-i="${i}"><kbd>${i + 1}</kbd><span>${VERSES['dg-' + k][0]} <em>${VERSES['dg-' + k][1]}</em></span></button>`).join('');
     box.hidden = false; box.classList.remove('ok');
     S.oiled = false; oilBtn();
     document.body.classList.add('talking', 'trialing');
@@ -171,9 +157,10 @@ export function initDungeon(K) {
     if (opts[i] === S.lie) {
       S.beaten = true; S.fade = 0; S.wait = true;
       box.classList.add('ok'); $(`.opt[data-i="${i}"]`)?.classList.add('hint');
+      const win = BY[S.lie].win, sm = $('.say small'); if (win && sm) sm.textContent = win; // 이 말씀이 왜 이기는지 한 줄
       sfx('orb', 0.3, 1.2); burst(S.x, gy(S) + 1.2, S.z);
       showVerse('dg-' + S.lie, { cooldown: 0, title: '말씀으로 물리쳤어요' });
-      setTimeout(() => { S.wait = false; if (cur === S) close(); checkWin(S.id); }, 900);
+      setTimeout(() => { S.wait = false; if (cur === S) close(); checkWin(S.id); }, win ? 2200 : 900);
     } else if (wears('shield') && !shieldUsed.has(S.id)) {
       // 믿음의 방패: 한 길에 한 번 넘어지지 않음 (엡 6:16)
       shieldUsed.add(S.id);
