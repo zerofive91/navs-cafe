@@ -105,48 +105,59 @@ export function initRegion(K) {
       go('john');
     } else go('base');
   }
+  let johnRoot = null, tries = 0;
   async function buildJohn() {
-    if (!johnBuilt) johnBuilt = import('./john/build.js').then((m) => { const r = m.buildJohn({ scene, occluders, makeCart, makeSignpost }); tapCart(r.cart, JOHN_CART.stand); return r; });
+    if (!johnBuilt) {
+      // 브라우저는 한 번 실패한 모듈 주소를 기억해 같은 주소로는 다시 받지 않음 → 다시 시도할 때는 주소 끝을 바꿈
+      const url = tries++ ? `./john/build.js?retry=${tries}` : './john/build.js';
+      johnBuilt = import(url).then((m) => { const r = m.buildJohn({ scene, occluders, makeCart, makeSignpost }); tapCart(r.cart, JOHN_CART.stand); johnRoot = r.root; return r; });
+      johnBuilt.catch(() => { johnBuilt = null; }); // 불러오기에 실패하면 다음에 수레를 탈 때 다시 시도
+    }
     return johnBuilt;
   }
+  // 마을 모형은 그 마을에 있을 때만 그림 (빛의 광장 등불이 초보자 마을 조명 수를 늘리지 않게)
+  const showTown = (id) => { if (johnRoot) johnRoot.visible = id === 'john'; };
   async function go(to, { fromDoor = false } = {}) {
     if (busy || (to === state.id && !fromDoor)) return false;
     busy = true;
-    if (me.climb) me.climb = null;
-    if (me.seat) standUp(me);
-    me.path = []; me.task = null; me.action = null; me.state = 'idle'; me.jumps = 0; me.vy = 0; me.hop = 0;
-    const T0 = performance.now();
-    veil.querySelector('small').textContent = to === 'john' ? '요한복음 마을로 가는 중' : '초보자 마을로 돌아가는 중';
-    veil.classList.add('on');
-    if (!fromDoor) sfx?.('impact/impactSoft_medium_000', 0.2, 0.9);
-    await wait(650); // 다 흐려질 때까지
+    let done = false, first = false;
     try {
+      if (me.climb) me.climb = null;
+      if (me.seat) standUp(me);
+      me.path = []; me.task = null; me.action = null; me.state = 'idle'; me.jumps = 0; me.vy = 0; me.hop = 0;
+      const T0 = performance.now();
+      veil.querySelector('small').textContent = to === 'john' ? '요한복음 마을로 가는 중' : '초보자 마을로 돌아가는 중';
+      veil.classList.add('on');
+      if (!fromDoor) sfx?.('impact/impactSoft_medium_000', 0.2, 0.9);
+      await wait(650); // 다 흐려질 때까지
       if (to === 'john') { await buildJohn(); ensureNav('john'); }
+      const R = REGIONS.find((g) => g.id === to);
+      let at, look;
+      if (to === 'john') { at = R.arrive; look = R.look; }
+      else { at = G.stand; look = { x: 0, z: 0 }; }
+      const p = nearestFree(at) || at;
+      me.x = p.x; me.z = p.z; me.y = floorY(p.x, p.z);
+      me.face = Math.atan2(look.x - p.x, look.z - p.z);
+      state.id = to;
+      showTown(to);
+      camBehind?.();
+      setEnv?.(to === 'base' ? null : R.env);
+      const J = john();
+      J.last = to === 'john' ? 1 : 0;
+      first = to === 'john' && !J.seen;
+      if (first) J.seen = Date.now();
+      save();
+      onSwitch?.(to);
+      done = true;
+      await wait(Math.max(0, 1500 - (performance.now() - T0))); // 1.5초쯤 (짧게 머무는 말씀)
     } catch (e) {
-      console.warn('마을을 불러오지 못했어요', e);
-      veil.classList.remove('on'); busy = false;
-      toast('마을을 불러오지 못했어요. 잠시 뒤에 다시 타 주세요', 4);
-      return false;
+      console.warn('마을을 옮기지 못했어요', e);
+      if (!done) toast('마을을 불러오지 못했어요. 잠시 뒤에 다시 타 주세요', 4);
+    } finally {
+      veil.classList.remove('on'); // 무슨 일이 있어도 막과 잠금은 풂
+      busy = false;
     }
-    const R = REGIONS.find((g) => g.id === to);
-    let at, look;
-    if (to === 'john') { at = R.arrive; look = R.look; }
-    else { at = G.stand; look = { x: 0, z: 0 }; }
-    const p = nearestFree(at) || at;
-    me.x = p.x; me.z = p.z; me.y = floorY(p.x, p.z);
-    me.face = Math.atan2(look.x - p.x, look.z - p.z);
-    camBehind?.();
-    state.id = to;
-    setEnv?.(to === 'base' ? null : R.env);
-    const J = john();
-    J.last = to === 'john' ? 1 : 0;
-    const first = to === 'john' && !J.seen;
-    if (first) J.seen = Date.now();
-    save();
-    onSwitch?.(to);
-    await wait(Math.max(0, 1500 - (performance.now() - T0))); // 1.5초쯤 (짧게 머무는 말씀)
-    veil.classList.remove('on');
-    busy = false;
+    if (!done) return false;
     setTimeout(() => {
       if (to === 'john') {
         toast(first ? '요한복음 마을에 왔어요. 마을은 지금 짓는 중이에요. 둘러보며 쉬어 가세요' : '요한복음 마을에 왔어요', first ? 5 : 3);
@@ -168,7 +179,7 @@ export function initRegion(K) {
       walkTo(me, at, () => toast('수레에 오르면(E 또는 반짝이는 단추) 다른 마을로 가요', 4));
     },
     // 혹시 다른 마을 자리에 있으면(병거·시험 등) 상태를 맞춤
-    step() { if (!busy) { const r = regionIdAt(me.x, me.z); if (r !== 'none' && r !== state.id) { state.id = r; setEnv?.(r === 'base' ? null : REGIONS.find((g) => g.id === r)?.env); onSwitch?.(r); } } },
+    step() { if (!busy) { const r = regionIdAt(me.x, me.z); if (r !== 'none' && r !== state.id) { state.id = r; showTown(r); setEnv?.(r === 'base' ? null : REGIONS.find((g) => g.id === r)?.env); onSwitch?.(r); } } },
     john: JOHN,
   };
 }

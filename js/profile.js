@@ -60,6 +60,8 @@ export function fillJohn(j) {
 // 두 기기 기록 합치기: ev 합집합(같은 사건이면 m 글자 합침, 마친 때는 먼저 것), lamps 합집합, open은 더 뒤의 사건, signs 큰 쪽
 //   last는 나중 기록(b, 서버 쪽)을 따름. mark는 더 높은 표지, seen은 먼저 것
 export function mergeJohn(a, b) {
+  if (!isObj(b)) return fillJohn(a); // 서버(b)에 아직 요한 마을 기록이 없으면 이 기기 것을 그대로 (last를 잃지 않게)
+  if (!isObj(a)) return fillJohn(b);
   a = fillJohn(a); b = fillJohn(b);
   const ev = { ...a.ev };
   for (const [k, v] of Object.entries(b.ev)) {

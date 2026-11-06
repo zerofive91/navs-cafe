@@ -85,7 +85,7 @@ export function initTogether({ scene, me, look, makeChar, poseAvatar, upgradeCup
     if (ch.buf.length > 10) ch.buf.shift();
     ch.net = { ...m, period: m.p || 1 };
     ch.region = m.g || 'base'; // 예전 기기는 마을을 보내지 않음 → 초보자 마을
-    if (!ch.av.visible) { ch.x = m.x; ch.z = m.z; ch.y = m.y; ch.av.rotation.y = m.f; ch.av.visible = true; }
+    if (!ch.placed) { ch.placed = true; ch.x = m.x; ch.z = m.z; ch.y = m.y; ch.av.rotation.y = m.f; } // 보이기는 step()이 마을을 견주어 정함
     if (m.c !== undefined && m.c !== ch.cosCode) { ch.cosCode = m.c; const [wing, mount, head] = (m.c || '..').split('.'); setCosmetic(ch.av, { wing, mount, head }); }
     if (m.o !== undefined && m.o !== ch.outfitKey) { ch.outfitKey = m.o; setOutfit(ch.av, m.o === 'glory' ? 'glory' : m.o ? 'armor' : null, m.o && m.o !== 'glory' ? m.o.split(',') : undefined); }
   }
@@ -108,8 +108,10 @@ export function initTogether({ scene, me, look, makeChar, poseAvatar, upgradeCup
     for (const ch of people.values()) {
       const n = ch.net;
       if (!n) continue;
-      ch.av.visible = (ch.region || 'base') === mine; // 다른 마을 사람은 감춤
-      if (!ch.av.visible) continue;
+      // 다른 마을 사람은 감춤: 마을이 바뀔 때만 보이기를 바꿈 (매 프레임 덮어쓰면 main.js farCull의 먼 사람 감추기가 풀림)
+      const here = (ch.region || 'base') === mine;
+      if (here !== ch.inTown) { ch.inTown = here; ch.av.visible = here; ch.av.userData.culled = false; }
+      if (!here) continue;
       const q = sampleBuf(ch);
       const k = 1 - Math.exp(-dt * 14);
       const dx = q.x - ch.x, dz = q.z - ch.z;

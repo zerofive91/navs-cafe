@@ -451,6 +451,7 @@ function sitHere(kind) {
 function nearestPerson(maxD) {
   let best = null, bd = maxD;
   for (const n of [...npcs, ...together.people.values()]) {
+    if (n.inTown === false) continue; // 다른 마을에 간 사람 (자리가 멈춰 있음)
     const d = Math.hypot(n.x - me.x, n.z - me.z);
     if (d < bd) { bd = d; best = n; }
   }
@@ -1512,7 +1513,8 @@ peopleBtn.className = 'place people';
 peopleBtn.hidden = true;
 placesEl.insertBefore(peopleBtn, viewBtn);
 const map = initMap({
-  me, people: () => [...together.people.values()].filter((p) => p.av.visible), walkTo, say: toast, icon: ICONS.map, placesEl, before: peopleBtn,
+  me, people: () => [...together.people.values()].filter((p) => p.net && p.inTown), walkTo, // people: 이 마을 사람만 (멀어서 안 그리는 사람도 지도에는)
+  say: toast, icon: ICONS.map, placesEl, before: peopleBtn,
   // 마을 탭: 가 본 마을만. 다른 마을을 고르면 이 마을의 수레 곁으로 걸어감
   towns: () => ['base', ...(profile.john?.seen ? ['john'] : [])], toTown: () => region?.toCart(),
 });
