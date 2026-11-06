@@ -12,6 +12,7 @@ import { findPath, nearestFree } from '../nav.js';
 import { floorY } from '../layout.js';
 import { JX, JZ, ZONES, SP, PLAZA_LIGHT, JARS, ROOF_Y, HOUSE10, REGION, LAKE_AT, JN_ACTS } from './layout.js';
 import { initGalilee } from './galilee.js'; // 2차 가 (갈릴리·사마리아) 사건 도구
+import { initJerusalem } from './jerusalem.js'; // 2차 나 (예루살렘·베다니) 사건 도구
 // events·trials·modes는 region.js가 불러와 넘김 (불러오기에 실패해 다시 시도할 때 주소 끝을 바꿀 수 있게)
 
 const MODE_NAME = { l: '듣기', r: '읽기', a: '적용', s: '공부', m: '암송', d: '묵상' };
@@ -33,6 +34,9 @@ const SKY = {
   noon: { bg: 0xf3f0e2, fogC: 0xf2ecd8, fog: [70, 240], hemiSky: 0xffffff, hemiGround: 0xe8d8b0, hemi: 1.16, sun: 1.25 },        // 4:6 "제 육시쯤" (해가 높은 때, 시각은 본문 표현 그대로)
   seventh: { bg: 0xf0d8ac, fogC: 0xead09e, fog: [55, 200], hemiSky: 0xffe8c4, hemiGround: 0xcfa878, hemi: 0.98, sun: 0.92 },  // 4:52 "제 칠시"
   storm: { bg: 0x0f1626, fogC: 0x18223a, fog: [16, 90], hemiSky: 0x5a6888, hemiGround: 0x22262e, hemi: 0.36, sun: 0.08 },     // 6:17-18 이미 어두웠고 큰 바람
+  // 2차 나
+  morn: { bg: 0xf4dcc4, fogC: 0xf0d8c0, fog: [50, 200], hemiSky: 0xfff0e0, hemiGround: 0xd8c0a0, hemi: 0.95, sun: 0.8 },        // 8:2 아침에
+  winter: { bg: 0xd6dde4, fogC: 0xd4dae0, fog: [45, 190], hemiSky: 0xeef2f6, hemiGround: 0xb8b4aa, hemi: 0.9, sun: 0.7 },     // 10:22 수전절, 때는 겨울이라
 };
 
 export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
@@ -82,6 +86,8 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
   // 2차 가: 사마리아 여인·수가 사람·왕의 신하·빌립·안드레·아이·베드로·무리와 배·안개 도구 (js/john/galilee.js)
   const noBlur = () => lsGet(NOBLUR) === '1';
   const g2 = initGalilee({ root: built.root, me, parts, N, person, GREET, toast, sfx, burst, fxSprite, dist, G, profile, noBlur });
+  // 2차 나: 제자·성전 뜰의 여인·목자·베데스다의 병자들·마르다·마리아·나사로와 장사판·무덤 돌·향기 도구 (js/john/jerusalem.js). runId는 매 프레임에만 부름
+  const g3 = initJerusalem({ root: built.root, me, parts, N, person, GREET, toast, sfx, burst, fxSprite, dist, G, profile, runId: () => (run ? run.ev.id : '') });
 
   // ---------- 머리 위 표시: 할 사건 두루마리, 마침 별, 여섯 모드를 다 채우면 금빛 별 ----------
   const markTex = (kind) => {
@@ -209,6 +215,14 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
     } else if (kind === 'basket') { // 아이의 보리떡 다섯 물고기 둘 (6:9)
       const b = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.12, 0.14, 12, 1, true), M(0xb08a50)); b.position.y = -0.04; g.add(b);
       for (let k = 0; k < 5; k++) { const l = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), M(0xd8a85a)); l.scale.y = 0.6; l.position.set(Math.cos(k * 1.26) * 0.08, 0.04, Math.sin(k * 1.26) * 0.08); g.add(l); }
+    } else if (kind === 'stone') { // 손에 쥐여 준 돌 (8:7)
+      const st = new THREE.Mesh(new THREE.DodecahedronGeometry(0.1, 0), M(0x9a9288, 1, { flatShading: true })); st.scale.set(1.2, 0.85, 1); g.add(st);
+    } else if (kind === 'mat') { // 들고 가는 자리 (5:8)
+      const r = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.62, 12), M(0xb09060, 1)); r.rotation.z = Math.PI / 2; r.position.y = 0.04; g.add(r);
+      for (const s of [-1, 1]) { const b = new THREE.Mesh(new THREE.TorusGeometry(0.092, 0.012, 5, 14), M(0x7a5a3a)); b.rotation.y = Math.PI / 2; b.position.set(s * 0.18, 0.04, 0); g.add(b); }
+    } else if (kind === 'nard') { // 나드 향유 (12:3)
+      const b = new THREE.Mesh(new THREE.SphereGeometry(0.075, 12, 10), M(0xf2ece0, 0.35)); b.scale.y = 1.25; g.add(b);
+      const n = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.034, 0.1, 10), M(0xf2ece0, 0.35)); n.position.y = 0.12; g.add(n);
     } else {
       const c = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.045, 0.13, 12), M(0xb9805a)); g.add(c);
       const w = new THREE.Mesh(new THREE.CircleGeometry(0.055, 12), new THREE.MeshStandardMaterial({ color: 0x8fc4d8, roughness: 0.1 })); w.rotation.x = -Math.PI / 2; w.position.y = 0.06; g.add(w);
@@ -427,12 +441,13 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
   const readSeen = new Set();
   function markRead(keys) { for (const k of keys) readSeen.add(k); }
 
-  Object.assign(X, g2.X);
+  Object.assign(X, g2.X, g3.X);
   X.ui = ui; // 사건 자리의 짧은 대화 (아이·종·동네 사람)
   // 멀리 바라보기 (희어진 밭 등): gaze와 같되 놋뱀 빛은 건드리지 않음
   X.look = (p) => { if (me.seat) standUp(me); me.face = Math.atan2(p.x - me.x, p.z - me.z); me.action = 'gaze'; shot?.(p, { dist: 8, el: 0.3, side: 0.4, dur: 6, mid: 0.4, y: 1.4 }); setTimeout(() => { if (me.action === 'gaze') me.action = null; }, 6000); };
   const trials = initTrials({
     ui, me, toast, sfx, burst, whisper, showVerse, lightPath, push: g2.X.push, fog: g2.X.fog,
+    marks: g3.X.voiceMarks, go: (p) => walkTo(me, nearestFree(p) || p), // 목소리 가리기 (선한 목자)
     praying: () => me.action === 'pray',
     sky: { darkness: (k) => { darkK = k; } },
   });
@@ -476,6 +491,7 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
     for (const k of keys) { const n = N[k]; n.path = []; n.state = 'idle'; n.x = n.home0.x; n.z = n.home0.z; n.home = { ...n.home0 }; n.face = n.face0; }
     N.nathan.action = 'read';
     placeShared();
+    g3.reset(); // 2차 나 사람 자리·물건 (마친 사건의 흔적은 기록대로)
   }
   // 두 사건이 함께 쓰는 증인(베드로)은 지금 따라갈 사건의 자리(e.stand)에 섬
   const evsOf = (k) => ORDER.map((id) => EV[id]).filter((e) => e.npc === k);
@@ -492,6 +508,7 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
   function quit(silent) {
     if (!run) return;
     const e = run.ev; run = null;
+    if (ui.isOpen()) ui.close(); // 사건 자리의 짧은 대화 창이 떠 있었으면 함께 닫음
     cleanup(e); resetNpcs(e);
     if (e.id === 'cana' && !isDone(e)) jarsReset();
     updateChip();
@@ -512,7 +529,8 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
       const nx = ORDER[ORDER.indexOf(e.id) + 1];
       if (nx && JOHN_EVENTS.indexOf(nx) > JOHN_EVENTS.indexOf(j.open)) j.open = nx;
       j.signs = Math.max(j.signs | 0, ORDER.filter((id) => EV[id].sign && isDone(EV[id])).length);
-      if (e.lamp && !j.lamps.includes(e.lamp)) { j.lamps.push(e.lamp); setTimeout(() => toast(`빛의 광장 등잔 하나에 불이 켜졌어요 (${e.lampName || e.lamp})`, 5), 5200); }
+      const lit = [].concat(e.lamp || []).filter((l) => !j.lamps.includes(l)); // 선한 목자는 문과 목자 둘
+      if (lit.length) { j.lamps.push(...lit); setTimeout(() => toast(`빛의 광장 등잔 ${lit.length > 1 ? `${lit.length}개` : '하나'}에 불이 켜졌어요 (${e.lampName || lit.join('·')})`, 5), 5200); }
       msg = `${e.done} (걸음 +${R.steps}, ${statName(e.stat)} +${R.stat}, ${R.coin} 데나리온, ${R.items.map((x) => ITEMS[x]?.name || x).join('·')})`;
     } else { addSteps(profile, 2); msg = `다시 걸어 주었군요. 말씀은 할 때마다 새로워요 (걸음 +2)`; }
     save(); onChange?.();
@@ -590,7 +608,7 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
       const lamps = J().lamps.length, signs = ORDER.filter((id) => EV[id].sign && isDone(EV[id])).length;
       ui.open({
         who: '사도 요한', sub: '이야기는 이어져요', quote: 'jn-20-31',
-        text: `지금까지 지어진 ${ORDER.length} 이야기를 다 따라왔군요! 빛이 어둠에 비치고, 물이 포도주가 되고, 우물가의 여인이 동네로 달려가고, 말씀을 믿은 사람이 길을 갔어요. 떡 다섯 개가 무리를 먹이고, 밤바다에 빛이 다가왔고, 소경이 눈을 떴어요. 표적 ${signs}개를 보았고, "나는…" 등불 ${lamps}개가 켜졌어요. 아직 성전 뜰과 베데스다, 베다니의 이야기가 남아 있어요. 마을은 계속 지어지고 있어요. 이야기는 이어져요.`,
+        text: `지금까지 지어진 ${ORDER.length} 이야기를 다 따라왔군요! 빛이 어둠에 비치고, 물이 포도주가 되고, 아버지의 집이 깨끗해지고, 우물가의 여인이 동네로 달려갔어요. 서른여덟 해 된 병자가 자리를 들고 걸었고, 떡 다섯 개가 무리를 먹이고, 밤바다에 빛이 다가왔어요. 돌을 내려놓은 뜰에 빛이 비치고, 소경이 눈을 뜨고, 양들이 목자의 음성을 따라갔어요. 나사로가 무덤에서 나왔고, 나드 향유 냄새가 집에 가득했어요. 표적 ${signs}개를 보았고, "나는…" 등불 ${lamps}개가 켜졌어요. 아직 다락방과 동산, 빈 무덤의 이야기가 남아 있어요. 마을은 계속 지어지고 있어요. 이야기는 이어져요.`,
         note: `마을 기록장: ${book}`,
         buttons: [{ t: '와 보라 깊이 보기', fn: () => deep(e) }, { t: '감사해요', cls: 'next' }],
       });
@@ -665,6 +683,7 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
     if (town !== wasTown) {
       wasTown = town;
       if (!town) { ui.close(); whisper(''); darkK = 0; }
+      trials.away(!town);
       if (carried) carried.visible = town;
       if (apron) apron.visible = town;
     }
@@ -687,7 +706,7 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
       if (n.hide || n.state === 'walk') return;
       const to = SP.walkers[(n.walkI = (n.walkI | 0) + 1) % 2]; n.path = [{ x: to.x + i * 0.8, z: to.z + i * 0.6 }]; n.state = 'walk';
     });
-    g2.step(town);
+    g2.step(town); g3.step(town);
     if (!town) { chip.hidden = true; beam.visible = false; ring.visible = false; return; }
     reattach();
     trials.step(); modes.step();

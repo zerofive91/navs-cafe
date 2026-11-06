@@ -20,6 +20,13 @@ export const ICONS = {
   jn_boat: svg('<path d="M3 19h26l-4 6H7z"/><path d="M16 4v15"/><path d="M16 5l8 11h-8"/><path d="M3 28c3-1.5 5-1.5 8 0s5 1.5 8 0 5-1.5 8 0"/>'),
   jn_row: svg('<path d="M6 26L24 8"/><path d="M22 6l6 1-1 6-4 1-3-3z"/><path d="M3 22c3-1.5 5-1.5 8 0s5 1.5 8 0"/><path d="M14 28c3-1.5 5-1.5 8 0s4 1.5 7 0"/>'),
   jn_call: svg('<circle cx="10" cy="9" r="3"/><path d="M5 22c0-5 2-8 5-8s5 3 5 8"/><path d="M19 13c3-2 6-2 9 0"/><path d="M20 18c2-1.3 5-1.3 7 0"/><path d="M4 27h24"/>'),
+  // 요한복음 마을 2차 나: 장사판 치우기 · 자리 들기 · 돌 옮기기 · 베 풀기 · 향유 붓기 · 밀 심기
+  jn_clear: svg('<path d="M4 20h16v4H4z"/><path d="M6 20l2-6h8l2 6"/><path d="M22 6l6 6"/><path d="M28 6l-6 6"/><path d="M20 26l6 2"/>'),
+  jn_lift: svg('<rect x="7" y="14" width="18" height="6" rx="3"/><path d="M10 14v-3a2 2 0 0 1 4 0M18 14v-3a2 2 0 0 1 4 0"/><path d="M16 9V3M13 6l3-3 3 3"/><path d="M5 27h22"/>'),
+  jn_push: svg('<circle cx="20" cy="17" r="8"/><path d="M20 13v8M16 17h8" opacity=".5"/><path d="M3 15h7M3 19h7"/><path d="M8 12l3 5-3 5"/><path d="M4 27h24"/>'),
+  jn_untie: svg('<path d="M8 6c4 3 4 6 0 9s-4 6 0 9"/><path d="M14 6c4 3 4 6 0 9"/><path d="M20 16c3 2 5 4 8 4"/><path d="M20 22c3 0 5 1 8 4"/><path d="M14 24h-3"/>'),
+  jn_pour: svg('<path d="M6 10l8-3 4 7-8 4z"/><path d="M14 7l3-2 2 3-1 2"/><path d="M18 14c2 3 2 6 1 9"/><path d="M22 16c1 2 1 4 0 6M25 13c1 2 1 4 0 6" opacity=".6"/><path d="M8 27h18"/>'),
+  jn_plant: svg('<path d="M4 24h24"/><path d="M8 24c2-3 14-3 16 0"/><ellipse cx="16" cy="19" rx="1.6" ry="2.4"/><path d="M16 16v-5"/><path d="M16 12c-3 0-5-2-5-5 3 0 5 2 5 5zM16 11c3 0 5-2 5-5-3 0-5 2-5 5z"/>'),
   towns: svg('<path d="M3 26h26"/><path d="M5 26V15l5-4 5 4v11M17 26V12l5-5 5 5v14"/><path d="M9 26v-4h2v4M21 26v-4h2v4"/>'),
   map: svg('<path d="M4 8l7-3 10 3 7-3v19l-7 3-10-3-7 3z"/><path d="M11 5v19M21 8v19"/><circle cx="16" cy="14" r="1.6"/>'),
   gear: svg('<path d="M10 6h12l2 8-8 4-8-4z"/><path d="M8 14v8l8 5 8-5v-8"/><path d="M16 18v9"/>'),
@@ -139,4 +146,10 @@ export const ICONS = {
   door: svg('<path d="M9 28V8a7 7 0 0 1 14 0v20M5 28h22"/><circle cx="19" cy="18" r="1" fill="currentColor"/>'),
   cafe: svg('<path d="M4 27h24"/><path d="M7 27V16a9 9 0 0 1 18 0v11"/><path d="M16 7V4"/><path d="M13.5 27v-6a2.5 2.5 0 0 1 5 0v6"/>'), // 둥근 지붕의 카페
   people: svg('<circle cx="12" cy="11" r="3.6"/><circle cx="22" cy="12.5" r="3"/><path d="M5 26v-2a7 7 0 0 1 14 0v2"/><path d="M19.5 26v-2a6 6 0 0 1 8-5.6"/>'),
+};
+// 요한복음 마을 사건 단추의 읽어 주는 이름 (화면 낭독기용 aria-label). 없는 단추는 이름(id) 그대로
+export const ICON_LABELS = {
+  jn_lamp: '등불 받기', jn_water: '물 긷기·붓기', jn_draw: '떠 마시기', jn_give: '건네기', jn_look: '바라보기', jn_wash: '씻기',
+  jn_put: '내려놓기', jn_boat: '배 타기', jn_row: '노 젓기', jn_call: '무리를 앉히기',
+  jn_clear: '장사판 치우기', jn_lift: '자리 들기', jn_push: '돌 옮기기', jn_untie: '베 풀어 주기', jn_pour: '향유 붓기', jn_plant: '밀 심기',
 };
