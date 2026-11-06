@@ -743,3 +743,22 @@ body.at-door #enter { z-index: 100; }
 #shop .kind { margin: 12px 0 0; font-size: 13px; font-weight: 700; color: #a07a40; letter-spacing: 0.08em; }
 #meCard .items.cos button.on { background: #f6e6f6; color: #6a2a6a; box-shadow: 0 0 0 2px #b07ab0; }
 #meCard .cosdoes { margin: 6px 0 0; font-size: 13px; color: #8f7458; }
+
+/* ---------- 마을 사이 다니기 (2026-11 요한복음 마을) ---------- */
+/* 수레를 타면 화면이 흐려졌다 밝아짐. 그동안 말씀 한 구절 (요 14:6) */
+#regionVeil { position: fixed; inset: 0; z-index: 85; display: flex; align-items: center; justify-content: center; padding: 24px; background: #f4ead6; opacity: 0; pointer-events: none; transition: opacity 0.6s ease; }
+#regionVeil.on { opacity: 1; pointer-events: auto; }
+#regionVeil .pad { max-width: 520px; text-align: center; color: #4a3626; font-family: "Noto Serif KR", serif; }
+#regionVeil p { margin: 0 0 12px; font-size: 18px; line-height: 1.7; }
+#regionVeil cite { display: block; font-style: normal; font-size: 15px; color: #8a6a4a; }
+#regionVeil small { display: block; margin-top: 26px; font: 600 13px system-ui, sans-serif; color: #a08664; letter-spacing: 0.04em; }
+/* 다른 마을에서는 카페 바로가기·정원 단추를 감춤 (지도와 수레로 다님) */
+body.region-john #places .place.cafe, body.region-john #places .place.fold, body.region-john #places .place.gardenBtn { display: none; }
+body.region-john #map .guideMe { display: none; }
+/* 지도 위쪽 "마을" 탭: 가 본 마을만 */
+#map .towns { position: absolute; top: calc(max(12px, env(safe-area-inset-top)) + 54px); left: 14px; right: 70px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+#map .towns span { color: #ffe2a8; font: 700 13px system-ui, sans-serif; margin-right: 2px; }
+#map .towns button { border: 2px solid rgba(255, 236, 196, 0.6); border-radius: 16px; padding: 6px 12px; background: rgba(20, 28, 22, 0.85); color: #fff6e0; font: 600 13px system-ui, sans-serif; cursor: pointer; }
+#map .towns button.on { background: #ffe9b8; color: #5a4128; border-color: #ffe9b8; }
+body.region-john #map .towns { top: max(12px, env(safe-area-inset-top)); }
+#map .courses[hidden], #map .towns[hidden] { display: none; }

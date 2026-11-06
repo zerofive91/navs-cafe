@@ -4,7 +4,7 @@
 //   허리띠(오래 머뭇거리면 진리가 비침) · 신(숲길에서 더 빨리) · 흉배(여섯을 다 갖추면 시험을 이긴 걸음이 두 배) · 등불(숲길을 밝힘)
 import * as THREE from 'three';
 import { setOutfit } from './avatar.js';
-import { R_PARK } from './layout.js';
+import { R_PARK, FAR_X } from './layout.js';
 import { saveProfile } from './profile.js';
 import { initCosmetic } from './cosmetic.js';
 
@@ -69,7 +69,7 @@ export function initGear({ me, profile, scene, toast, sfx, burst, TIER }) {
     T += dt;
     cos.step();
     if (T > 1) { T = 0; check(false); apply(false); }
-    const inForest = Math.hypot(me.x, me.z) > R_PARK + 2;
+    const inForest = me.x < FAR_X && Math.hypot(me.x, me.z) > R_PARK + 2; // 숲길 (다른 마을은 숲이 아님)
     light.intensity += ((worn('lamp') && inForest ? 2.2 : 0) - light.intensity) * Math.min(1, dt * 3);
     light.position.set(me.x, me.y + 1.7, me.z);
     me.boost = (worn('shoes') && inForest ? 1.15 : 1) * (performance.now() < (me.donkeyUntil || 0) ? 1.7 : 1); // 나귀 (shop.js)

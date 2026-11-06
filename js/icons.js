@@ -6,6 +6,9 @@ export const ICONS = {
   // 말 걸기 (곁의 사람에게)
   talk: svg('<path d="M5 8a3 3 0 0 1 3-3h16a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H13l-6 5v-5H8a3 3 0 0 1-3-3z"/><path d="M11 13h.01M16 13h.01M21 13h.01" stroke-width="3"/>'),
   keys: svg('<rect x="3" y="9" width="26" height="15" rx="2.5"/><path d="M8 14h1M12 14h1M16 14h1M20 14h1M24 14h1M10 19h12"/>'),
+  // 마을 수레 타기 (요한복음 마을 길목·빛의 광장)
+  jcart: svg('<path d="M3 11h18l-1.5 8H5z"/><circle cx="9" cy="23" r="3.2"/><circle cx="17" cy="23" r="3.2"/><path d="M21 13l7-4M6 11c0-4 3-6 7-6s7 2 7 6"/>'),
+  towns: svg('<path d="M3 26h26"/><path d="M5 26V15l5-4 5 4v11M17 26V12l5-5 5 5v14"/><path d="M9 26v-4h2v4M21 26v-4h2v4"/>'),
   map: svg('<path d="M4 8l7-3 10 3 7-3v19l-7 3-10-3-7 3z"/><path d="M11 5v19M21 8v19"/><circle cx="16" cy="14" r="1.6"/>'),
   gear: svg('<path d="M10 6h12l2 8-8 4-8-4z"/><path d="M8 14v8l8 5 8-5v-8"/><path d="M16 18v9"/>'),
   block: svg('<path d="M16 4l10 4v8c0 6-4 10-10 12C10 26 6 22 6 16V8z"/><path d="M16 9v14M11 15h10"/>'),

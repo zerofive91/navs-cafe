@@ -10,6 +10,7 @@
 
 import { setOutfit } from './avatar.js';
 import { setCosmetic } from './cosmetic.js';
+import { regionIdAt } from './layout.js';
 
 const SUPABASE_URL = 'https://esbhbhjnpupcrjwbnwet.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_BJB1Jth8sAEJllf9nnvA3A_iHQB5-Sz'; // 공개용(publishable) 키
@@ -45,7 +46,15 @@ export function initTogether({ scene, me, look, makeChar, poseAvatar, upgradeCup
   const myId = rid(10);
   const people = new Map(); // id -> 원격 캐릭터
   let client = null, channel = null;
-  const st = { mode: 'solo', room: null, code: null, count: 1, onChange: () => {} };
+  const st = { mode: 'solo', room: null, code: null, count: 1, here: 1, onChange: () => {} };
+  // 마을 (2026-11): 방은 그대로 같이 쓰고, 보내는 위치에 마을(g)을 붙임. 다른 마을 사람은 화면에서 감추고 사람 수는 "이 마을 n명"
+  const myRegion = () => regionIdAt(me.x, me.z);
+  function countHere() {
+    const r = myRegion();
+    let n = 1;
+    for (const ch of people.values()) if (ch.net && (ch.region || 'base') === r) n++;
+    if (n !== st.here) { st.here = n; st.onChange(st); }
+  }
 
   // ---------- 원격 캐릭터 ----------
   function addPerson(id, lk) {
@@ -75,7 +84,8 @@ export function initTogether({ scene, me, look, makeChar, poseAvatar, upgradeCup
     ch.buf.push({ ts, x: m.x, z: m.z, y: m.y });
     if (ch.buf.length > 10) ch.buf.shift();
     ch.net = { ...m, period: m.p || 1 };
-    if (!ch.av.visible) { ch.x = m.x; ch.z = m.z; ch.y = m.y; ch.av.rotation.y = m.f; ch.av.visible = true; }
+    ch.region = m.g || 'base'; // 예전 기기는 마을을 보내지 않음 → 초보자 마을
+    if (!ch.placed) { ch.placed = true; ch.x = m.x; ch.z = m.z; ch.y = m.y; ch.av.rotation.y = m.f; } // 보이기는 step()이 마을을 견주어 정함
     if (m.c !== undefined && m.c !== ch.cosCode) { ch.cosCode = m.c; const [wing, mount, head] = (m.c || '..').split('.'); setCosmetic(ch.av, { wing, mount, head }); }
     if (m.o !== undefined && m.o !== ch.outfitKey) { ch.outfitKey = m.o; setOutfit(ch.av, m.o === 'glory' ? 'glory' : m.o ? 'armor' : null, m.o && m.o !== 'glory' ? m.o.split(',') : undefined); }
   }
@@ -91,10 +101,17 @@ export function initTogether({ scene, me, look, makeChar, poseAvatar, upgradeCup
     }
     return B[B.length - 1];
   }
+  let hereT = 0;
   function step(dt, t) {
+    const mine = myRegion();
+    if ((hereT -= dt) <= 0) { hereT = 0.5; countHere(); }
     for (const ch of people.values()) {
       const n = ch.net;
       if (!n) continue;
+      // 다른 마을 사람은 감춤: 마을이 바뀔 때만 보이기를 바꿈 (매 프레임 덮어쓰면 main.js farCull의 먼 사람 감추기가 풀림)
+      const here = (ch.region || 'base') === mine;
+      if (here !== ch.inTown) { ch.inTown = here; ch.av.visible = here; ch.av.userData.culled = false; }
+      if (!here) continue;
       const q = sampleBuf(ch);
       const k = 1 - Math.exp(-dt * 14);
       const dx = q.x - ch.x, dz = q.z - ch.z;
@@ -136,6 +153,7 @@ export function initTogether({ scene, me, look, makeChar, poseAvatar, upgradeCup
       run: me.running ? 1 : 0, a: me.action || 0, i: me.item || 0, d: me.drink || 0, fd: me.food || 0, b: me.bites || 0,
       r: me.racket || 0, h: me.hold || 0, sw: me.swim ? 1 : 0, s: me.state === 'sit' && me.seat ? me.seat.kind : 0,
       o: outfitCode(), c: me.av.userData.cosCode || '', rd: me.ride ? 1 : 0, ts: Date.now(),
+      g: myRegion() === 'base' ? 0 : myRegion(), // 마을 (초보자 마을은 0)
     };
   }
   const outfitCode = () => { const u = me.av.userData; return u.outfit === 'glory' ? 'glory' : u.outfit ? (u.pieces || []).join(',') || 'armor' : ''; };
@@ -150,7 +168,7 @@ export function initTogether({ scene, me, look, makeChar, poseAvatar, upgradeCup
     lastKey = key(m);
     dirty = false;
   }
-  const key = (m) => [m.st, m.run, m.a, m.i, m.d, m.fd, m.b, m.r, m.h, m.sw, m.s, m.o, m.c, m.rd].join('|');
+  const key = (m) => [m.st, m.run, m.a, m.i, m.d, m.fd, m.b, m.r, m.h, m.sw, m.s, m.o, m.c, m.rd, m.g].join('|');
   function sendStep(dt) {
     if (st.count < 2) return; // 혼자 있는 방에서는 보내지 않음
     sinceSend += dt;
@@ -233,8 +251,10 @@ export function initTogether({ scene, me, look, makeChar, poseAvatar, upgradeCup
   function leave() {
     if (channel) { channel.untrack(); client.removeChannel(channel); channel = null; }
     for (const id of [...people.keys()]) removePerson(id);
-    st.mode = 'solo'; st.count = 1; st.onChange(st);
+    st.mode = 'solo'; st.count = 1; st.here = 1; st.onChange(st);
   }
 
-  return { st, start, leave, step, people, applyState }; // applyState: 시험용으로도 씀
+  // 마을을 옮긴 뒤: 사람 수를 다시 세고 내 자리를 바로 알림
+  const refresh = () => { countHere(); if (channel) send(); };
+  return { st, start, leave, step, people, applyState, refresh }; // applyState: 시험용으로도 씀
 }
