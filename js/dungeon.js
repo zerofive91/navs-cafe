@@ -3,11 +3,26 @@
 //   (예수님의 광야 시험처럼, 암송 없이 고르기만). 막히면 기도(X)하면 맞는 말씀이 떠오름
 //   잘못 고르면 넘어지지만 바로 앞 정거장에서 다시 일어남 (미 7:8)
 //   길의 속삭임을 모두 물리치면 걸음·말씀·순종이 자람. 생명의 다리·복음·고난의 길은 누구나 걷는 열린 길
+//   형식 (2026-11 단위 5): 작은 시험은 고르기, 길 끝 큰 시험은 채우기(구절 빈칸 낱말 고르기) 또는
+//   버티기(속삭임이 되풀이되는 동안 말씀을 붙들고 그 자리에 서 있기, 떠나면 넘어지지 않고 "다시 서기").
+//   틀린 보기를 고르면 "왜 아닌가" 한 줄(그 구절이 실제로 말하는 바)을 보여 줌
 import * as THREE from 'three';
 import { TRAILS, R_PARK, floorY } from './layout.js';
 import { VERSES, showVerse } from './verses.js';
 import { STAGES, stageOf, addSteps, addStat, earn, useGood, GOODS } from './profile.js';
 import { TRIALS } from './dungeon-trials.js';
+import { bibleMode } from './bible.js';
+
+// 채우기는 지금 고른 번역(개역한글 / AI 현대어)으로 빈칸을 냄. 현대어 짝은 처음 한 번 불러 둠 (bible.js와 같은 모듈)
+let MOD = null;
+import('./bible-modern.js').then(({ MODERN }) => { MOD = new Map(MODERN); }).catch(() => { /* 개역한글로 */ });
+const KIND_NAME = { fill: '채우기', hold: '버티기' };
+const PROMPT = {
+  pick: '어떤 말씀으로 대답할까요? (1·2·3, 막히면 X 기도)',
+  fill: '빈칸에 들어갈 낱말을 골라 말씀을 완성해요 (1·2·3, 막히면 X 기도)',
+  hold: '그 자리에 서서 이 말씀을 붙들어요. 등불이 다 차면 속삭임이 물러가요',
+};
+const HOLD_R = 1.2; // 버티기: 이만큼 벗어나면 자리를 떠난 것
 
 // 별 하나: 새싹부터, 별 둘: 제자부터, 별 셋: 일꾼부터
 export const TIER = {
@@ -105,7 +120,7 @@ export function initDungeon(K) {
   // ---------- 시험 말풍선 ----------
   const box = document.createElement('div');
   box.className = 'npcb trial'; box.id = 'trial'; box.hidden = true;
-  box.innerHTML = '<div class="who"><b></b><span class="n"></span></div><p class="say"></p><div class="opts"></div><div class="row"><button class="later">물러나기</button><button class="oil" hidden></button></div>';
+  box.innerHTML = '<div class="who"><b></b><span class="n"></span></div><p class="say"></p><div class="verse" hidden></div><div class="opts"></div><div class="row"><button class="later">물러나기</button><button class="again" hidden>다시 서기</button><button class="oil" hidden></button></div>';
   document.body.appendChild(box);
   const $ = (s) => box.querySelector(s);
   let cur = null, closedFor = null, opts = [];
@@ -116,11 +131,12 @@ export function initDungeon(K) {
     if (o) return choose(Number(o.dataset.i));
     if (e.target.classList.contains('later')) { closedFor = cur; close(); }
     if (e.target.classList.contains('oil')) pourOil();
+    if (e.target.classList.contains('again')) again();
   });
   addEventListener('keydown', (e) => {
     if (!cur || cur.wait) return;
     const m = /^(?:Digit|Numpad)([1-3])$/.exec(e.code);
-    if (m) { e.stopPropagation(); e.preventDefault(); choose(Number(m[1]) - 1); }
+    if (m) { e.stopPropagation(); e.preventDefault(); if (cur.kind !== 'hold') choose(Number(m[1]) - 1); else if (m[1] === '1') again(); }
     else if (e.code === 'KeyX') hint(); // 기도하면 맞는 말씀이 떠오름 (기도 동작은 그대로)
   }, true);
   const close = () => { box.hidden = true; cur = null; document.body.classList.remove('talking', 'trialing'); bigOff(); };
@@ -138,30 +154,71 @@ export function initDungeon(K) {
     if (S.big) bigOn(S);
     me.path = []; me.task = null; if (me.state === 'walk') me.state = 'idle';
     me.face = Math.atan2(S.x - me.x, S.z - me.z);
-    const T = BY[S.lie];
+    const T = BY[S.lie], ref = VERSES['dg-' + T.id];
+    S.kind = T.kind || 'pick';
     markSeen(S.id, T.id);
-    opts = shuffle([T.id, ...T.no], hash(S.id + S.k + performance.now()));
     const list = byCourse[S.id];
-    $('.who b').textContent = S.big ? '큰 시험 · 어둠의 속삭임' : '어둠의 속삭임';
+    $('.who b').textContent = (S.big ? '큰 시험 · ' : '') + '어둠의 속삭임' + (KIND_NAME[S.kind] ? ' · ' + KIND_NAME[S.kind] : '');
     $('.n').textContent = `${courseName(S.id)} · ${list.indexOf(S) + 1} / ${list.length}`;
-    $('.say').textContent = `"${T.lie}"`;
-    const sm = document.createElement('small'); sm.textContent = '어떤 말씀으로 대답할까요? (1·2·3, 막히면 X 기도)'; $('.say').append(sm);
-    $('.opts').innerHTML = opts.map((k, i) => `<button class="opt" data-i="${i}"><kbd>${i + 1}</kbd><span>${VERSES['dg-' + k][0]} <em>${VERSES['dg-' + k][1]}</em></span></button>`).join('');
+    say(T.lie, PROMPT[S.kind]);
+    const vb = $('.verse'); vb.textContent = ''; vb.hidden = S.kind === 'pick';
+    $('.again').hidden = true;
+    if (S.kind === 'fill') {
+      // 빈칸 구절 + 낱말 셋 (f0이 정답)
+      const f = fillOf(T); S.words = f.words; S.right = 'f0';
+      opts = shuffle(['f0', 'f1', 'f2'], hash(S.id + S.k + performance.now()));
+      const at = f.text.indexOf(f.words[0]), sp = document.createElement('span'), b = document.createElement('b'), em = document.createElement('em');
+      b.className = 'blank'; em.textContent = ref[1];
+      sp.append(f.text.slice(0, at), b, f.text.slice(at + f.words[0].length), em);
+      vb.append(sp);
+      $('.opts').innerHTML = opts.map((k, i) => `<button class="opt word" data-i="${i}"><kbd>${i + 1}</kbd><span>${f.words[Number(k[1])]}</span></button>`).join('');
+    } else if (S.kind === 'hold') {
+      // 붙들 말씀(현대어는 bible.js가 바꿔 보여 줌) + 등불
+      opts = []; S.right = null; $('.opts').innerHTML = '';
+      vb.innerHTML = `<span>${ref[0]} <em>${ref[1]}</em></span><i class="lamp"><b></b></i>`;
+      Object.assign(S, { p: 0, grace: 1.2, broken: false, wt: 0, wi: 0, lines: [T.lie, ...(T.hold?.more || [])], ax: me.x, az: me.z, prayed: false });
+    } else {
+      S.right = T.id;
+      opts = shuffle([T.id, ...T.no], hash(S.id + S.k + performance.now()));
+      $('.opts').innerHTML = opts.map((k, i) => `<button class="opt" data-i="${i}"><kbd>${i + 1}</kbd><span>${VERSES['dg-' + k][0]} <em>${VERSES['dg-' + k][1]}</em></span></button>`).join('');
+    }
     box.hidden = false; box.classList.remove('ok');
     S.oiled = false; oilBtn();
     document.body.classList.add('talking', 'trialing');
     sfx('impact/impactSoft_heavy_000', 0.2, 0.5);
   }
+  // 속삭임 한 줄 + 그 아래 작은 글(물음 / 왜 이기는지 / 왜 아닌가)
+  function say(line, note) {
+    const el = $('.say'), q = document.createElement('span'), sm = document.createElement('small');
+    q.className = 'q'; q.textContent = `"${line}"`; sm.textContent = note;
+    el.textContent = ''; el.append(q, sm);
+  }
+  const note = (text, cls) => { const sm = $('.say small'); if (sm) { sm.textContent = text; sm.className = cls || ''; } };
+  function fillOf(T) {
+    const krv = VERSES['dg-' + T.id][0], mod = bibleMode() === 'modern' && MOD && MOD.get(krv);
+    return mod && T.fill.m ? { text: mod, words: T.fill.m } : { text: krv, words: T.fill.k };
+  }
+  // 틀린 보기를 골랐을 때: 그 구절이 실제로 말하는 바 (채우기는 그 낱말이 왜 아닌지)
+  function whyNot(S, k) {
+    if (S.kind === 'fill') return BY[S.lie].fill.why[Number(k[1]) - 1] || '';
+    return BY[k]?.about ? `그 말씀은 ${BY[k].about}` : '';
+  }
+  function winTrial(S, i) {
+    S.beaten = true; S.fade = 0; S.wait = true;
+    box.classList.add('ok'); if (i != null) $(`.opt[data-i="${i}"]`)?.classList.add('hint');
+    if (S.kind === 'fill') { const b = $('.verse .blank'); if (b) { b.textContent = S.words[0]; b.classList.add('on'); } }
+    if (S.kind === 'hold') { lamp(1); $('.again').hidden = true; }
+    const win = BY[S.lie].win; if (win) note(win); // 이 말씀이 왜 이기는지 한 줄
+    sfx('orb', 0.3, 1.2); burst(S.x, gy(S) + 1.2, S.z);
+    showVerse('dg-' + S.lie, { cooldown: 0, title: '말씀으로 물리쳤어요' });
+    setTimeout(() => { S.wait = false; if (cur === S) close(); checkWin(S.id); }, win ? 2200 : 900);
+  }
   function choose(i) {
-    const S = cur; if (!S || S.wait || opts[i] == null) return;
-    if (opts[i] === S.lie) {
-      S.beaten = true; S.fade = 0; S.wait = true;
-      box.classList.add('ok'); $(`.opt[data-i="${i}"]`)?.classList.add('hint');
-      const win = BY[S.lie].win, sm = $('.say small'); if (win && sm) sm.textContent = win; // 이 말씀이 왜 이기는지 한 줄
-      sfx('orb', 0.3, 1.2); burst(S.x, gy(S) + 1.2, S.z);
-      showVerse('dg-' + S.lie, { cooldown: 0, title: '말씀으로 물리쳤어요' });
-      setTimeout(() => { S.wait = false; if (cur === S) close(); checkWin(S.id); }, win ? 2200 : 900);
-    } else if (wears('shield') && !shieldUsed.has(S.id)) {
+    const S = cur; if (!S || S.wait || S.kind === 'hold' || opts[i] == null) return;
+    if (opts[i] === S.right) return winTrial(S, i);
+    const why = whyNot(S, opts[i]);
+    if (why) note(why, 'why');
+    if (wears('shield') && !shieldUsed.has(S.id)) {
       // 믿음의 방패: 한 길에 한 번 넘어지지 않음 (엡 6:16)
       shieldUsed.add(S.id);
       const b = $(`.opt[data-i="${i}"]`); if (b) { b.classList.add('no'); b.disabled = true; }
@@ -189,9 +246,38 @@ export function initDungeon(K) {
         S.wait = false; closedFor = null; close();
         veil.style.opacity = '0';
         showVerse('dg-rise', { cooldown: 0, title: '넘어져도 다시 일어나요' });
-      }, 1300);
+      }, why ? 2200 : 1300); // "왜 아닌가"를 읽을 틈 (창은 막보다 위에 있음)
     }
   }
+  // ---------- 버티기: 속삭임이 되풀이되는 동안 말씀을 붙들고 서 있기 ----------
+  const lamp = (k) => { const b = $('.verse .lamp b'); if (b) b.style.width = `${Math.round(k * 100)}%`; };
+  function holdStep(S, dt) {
+    if (S.broken) return;
+    if (S.grace > 0) { S.grace -= dt; S.ax = me.x; S.az = me.z; return; } // 멈춰 설 때까지는 자리를 따라감
+    if (Math.hypot(me.x - S.ax, me.z - S.az) > HOLD_R) {
+      // 자리를 떠남: 넘어지지 않고 처음부터 다시 서기
+      S.broken = true; S.p = 0; lamp(0);
+      note('자리를 떠났어요. 괜찮아요, 다시 서서 말씀을 붙들어요 (1 또는 다시 서기)', 'why');
+      $('.again').hidden = false;
+      sfx('impact/impactSoft_medium_000', 0.15, 0.9);
+      return;
+    }
+    const need = (BY[S.lie].hold?.secs || 10) * (K.resting?.() ? 0.6 : 1); // 쉼 모드면 더 짧게
+    S.p = Math.min(1, S.p + (dt / need) * (me.action === 'pray' ? 1.25 : 1)); // 기도하며 붙들면 조금 더 빨리
+    lamp(S.p);
+    S.wt += dt;
+    if (S.wt > 2.6 && S.lines.length > 1) {
+      S.wt = 0; S.wi = (S.wi + 1) % S.lines.length;
+      const q = $('.say .q'); if (q) { q.textContent = `"${S.lines[S.wi]}"`; q.classList.remove('re'); void q.offsetWidth; q.classList.add('re'); }
+    }
+    if (S.p >= 1) winTrial(S, null);
+  }
+  function again() {
+    const S = cur; if (!S || S.kind !== 'hold' || !S.broken || S.wait) return;
+    Object.assign(S, { broken: false, p: 0, grace: 0.6, ax: me.x, az: me.z });
+    $('.again').hidden = true; note(PROMPT.hold); lamp(0);
+  }
+
   // ---------- 큰 시험 연출: 길 끝의 큰 속삭임 ----------
   //   숲이 어두워지고 화면 가장자리가 짙어지며, 큰 그림자가 숨 쉬듯 부풀고 천둥이 울림. 이기면 빛이 터지며 걷힘
   let fog0 = null;
@@ -206,7 +292,7 @@ export function initDungeon(K) {
   }
   function bigPulse(t) {
     if (fog0 && scene.fog) { scene.fog.color.lerp(dusk, 0.05); scene.fog.near += (fog0.near * 0.35 - scene.fog.near) * 0.05; scene.fog.far += (fog0.far * 0.45 - scene.fog.far) * 0.05; }
-    if (cur && !cur.beaten) cur.g.scale.setScalar(1.9 * (1 + Math.sin(t * 2.2) * 0.08));
+    if (cur && !cur.beaten) cur.g.scale.setScalar(1.9 * (1 - 0.35 * (cur.kind === 'hold' ? cur.p || 0 : 0)) * (1 + Math.sin(t * 2.2) * 0.08)); // 버티면 그림자가 줄어듦
     if (cur && Math.random() < 0.004) sfx('impact/impactSoft_heavy_000', 0.18, 0.3); // 먼 천둥
   }
   function bigOff() {
@@ -224,21 +310,22 @@ export function initDungeon(K) {
   // 등잔 기름: 틀린 말씀 하나를 걷어 냄 (한 속삭임에 한 번)
   function oilBtn() {
     const b = $('.oil'), n = (profile.bag && profile.bag.oil) | 0;
-    b.hidden = !cur || cur.oiled || !n;
+    b.hidden = !cur || cur.kind === 'hold' || cur.oiled || !n;
     b.textContent = `${GOODS.oil.name} 붓기 (${n})`;
   }
   function pourOil() {
     if (!cur || cur.wait || cur.oiled) return;
-    const wrong = opts.map((k, i) => [k, i]).filter(([k, i]) => k !== cur.lie && !$(`.opt[data-i="${i}"]`)?.classList.contains('no'));
+    const wrong = opts.map((k, i) => [k, i]).filter(([k, i]) => k !== cur.right && !$(`.opt[data-i="${i}"]`)?.classList.contains('no'));
     if (!wrong.length || !useGood(profile, 'oil')) return;
     cur.oiled = true;
     const b = $(`.opt[data-i="${wrong[0][1]}"]`); if (b) { b.classList.add('no'); b.disabled = true; }
-    sfx('orb', 0.2, 1.4); toast('등불이 밝아져 거짓 말씀 하나가 드러났어요', 3);
+    sfx('orb', 0.2, 1.4); toast(cur.kind === 'fill' ? '등불이 밝아져 맞지 않는 낱말 하나가 드러났어요' : '등불이 밝아져 거짓 말씀 하나가 드러났어요', 3);
     save(); onChange?.(); oilBtn();
   }
   function hint() {
     if (!cur || cur.wait) return;
-    const i = opts.indexOf(cur.lie);
+    if (cur.kind === 'hold') { if (!cur.prayed) { cur.prayed = true; toast('기도하며 말씀을 붙들어요. 무릎 꿇은 채로도 버틸 수 있어요', 3); } return; }
+    const i = opts.indexOf(cur.right);
     $(`.opt[data-i="${i}"]`)?.classList.add('hint');
     toast('기도하니 마음에 떠오르는 말씀이 있어요', 3);
   }
@@ -288,6 +375,7 @@ export function initDungeon(K) {
     // 시험: 속삭임 곁에 오면 길을 막고 물음
     if (cur) {
       if (!cur.wait && Math.hypot(me.x - cur.x, me.z - cur.z) > 8) close();
+      else if (cur.kind === 'hold') { if (!cur.wait) holdStep(cur, dt); }
       else if (cur && !cur.wait && !cur.belt && wears('belt') && performance.now() - cur.metAt > 8000) { cur.belt = true; hint(); toast('진리의 허리띠: 진리가 비쳐요', 2.5); }
       if (cur && cur.big) bigPulse(t);
     } else if (!busy()) {
