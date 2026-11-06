@@ -73,7 +73,7 @@ export function createDialog({ id, cls = '', talking = true } = {}) {
     parts.guide.replaceChildren(...guide.map((c, i) => button('g' + i, c, c.cls)));
     parts.pick.replaceChildren(...(s.pick || []).map((c, i) => button('p' + i, c, c.cls)));
     const row = (s.choices || []).filter((c) => !c.hidden);
-    parts.row.replaceChildren(...row.map((c, i) => button('r' + i, c, c.cls)));
+    parts.row.replaceChildren(...row.map((c, i) => button('r' + (c.cls || i), c, c.cls))); // 같은 모양 단추는 다시 그려도 포커스가 그 자리에
     el.dataset.at = s.at || '';
     if (!el.dataset.at) delete el.dataset.at;
     return { was, row };
