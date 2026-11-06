@@ -129,6 +129,8 @@ export const ICONS = {
   flower: svg('<circle cx="16" cy="10" r="2.6"/><path d="M16 4.5c2 0 3 2 2 3.5 2-1 4 0 4 2s-2 3-4 2c1 1.5 0 3.5-2 3.5s-3-2-2-3.5c-2 1-4 0-4-2s2-3 4-2c-1-1.5 0-3.5 2-3.5z"/><path d="M16 15.5V28M16 23c-3-3-6-3-7-1M16 21c3-3 6-3 7-1"/>'),
   giveflower: svg('<circle cx="22" cy="8" r="2.2"/><path d="M22 10.5v6"/><path d="M4 22l6-1 6 1 6-4"/><path d="M4 27h8l8-2 7-6"/><path d="M19 13c-2-1-3 0-3 1"/>'),
   skip: svg('<ellipse cx="7" cy="11" rx="3" ry="1.4"/><path d="M10 12c3 3 5 3 7 0M18 13c2 2 4 2 5 0M24 14c1 1 2 1 3 0"/><path d="M3 22c3-1.5 5-1.5 8 0s5 1.5 8 0 5-1.5 8 0"/><path d="M8 27c2-1 4-1 6 0"/>'),
+  // 머무르기 (머무름 묵상): 숨 고르기 원
+  stay: svg('<circle cx="16" cy="16" r="4"/><circle cx="16" cy="16" r="9" opacity=".6"/><circle cx="16" cy="16" r="13" opacity=".3"/>'),
   stars: svg('<path d="M10 4l1.5 3.5L15 8l-3 2.5 1 3.5-3-2-3 2 1-3.5L5 8l3.5-.5z"/><path d="M23 10l.8 1.8 1.9.3-1.4 1.3.4 2-1.7-1-1.7 1 .4-2-1.4-1.3 1.9-.3z"/><path d="M4 25l6-2 8 1 10-4"/><circle cx="8" cy="20" r="2"/>'),
   seed: svg('<path d="M5 26h22"/><path d="M8 26c1-3 4-4 8-4s7 1 8 4"/><path d="M16 22v-8"/><path d="M16 16c-4 0-6-3-6-6 3 0 6 2 6 6zM16 14c3 0 5-2 5-5-3 0-5 2-5 5z"/>'),
   photo: svg('<rect x="4" y="9" width="24" height="17" rx="3"/><path d="M11 9l2-4h6l2 4"/><circle cx="16" cy="17.5" r="5"/><circle cx="24" cy="13" r=".8" fill="currentColor"/>'),

@@ -761,9 +761,10 @@ body.at-door #enter { z-index: 100; }
 #meCard .does { margin: 6px 0 0; font-size: 13px; color: #8a7458; min-height: 1em; }
 /* 가로 화면 (진짜 가로 또는 눕힌 화면, main.js resize가 html.land를 붙임) */
 /* 가로 화면: 왼쪽에 내 모습이 늘 보이게 (내려 보아도 따라옴) */
-  html.land #meCard .pad { display: grid; grid-template-columns: 150px 1fr; column-gap: 16px; align-items: start; }
-  html.land #meCard .pad > * { grid-column: 2; }
-  html.land #meCard .pad > canvas.me { grid-column: 1; grid-row: 1 / span 40; position: sticky; top: 0; width: 150px; height: 188px; margin: 0; }
+  /*   '나' 탭 안에서만 두 칸 (2026-11 탭이 생기며 .pad 대신 탭 칸에) */
+  html.land #meCard .tab[data-pane="me"]:not([hidden]) { display: grid; grid-template-columns: 150px 1fr; column-gap: 16px; align-items: start; }
+  html.land #meCard .tab[data-pane="me"] > * { grid-column: 2; }
+  html.land #meCard .tab[data-pane="me"] > canvas.me { grid-column: 1; grid-row: 1 / span 40; position: sticky; top: 0; width: 150px; height: 188px; margin: 0; }
 
 /* 꾸미기 (cosmetic.js) */
 #shop .kind { margin: 12px 0 0; font-size: 13px; font-weight: 700; color: #a07a40; letter-spacing: 0.08em; }
@@ -859,3 +860,58 @@ body.jn-blind.jn-noblur canvas#cafe { filter: saturate(calc(1 - var(--jblind, 0)
 @keyframes jfogwave { from { background-position: 0 0, 0 0; } to { background-position: 0 0, 0 60%; } }
 body.jn-noblur #jfog { opacity: calc(var(--jfog, 0) * 0.45); animation: none; }
 @media (prefers-reduced-motion: reduce) { #jfog { animation: none; } }
+
+/* 내 카드 탭: 나 / 오늘 말씀 (2026-11, character.js · met.js) */
+#meCard .tabs { display: flex; gap: 6px; margin: 0 40px 12px 0; }
+#meCard .tabs button { flex: 1; height: 34px; border: 0; border-radius: 12px; background: #f1e6d2; color: #8f7458; font: 600 13px "Noto Serif KR", serif; cursor: pointer; }
+#meCard .tabs button.on { background: #8f6744; color: #fffaf0; }
+#meCard .tab[hidden] { display: none; }
+#meCard .met { display: flex; flex-direction: column; gap: 6px; }
+#meCard .met button { display: block; text-align: left; border: 0; border-radius: 12px; padding: 8px 11px; background: #fff; color: #6b4c32; box-shadow: 0 1px 4px rgba(60, 40, 20, 0.15); font: 500 13px/1.5 "Noto Serif KR", serif; word-break: keep-all; cursor: pointer; }
+#meCard .met b { display: inline-block; margin-right: 6px; font-size: 13px; color: #8f6744; }
+#meCard .met .m { float: right; font-style: normal; font-size: 13px; color: #4f6b2f; }
+#meCard .met span { display: block; color: #7a5a3a; }
+#meCard .metnone { margin: 6px 0 0; line-height: 1.6; word-break: keep-all; }
+#meCard .metv { padding: 12px 14px; border-radius: 14px; background: #fff; box-shadow: 0 1px 4px rgba(60, 40, 20, 0.15); }
+#meCard .metv p { margin: 0 0 8px; font-size: 15px; line-height: 1.6; word-break: keep-all; color: #5a4030; }
+#meCard .metv cite { font-style: normal; font-size: 13px; color: #a07a40; }
+#meCard .metmsg { margin: 8px 0 0; font-size: 13px; color: #4f6b2f; text-align: center; }
+#meCard .metmsg:empty { display: none; }
+#meCard [data-pane="met"] .row { margin-top: 10px; }
+
+/* 머무름 묵상 (2026-11, stillness.js): 쉬는 자리에서 숨 고르기 원 + 말씀 한 줄씩 */
+body.stilling #verse { visibility: hidden; }
+#stillPick { position: fixed; left: 50%; bottom: calc(150px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 44; width: min(320px, calc(var(--vw) - 32px)); padding: 12px 14px; border-radius: 18px; background: rgba(255, 250, 238, 0.96); color: #5a4030; box-shadow: 0 6px 24px rgba(40, 30, 15, 0.25); font-family: "Noto Serif KR", serif; text-align: center; }
+#stillPick[hidden] { display: none; }
+#stillPick .t { margin: 0; font-size: 15px; font-weight: 700; color: #8f6744; }
+#stillPick .s { margin: 4px 0 10px; font-size: 13px; line-height: 1.5; color: #a08868; word-break: keep-all; }
+#stillPick .row { display: flex; gap: 8px; justify-content: center; }
+#stillPick button { border: 0; border-radius: 12px; height: 38px; padding: 0 20px; background: #8f6744; color: #fffaf0; font: 600 15px "Noto Serif KR", serif; cursor: pointer; }
+#stillPick button.x { padding: 0 10px; background: transparent; color: #a08868; font-size: 13px; }
+#still { position: fixed; left: 50%; bottom: calc(150px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 4; width: min(480px, calc(var(--vw) - 200px)); box-sizing: border-box; padding: 10px 14px 12px; border-radius: 28px; background: radial-gradient(ellipse at center, rgba(44, 33, 18, 0.5) 0%, rgba(44, 33, 18, 0.36) 60%, rgba(44, 33, 18, 0.12) 100%); display: flex; flex-direction: column; align-items: center; pointer-events: none; opacity: 0; transition: opacity 1.6s ease; font-family: "Noto Serif KR", serif; color: #fffaf0; text-align: center; text-shadow: 0 0 3px rgba(40, 28, 12, 0.9), 0 0 12px rgba(40, 28, 12, 0.55); }
+#still[hidden] { display: none; }
+#still.on { opacity: 1; }
+#still.bye { transition-duration: 0.8s; }
+#still .breath { width: 104px; height: 104px; display: grid; place-items: center; }
+#still .breath i { display: block; width: 100%; height: 100%; border-radius: 50%; background: radial-gradient(circle, rgba(255, 242, 210, 0.6) 0%, rgba(255, 226, 168, 0.3) 55%, rgba(255, 226, 168, 0) 72%); box-shadow: inset 0 0 0 2px rgba(255, 240, 205, 0.9), 0 0 0 1px rgba(60, 42, 20, 0.45), 0 0 18px rgba(255, 220, 160, 0.45); transform: scale(0.5); will-change: transform, opacity; }
+#still .cue { margin: 6px 0 4px; font-size: 13px; letter-spacing: 0.14em; opacity: 0.85; }
+#still .lines { width: 100%; height: 6.6em; display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden; font-size: 17px; } /* 줄이 늘어도 원이 움직이지 않게 높이 고정, 새 줄은 아래에 */
+#still .lines p { margin: 2px 0; font-size: 17px; line-height: 1.5; word-break: keep-all; opacity: 0; transform: translateY(6px); transition: opacity 2.4s ease, transform 2.4s ease; }
+#still .lines p.in { opacity: 1; transform: none; }
+#still .lines p.old.in { opacity: 0.72; }
+#still .lines p.gone { display: none; }
+#still cite { margin-top: 4px; font-style: normal; font-size: 13px; letter-spacing: 0.12em; opacity: 0; transition: opacity 2s ease; }
+#still cite.on { opacity: 0.85; }
+/* 좁은 세로 화면: 왼쪽 아래 조이스틱 위, 오른쪽 동작 단추줄을 비켜서 */
+@media (max-width: 640px) {
+  html:not(.land) #still, html:not(.land) #stillPick { left: calc(16px + env(safe-area-inset-left)); right: calc(92px + env(safe-area-inset-right)); width: auto; transform: none; }
+  html:not(.land) #still, html:not(.land) #stillPick { bottom: calc(192px + env(safe-area-inset-bottom)); } /* 왼쪽 아래 이름표(#meChip, bottom 146px) 위로 */
+  html:not(.land) #still .breath { width: 80px; height: 80px; }
+  html:not(.land) #still .lines { font-size: 16px; height: 8.4em; } /* 좁아서 한 구가 두 줄로 접힐 수 있음 */
+  html:not(.land) #still .lines p { font-size: 16px; }
+}
+html.land #stillPick { bottom: calc(14px + env(safe-area-inset-bottom)); width: min(320px, calc(var(--vw) - 300px)); }
+html.land #still { bottom: calc(8px + env(safe-area-inset-bottom)); width: min(460px, calc(var(--vw) - 300px)); }
+html.land #still .breath { width: 72px; height: 72px; }
+html.land #still .lines, html.land #still .lines p { font-size: 16px; }
+html.land #still .lines { height: 6.2em; }

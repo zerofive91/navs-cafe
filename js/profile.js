@@ -1,5 +1,6 @@
 // 나의 캐릭터: 닉네임, 성장 단계, 받은 물품, 안내(튜토리얼)를 마쳤는지
 // 이 기기 안(localStorage)에 저장하고, 계정으로 들어와 있으면 서버에도 올림(account.js). 모습(옷·머리 색)은 예전처럼 navs-cafe-look3d에 따로 둠
+import { fillMet } from './met.js';
 const KEY = 'navs-cafe-profile';
 
 // 성장 단계 (디모데후서 2:2의 배가 흐름). need: 그 단계에 이르는 걸음 수
@@ -118,6 +119,7 @@ function fill(p = {}) {
     fishDay: typeof p.fishDay === 'string' ? p.fishDay : '', // 물고기 입의 한 세겔은 하루 한 번
     walletAt: p.walletAt | 0, // 지갑·소모품이 마지막으로 바뀐 때 (두 기기 기록을 합칠 때 새것을 씀)
     john: fillJohn(p.john), // 요한복음 마을 (2026-11): { ev, open, lamps, signs, last, mark, seen }
+    met: fillMet(p.met), // 오늘 만난 말씀 (2026-11, met.js): { d, k: [[키, 본 때, 'm'?]], prev }
   };
 }
 

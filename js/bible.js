@@ -13,6 +13,10 @@ const listeners = new Set();
 export const bibleMode = () => mode;
 export const BIBLE_NAME = { modern: 'AI 현대어', krv: '개역한글' };
 export function onBible(fn) { listeners.add(fn); }
+// 글을 지금 번역으로 (DOM에 넣기 전에 구 단위로 나눠 보여 줄 때: 머무름 묵상, 내 카드 '오늘 말씀')
+//   현대어 짝을 아직 못 불러왔으면 원문 그대로. bibleReady()를 기다리면 불러온 뒤
+export const bibleText = (t) => (mode === 'modern' ? swap(String(t || '')) : String(t || ''));
+export const bibleReady = () => (mode === 'modern' ? load() : Promise.resolve());
 
 function swap(t) {
   if (!pairs || t.length < 6) return t;

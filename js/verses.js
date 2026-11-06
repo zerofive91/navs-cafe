@@ -78,6 +78,17 @@ export const VERSES = {
   'gd-prison-3': ['가로되 주 예수를 믿으라 그리하면 너와 네 집이 구원을 얻으리라 하고', '사도행전 16:31'],
   'gd-shiloh-1': ['엘리가 대답하여 가로되 평안히 가라 이스라엘의 하나님이 너의 기도하여 구한 것을 허락하시기를 원하노라', '사무엘상 1:17'],
   'gd-shiloh-2': ['이 아이를 위하여 내가 기도하였더니 여호와께서 나의 구하여 기도한 바를 허락하신지라', '사무엘상 1:27'],
+  // --- 머무름 묵상 --- (js/stillness.js, 쉬는 자리에서 1~2분): 키 st-. 개역한글 원문(bluesaurel/Korean-Bible-1961-KRV)과 글자 그대로 맞춤
+  //   쉼 묶음에는 위의 still(시 46:10)·recline2(사 30:15)·beanbag(시 62:1)·recline(시 4:8)과 dg-js2(마 11:28)도 함께 씀
+  'st-ps23': ['여호와는 나의 목자시니 내가 부족함이 없으리로다 그가 나를 푸른 초장에 누이시며 쉴만한 물 가으로 인도하시는도다', '시편 23:1-2'],
+  'st-mt11-29': ['나는 마음이 온유하고 겸손하니 나의 멍에를 메고 내게 배우라 그러면 너희 마음이 쉼을 얻으리니', '마태복음 11:29'],
+  'st-ps131-2': ['실로 내가 내 심령으로 고요하고 평온케 하기를 젖 뗀 아이가 그 어미 품에 있음 같게 하였나니 내 중심이 젖 뗀 아이와 같도다', '시편 131:2'],
+  'st-ex33-14': ['여호와께서 가라사대 내가 친히 가리라 내가 너로 편케 하리라', '출애굽기 33:14'],
+  'st-ps116-7': ['내 영혼아 네 평안함에 돌아갈지어다 여호와께서 너를 후대하심이로다', '시편 116:7'],
+  'st-is26-3': ['주께서 심지가 견고한 자를 평강에 평강으로 지키시리니 이는 그가 주를 의뢰함이니이다', '이사야 26:3'],
+  'st-ps62-5': ['나의 영혼아 잠잠히 하나님만 바라라 대저 나의 소망이 저로 좇아 나는도다', '시편 62:5'],
+  'st-jn14-27': ['평안을 너희에게 끼치노니 곧 나의 평안을 너희에게 주노라 내가 너희에게 주는 것은 세상이 주는 것 같지 아니하니라 너희는 마음에 근심도 말고 두려워하지도 말라', '요한복음 14:27'],
+  // --- 머무름 묵상 끝 ---
   // --- 숲길 시험(dungeon) ---
   //   키 dg-<시험 id> (시험 자료는 js/dungeon-trials.js). 개역한글 원문(bluesaurel/Korean-Bible-1961-KRV)과 대조함
   //   dg-A~M: 떠도는 속삭임에 답하는 말씀, rise·win·sword·enter: 넘어짐·이김·성령의 검·숲길에 들어설 때
@@ -287,15 +298,24 @@ function render(key, title) {
   };
   hideT = setTimeout(check, ms);
 }
+// 말씀이 화면에 떠오를 때 알림 받기 (오늘 만난 말씀 기록, main.js → met.js)
+const seenHooks = [];
+export const onVerseShown = (f) => { seenHooks.push(f); };
+const told = (key) => { for (const f of seenHooks) { try { f(key); } catch (e) { /* 기록 실패는 화면에 영향 없음 */ } } };
+// 머무름 묵상 중에는 다른 말씀 카드를 띄우지 않음 (stillness.js)
+let hush = false;
+export const hushVerses = (on) => { hush = !!on; };
 export function showVerse(key, { delay = 0, cooldown = 90, title = '', then = null, stay = null } = {}) {
   const v = VERSES[key];
-  if (!v) return false;
+  if (!v || hush) return false;
   const now = performance.now() / 1000;
   if (last[key] && now - last[key] < cooldown) return false;
   last[key] = now;
   setTimeout(() => {
+    if (hush) return;
     queue = then && then.length ? { keys: then.filter((k) => VERSES[k]), title, stay } : null;
     render(key, title);
+    told(key);
   }, delay * 1000);
   return true;
 }
@@ -306,13 +326,13 @@ function tapNext(ev) {
 }
 // 다음 구절로 (카드를 누르거나 Enter 키)
 export function nextVerse() {
-  if (!queue || !queue.keys.length) return;
+  if (hush || !queue || !queue.keys.length) return; // 머무름 묵상 중에는 보이지 않는 카드를 넘기지 않음
   const e = el();
   const k = queue.keys.shift();
   last[k] = performance.now() / 1000;
   e.classList.remove('on');
   clearTimeout(hideT);
-  hideT = setTimeout(() => render(k, queue ? queue.title : ''), 450);
+  hideT = setTimeout(() => { render(k, queue ? queue.title : ''); told(k); }, 450);
 }
 document.addEventListener('pointerdown', (ev) => { if (ev.target.closest?.('#verse.more')) tapNext(ev); }, true);
 

@@ -6,6 +6,9 @@ import { bibleMode, setBible, BIBLE_NAME } from './bible.js';
 import { PETS } from './pets.js';
 import { COS, COS_KINDS, cosApi } from './cosmetic.js';
 import { poseAvatar } from './avatar.js';
+import { VERSES } from './verses.js';
+import { bibleText } from './bible.js';
+import { phrases, rollMet, metPlace } from './met.js';
 
 export const HOODIES = [0x8fb7e0, 0xf2a7a0, 0xa7d3a6, 0xf4d27a, 0xb9a6e0, 0xf5f0e6, 0x6f8fb0, 0xd98f6a];
 export const HAIRS = [0x3b2a22, 0x5a3b2a, 0x22201f, 0x7a5634, 0xa8784a];
@@ -94,6 +97,38 @@ export function initCharacter({ me, look, profile, save, rebuild, view, toast, o
   const drawMe = (card) => { const cv = card.querySelector('canvas.me'); if (cv && portrait) setTimeout(() => { try { cosApi?.preview(me.state !== 'sit'); poseAvatar(me.av, me, performance.now() / 1000, 0); portrait(cv); } catch (e) { /* 못 찍으면 빈 칸 */ } finally { cosApi?.preview(false); } }, 60); };
   // 꾸미기 (날개·탈것·머리 장식): 가진 것만 단추로, 없으면 가게 안내
   const cosButtons = () => { const mine = Object.keys(COS).filter((id) => cosApi?.owned(id)); return mine.length ? COS_KINDS.map(([k]) => mine.filter((id) => COS[id].kind === k).map((id) => { const on = cosApi.worn(id); return `<button data-cos="${id}" class="${on ? 'on' : ''}">${COS[id].name}${on ? ' ✓' : ''}</button>`; }).join('')).join('') : `<span class="none">날개·탈것·머리 장식은 정원 동쪽 루디아의 가게 '꾸미기'에서 살 수 있어요</span>`; };
+  // ---------- '오늘 말씀' 탭 (2026-11, met.js): 오늘 화면에 떠오른 말씀 모음. 누르면 전문(지금 번역), 복사는 개역한글 ----------
+  let cardTab = 'me';
+  const md = (d) => { const [, m, dd] = d.split('-'); return `${+m}월 ${+dd}일`; };
+  const firstOf = (k) => { const ps = phrases(bibleText(VERSES[k][0])); return ps[0] + (ps.length > 1 ? ' …' : ''); };
+  const metCount = () => (profile.met?.k || []).filter((x) => VERSES[x[0]]).length;
+  const metDay = (list, title) => {
+    const rows = list.filter((x) => VERSES[x[0]]).slice().reverse(); // 최근 것부터
+    if (!rows.length) return '';
+    return `<p class="lb">${title}</p><div class="met">${rows.map(([k, , f]) => `<button data-met="${esc(k)}"><b>${esc(VERSES[k][1])}</b>${f === 'm' ? '<i class="m">◌ 머묾</i>' : ''}<span>${esc(firstOf(k))}</span></button>`).join('')}</div>`;
+  };
+  function metList() {
+    if (!profile.met) return '';
+    if (rollMet(profile.met)) save();
+    const n = metCount(), prev = profile.met.prev;
+    return (n ? metDay(profile.met.k, `오늘 만난 말씀 <span class="hint">${n}개 · 눌러서 전문 보기</span>`)
+      : `<p class="none metnone">오늘은 아직 만난 말씀이 없어요. 걷고 쉬며 만나는 말씀이 여기 모여요. 쉬는 자리에 앉아 '머무르기'를 누르면 한 구절과 함께 숨을 고를 수 있어요.</p>`)
+      + (prev && prev.k.length ? metDay(prev.k, `지난 날 <span class="hint">${md(prev.d)}</span>`) : '');
+  }
+  function metView(k) {
+    const [t, r] = VERSES[k];
+    const f = [...(profile.met?.k || []), ...(profile.met?.prev?.k || [])].find((x) => x[0] === k);
+    const where = metPlace(k);
+    return `<div class="metv"><p>${esc(t)}</p><cite>${esc(r)}${where ? ` · ${where}에서` : ''}${f && f[2] === 'm' ? ' · ◌ 머물러 묵상함' : ''}</cite></div>
+      <div class="row"><button data-metdo="back">← 목록</button><button data-metdo="copy" data-k="${esc(k)}">복사</button></div><p class="does metmsg"></p>`;
+  }
+  async function copyText(t) {
+    try { await navigator.clipboard.writeText(t); return true; } catch (e) { /* 아래 방식으로 */ }
+    try {
+      const ta = document.createElement('textarea'); ta.value = t; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;left:-9999px;top:0';
+      document.body.appendChild(ta); ta.select(); const ok = document.execCommand('copy'); ta.remove(); return ok;
+    } catch (e) { return false; }
+  }
   function openCard() {
     if (document.getElementById('meCard')) return closeCard();
     const st = stageOf(profile.steps);
@@ -103,6 +138,8 @@ export function initCharacter({ me, look, profile, save, rebuild, view, toast, o
     card.id = 'meCard';
     card.innerHTML = `<div class="pad">
       <button class="close" aria-label="닫기">×</button>
+      <div class="tabs" role="tablist"><button role="tab" data-tab="me" class="${cardTab === 'me' ? 'on' : ''}">나</button><button role="tab" data-tab="met" class="${cardTab === 'met' ? 'on' : ''}">오늘 말씀${metCount() ? ` · ${metCount()}` : ''}</button></div>
+      <div class="tab" data-pane="me"${cardTab === 'me' ? '' : ' hidden'}>
       <canvas class="me" width="240" height="300" aria-label="지금 내 모습"></canvas>
       <h3>${esc(profile.name)}</h3>
       <p class="stage">${st.name}${next ? ` <span>· 다음 단계 ${next.name}</span>` : ''}</p>
@@ -123,11 +160,32 @@ export function initCharacter({ me, look, profile, save, rebuild, view, toast, o
       <p class="lb">말씀 번역 <span class="hint">이 기기에서 보는 말씀</span></p>
       <div class="items bible">${Object.entries(BIBLE_NAME).map(([id, n]) => `<button data-bible="${id}" class="${bibleMode() === id ? 'on' : ''}">${n}${bibleMode() === id ? ' ✓' : ''}</button>`).join('')}<span class="none">AI 현대어는 개역한글을 오늘의 말로 풀어 쓴 것이에요 (공식 번역 아님)</span></div>
       <div class="row"><button data-do="look">모습 바꾸기</button><button data-do="cafe">카페 안내 다시</button><button data-do="garden">정원 안내 다시</button><button data-do="account">계정 · 다른 기기에서 이어 하기</button></div>
+      </div>
+      <div class="tab" data-pane="met"${cardTab === 'met' ? '' : ' hidden'}>${cardTab === 'met' ? metList() : ''}</div>
     </div>`;
     card.addEventListener('pointerdown', (e) => e.stopPropagation()); // 끌어서 내려 보기(스크롤)가 되도록, 고르기는 click에서
     card.addEventListener('click', (e) => {
       e.stopPropagation();
       if (e.target === card || e.target.classList.contains('close')) return closeCard();
+      const tb = e.target.closest('[data-tab]');
+      if (tb) {
+        cardTab = tb.dataset.tab;
+        for (const b of card.querySelectorAll('[data-tab]')) b.classList.toggle('on', b === tb);
+        for (const pn of card.querySelectorAll('[data-pane]')) pn.hidden = pn.dataset.pane !== cardTab;
+        if (cardTab === 'met') card.querySelector('[data-pane="met"]').innerHTML = metList();
+        card.querySelector('.pad').scrollTop = 0;
+        return;
+      }
+      const mb = e.target.closest('[data-met]');
+      if (mb && VERSES[mb.dataset.met]) { card.querySelector('[data-pane="met"]').innerHTML = metView(mb.dataset.met); card.querySelector('.pad').scrollTop = 0; return; }
+      const mdo = e.target.closest('[data-metdo]');
+      if (mdo) {
+        if (mdo.dataset.metdo === 'back') { card.querySelector('[data-pane="met"]').innerHTML = metList(); return; }
+        const v = VERSES[mdo.dataset.k]; if (!v) return;
+        const msg = card.querySelector('.metmsg');
+        copyText(`${v[1]} (개역한글)\n${v[0]}`).then((ok) => { if (msg) msg.textContent = ok ? '복사했어요 · 개역한글 원문과 장절이에요' : '복사하지 못했어요. 글을 길게 눌러 골라 주세요'; });
+        return;
+      }
       const pb = e.target.closest('[data-pet]');
       if (pb) { if ((profile.pets[pb.dataset.pet] | 0) >= 3) { replay('pet:' + pb.dataset.pet); closeCard(); openCard(); } else toast('들짐승 들판에서 꼴로 세 번 돌보면 길들어요', 3.5); return; }
       const bb = e.target.closest('[data-bible]');
