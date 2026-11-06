@@ -32,8 +32,22 @@ export const Q = {
 export const PRAYER_POOL_R = 4.2;
 export const WITNESS_POOL_R = 5.2;
 
+// ---------- 지역(마을) (2026-11 요한복음 마을) ----------
+// 성경 권별 마을은 같은 장면 안의 먼 자리(x > FAR_X)에 둠. 그 상자 안이면 바닥·막힘·길값을 그 마을 함수로 넘김
+// 초보자 마을(카페·정원·숲길)은 지금처럼 원점 둘레. 마을은 addRegion으로 스스로 등록함 (js/john/layout.js)
+export const FAR_X = 1000;
+export const REGIONS = []; // { id, x0, x1, z0, z1, floorY, isFree, pathCost }
+export function addRegion(r) { REGIONS.push(r); return r; }
+export function regionAt(x, z) {
+  if (x < FAR_X) return null;
+  for (const g of REGIONS) if (x >= g.x0 && x <= g.x1 && z >= g.z0 && z <= g.z1) return g;
+  return null;
+}
+export const regionIdAt = (x, z) => (x < FAR_X ? 'base' : regionAt(x, z)?.id || 'none');
+
 // 바닥 높이: 가운데 단과 바퀴살·둘레 길은 살짝 올라와 있음
 export function floorY(x, z) {
+  if (x >= FAR_X) { const g = regionAt(x, z); return g ? g.floorY(x, z) : 0; }
   const r = Math.hypot(x, z);
   if (r >= R_HALL) {
     if (r < R_HALL + 0.6) return 0; // 기단 위
@@ -216,6 +230,16 @@ export const TRAIN_BLOCKS = [
   { ...TRAIN.obey.oak, r: 0.7 },
   { ...TRAIN.obey.tent, r: 1.3 },
 ];
+// 마을 길목 (2026-11 요한복음 마을): 정원 바깥 둘레길 바깥쪽에 이정표와 수레. 수레에 오르면 요한복음 마을로 감 (js/region.js)
+//   각도 246°: 둘레길 바깥 띠에서 숲길 문(천국 227°·천로역정 265°)과 가장 멀고(가장 가까운 숲길 약 35m),
+//   구역(삭개오 250°는 11m 바깥)·오솔길(270°)·나무와 겹치지 않는 자리 (2026-11-06 occupancy로 확인)
+export const VILLAGE_GATE = (() => {
+  const a = 246, n = { x: Math.cos(deg(a)), z: Math.sin(deg(a)) }, t = { x: -n.z, z: n.x };
+  const at = (u, v) => ({ x: (R_PARK + v) * n.x + t.x * u, z: (R_PARK + v) * n.z + t.z * u });
+  return { a, n, t, at, sign: at(-2.8, 2.6), cart: at(1.4, 5.4), stand: at(0.4, 2.7), rot: Math.atan2(t.x, t.z) };
+})();
+block(VILLAGE_GATE.cart.x, VILLAGE_GATE.cart.z, 1.25, 1.3);
+block(VILLAGE_GATE.sign.x, VILLAGE_GATE.sign.z, 0.25);
 // 성경 이야기 구역의 막힌 곳: 여리고 성벽(무너지면 풀림), 골리앗, 요나의 못
 export const JERICHO = { ...PARK.jericho.at(0, 0), R: 3.4 };
 for (let k = 0; k < 20; k++) {
@@ -273,6 +297,7 @@ function onWalkway(x, z) {
   return false;
 }
 export function pathCost(x, z) {
+  if (x >= FAR_X) { const g = regionAt(x, z); return g ? g.pathCost(x, z) : 1; }
   const r = Math.hypot(x, z);
   if (r < R_HALL + 1.2 || r > R_GARDEN) return 1;
   if (onWalkway(x, z) || onTrail(x, z)) return 1;
@@ -788,6 +813,7 @@ export const SPOTS = {
 export const BODY = 0.35;
 // baseY: 지금 딛고 선 바닥 높이(알면). 성벽 난간처럼 높이가 절대값(abs)인 장애물은 발 높이로 넘을지 정함
 export function isFree(x, z, hop = 0, baseY = null) {
+  if (x >= FAR_X) { const g = regionAt(x, z); return g ? g.isFree(x, z, hop, baseY) : false; }
   const r = Math.hypot(x, z);
   if (r > R_GARDEN) {
     const bf = bridgeFree(x, z);

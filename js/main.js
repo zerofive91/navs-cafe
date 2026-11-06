@@ -35,6 +35,7 @@ import { TIER } from './dungeon.js';
 import { COURSE_META } from './courses.js';
 import { initQuestLog, walkToward } from './questlog.js';
 import { talkOffer, pressTalk } from './talkgate.js';
+import { initRegion } from './region.js';
 
 const canvas = document.getElementById('cafe');
 const bar = document.getElementById('actions');
@@ -153,6 +154,7 @@ function makeChar(look, x, z) {
 }
 
 const myLook = loadLook();
+let region = null; // 마을 사이 다니기 (region.js). 맨 아래에서 만듦
 let tut = null, character = null, training = null, dungeon = null, warfare = null, guides = null, garden = null, wayguide = null, quests = null, shop = null, gear = null, story = null, pets = null, questLog = null; // 안내와 캐릭터 창은 맨 아래에서 만듦
 const profile = loadProfile(); // 닉네임·걸음·받은 것·안내 기록 (이 기기 안에만)
 if (profile.name) myLook.name = profile.name;
@@ -563,7 +565,7 @@ function availableActions() {
     me.action = null;
   }
   // 부탁·훈련의 그 자리 단추가 먼저 (E가 이것부터 누름)
-  if (me.state !== 'walk') { for (const v of shop?.available() || []) place(v[1]); for (const v of pets?.available() || []) place(v[1]); for (const v of quests?.available() || []) place(v[1]); for (const v of training?.available() || []) place(v[1]); }
+  if (me.state !== 'walk') { for (const v of region?.available() || []) place(v[1]); for (const v of shop?.available() || []) place(v[1]); for (const v of pets?.available() || []) place(v[1]); for (const v of quests?.available() || []) place(v[1]); for (const v of training?.available() || []) place(v[1]); }
   for (const v of dungeon?.available() || []) place(v[1]); // 길 끝: 입구로 돌아가기
   if (signs.canCalm()) place('calm'); // 풍랑 속: 손을 들어 잠잠케
   if (talkOffer(me)) place('talk'); // 곁에 말 걸 사람이 있으면 (누르거나 E)
@@ -604,6 +606,7 @@ const isOn = (name) => me.action === name || (name === 'light' && me.action === 
 const TOGGLES = new Set(['kite', 'flower', 'stars']); // 다시 누르면 그 단추가 직접 끔
 let shown = '';
 function pressAction(name, on) {
+  if (region?.locked()) return; // 마을을 옮기는 동안은 쉼
   tut?.mark(name, placeActs.has(name));
   training?.onPress(name);
   dungeon?.onPress(name);
@@ -862,6 +865,7 @@ function tapPerson(maxD) {
 }
 // how: 'pick' 마우스 왼쪽(고르기·말 걸기·앉기만), 'move' 마우스 오른쪽(누른 곳으로 걷기만), 'any' 터치(둘 다)
 function tap(sx, sy, how = 'any') {
+  if (region?.locked()) return;
   ndc.set((sx / vw()) * 2 - 1, -(sy / vh()) * 2 + 1);
   ray.setFromCamera(ndc, camera);
   const hits = how === 'move' ? [] : ray.intersectObjects(interactive, false);
@@ -981,6 +985,7 @@ window.addEventListener('keydown', (e) => {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (e.target && /^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return; // 이름을 쓰는 동안에는 단축키 쉼
   if (character?.isOpen()) return;
+  if (region?.locked()) { e.preventDefault(); return; } // 마을을 옮기는 동안은 단축키 쉼
   if (!e.repeat && tut) { tut.mark(e.code); if (tut.onKey(e.code)) { e.preventDefault(); return; } }
   if (HOTKEYS[e.code]) { if (!e.repeat) HOTKEYS[e.code](); e.preventDefault(); return; }
   if (e.code === 'Space') { if (leisure.photoOn()) leisure.snap(); else { ACTIONS.jump(); tut?.mark('jump'); } e.preventDefault(); return; }
@@ -991,6 +996,7 @@ let stickDriving = false;
 // 방향키는 캐릭터가 바라보는 쪽 기준: ↑ 앞으로, ↓ 뒤로, ←→ 몸을 돌림 (카메라는 천천히 등 뒤로 따라옴)
 const TURN = 2.6; // 초당 돌아가는 각도(라디안)
 function driveStick(dt) {
+  if (region?.locked()) { stickDriving = false; return; } // 마을을 옮기는 동안은 걷지 않음
   const kb = keys.size > 0;
   const turn = kb ? (keys.has('l') ? 1 : 0) - (keys.has('r') ? 1 : 0) : 0;
   const fwd = kb ? (keys.has('u') ? 1 : 0) - (keys.has('d') ? 1 : 0) : 0;
@@ -1079,7 +1085,7 @@ function foldCafeMenu(out) {
 }
 for (const [icon, spot, look] of PLACES) {
   const b = document.createElement('button');
-  b.className = 'place' + (icon === 'garden' ? '' : ' cafe');
+  b.className = 'place' + (icon === 'garden' ? ' gardenBtn' : ' cafe');
   b.setAttribute('aria-label', icon);
   b.innerHTML = ICONS[icon];
   b.addEventListener('pointerdown', (e) => {
@@ -1336,6 +1342,7 @@ function frame(now) {
   story.step(dt, t);
   pets.step(dt);
   questLog?.step(dt);
+  region.step(dt);
   for (const n of npcs) { stepChar(n, dt); poseAvatar(n.av, n, t, dt); }
   training.pin();
   warfare.pin();
@@ -1504,7 +1511,11 @@ const peopleBtn = document.createElement('button');
 peopleBtn.className = 'place people';
 peopleBtn.hidden = true;
 placesEl.insertBefore(peopleBtn, viewBtn);
-const map = initMap({ me, people: () => together.people.values(), walkTo, say: toast, icon: ICONS.map, placesEl, before: peopleBtn });
+const map = initMap({
+  me, people: () => [...together.people.values()].filter((p) => p.av.visible), walkTo, say: toast, icon: ICONS.map, placesEl, before: peopleBtn,
+  // 마을 탭: 가 본 마을만. 다른 마을을 고르면 이 마을의 수레 곁으로 걸어감
+  towns: () => ['base', ...(profile.john?.seen ? ['john'] : [])], toTown: () => region?.toCart(),
+});
 
 // 모임 번호 (링크를 주고받지 않고, 같은 네 자리 번호를 넣은 사람끼리만 모임)
 const ROOM_KEY = 'navs-cafe-room';
@@ -1534,16 +1545,17 @@ function askRoomCode() {
     show();
   });
 }
-function roomToast() { toast(`모임 번호 ${together.st.code} · ${together.st.count}/${INVITE_CAP}명. 같은 번호를 넣으면 이 카페로 와요.`, 4); }
+function roomToast() { const s = together.st, town = s.here != null && s.here !== s.count ? ` (이 마을 ${s.here}명)` : ''; toast(`모임 번호 ${s.code} · ${s.count}/${INVITE_CAP}명${town}. 같은 번호를 넣으면 이 카페로 와요.`, 4); }
 peopleBtn.addEventListener('pointerdown', (e) => {
   e.stopPropagation();
   const s = together.st;
+  const town = s.here != null && s.here !== s.count ? ` · 이 마을 ${s.here}명` : ''; // 다른 마을에 있는 사람은 화면에서 감춤 (together.js)
   if (s.mode === 'invite') roomToast();
-  else toast(s.cafe > 1 ? `${s.cafe}호점 · ${s.count}/${RANDOM_CAP}명` : `${s.count}/${RANDOM_CAP}명`, 2);
+  else toast((s.cafe > 1 ? `${s.cafe}호점 · ${s.count}/${RANDOM_CAP}명` : `${s.count}/${RANDOM_CAP}명`) + town, 2.5);
 });
 together.st.onChange = (s) => {
   peopleBtn.hidden = s.mode === 'solo';
-  peopleBtn.innerHTML = (s.mode === 'invite' ? ICONS.invite : ICONS.people) + `<span>${s.count}</span>`;
+  peopleBtn.innerHTML = (s.mode === 'invite' ? ICONS.invite : ICONS.people) + `<span>${s.here ?? s.count}</span>`; // 이 마을 n명
   peopleBtn.setAttribute('aria-label', s.mode === 'invite' ? '모임 번호' : '함께 있는 사람');
 };
 
@@ -1552,6 +1564,8 @@ function goIn() {
   document.body.classList.remove('at-door');
   setTimeout(() => { for (const [m, sec] of doorToasts.splice(0)) toast(m, sec); }, 2500);
   setTimeout(() => enter.remove(), 700);
+  // 지난번에 요한복음 마을에 있었으면 그 마을 도착 자리(빛의 광장)에서 시작
+  if (profile.john?.last && profile.name) { region.go('john', { fromDoor: true }); character.showChip(); setTimeout(maybeHint, 1200); return; }
   // 처음 오면 이름과 모습을 정하고, 바나바의 카페 안내를 받음
   walkTo(me, { x: 0, z: 19 }, () => {
     if (!profile.name) character.openCreator(true);
@@ -1608,6 +1622,30 @@ Object.assign(ACTIONS, park.actions);
 const leisure = initLeisure({ scene, me, camera, renderer, view, lights: [hemi, sun, warm], act, sfx, burst, walkTo, faceTo, standUp, nearestPerson, toast, ICONS, LIEABLE });
 Object.assign(ACTIONS, leisure.actions);
 const scrolls = initScrolls({ scene, me, sfx, fxSprite, burst, icon: ICONS.scroll });
+// 마을 사이 다니기: 정원 길목의 수레 ↔ 요한복음 마을 (2026-11). 마을마다 하늘·안개, 지도, 함께 있는 사람이 바뀜
+const ENV0 = { fog: null, near: 0, far: 0, hemiSky: hemi.color.clone(), hemiGround: hemi.groundColor.clone() };
+function setEnv(env) {
+  if (!scene.fog) return;
+  if (env) {
+    if (!ENV0.fog) { ENV0.fog = scene.fog.color.clone(); ENV0.near = scene.fog.near; ENV0.far = scene.fog.far; }
+    scene.fog.color.set(env.sky); scene.fog.near = env.fog[0]; scene.fog.far = env.fog[1];
+    hemi.color.set(env.hemiSky); hemi.groundColor.set(env.hemiGround);
+  } else if (ENV0.fog) {
+    scene.fog.color.copy(ENV0.fog); scene.fog.near = ENV0.near; scene.fog.far = ENV0.far; ENV0.fog = null;
+    hemi.color.copy(ENV0.hemiSky); hemi.groundColor.copy(ENV0.hemiGround);
+  }
+}
+region = initRegion({
+  scene, me, profile, save: () => saveProfile(profile), toast, sfx, standUp, walkTo, interactive, occluders, setEnv,
+  camBehind: () => { view.az = me.face + Math.PI; view.tx = me.x; view.tz = me.z; view.ty = me.y + 0.62; view.shot = null; view.lift = 0; },
+  onSwitch: (id) => {
+    document.body.classList.toggle('region-john', id === 'john');
+    placesEl.classList.remove('open');
+    if (!map.el.hidden) map.shut();
+    together.refresh?.();
+  },
+});
+Object.assign(ACTIONS, region.actions);
 // 열려 있는 창 등록부 (2026-11): 말풍선·안내·훈련 등 창이 하나라도 열려 있으면 다른 말풍선은 열리지 않음
 //   새 모듈이 생기면 여기 한 줄만 보태면 됨. busyOf(자기 이름, ...보지 않을 이름)은 자기 자신을 뺀 나머지를 살핌
 //   story는 훈련·시험·부탁·가게가 예전부터 보지 않아 같은 동작을 유지함 (보게 하려면 해당 인자만 지우기)
@@ -1615,6 +1653,7 @@ const OPEN_WINDOWS = {
   tut: () => tut?.active(), character: () => character?.isOpen(), training: () => training?.active(), dungeon: () => dungeon?.active(),
   guides: () => guides?.active(), garden: () => garden?.active(), wayguide: () => wayguide?.active(), warfare: () => warfare?.active(),
   quests: () => quests?.active(), shop: () => shop?.active(), story: () => story?.active?.(),
+  region: () => region?.active(), // 마을을 옮기는 중
 };
 const busyOf = (self, ...skip) => {
   const off = new Set([self, ...skip]);
@@ -1718,4 +1757,4 @@ setTimeout(() => {
   for (const n of npcs) if (n.av) upgradeCup(n.av);
 }, 300);
 
-window.__cafe = { get questLog() { return questLog; }, get pets() { return pets; }, get story() { return story; }, get shop() { return shop; }, get gear() { return gear; }, get warfare() { return warfare; }, get guides() { return guides; }, get garden() { return garden; }, get wayguide() { return wayguide; }, availableActions, profile, tut, character, training, dungeon, quests, camera, shot, together, me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs, placed, park, scrolls, renderer, map };
+window.__cafe = { get region() { return region; }, get questLog() { return questLog; }, get pets() { return pets; }, get story() { return story; }, get shop() { return shop; }, get gear() { return gear; }, get warfare() { return warfare; }, get guides() { return guides; }, get garden() { return garden; }, get wayguide() { return wayguide; }, availableActions, profile, tut, character, training, dungeon, quests, camera, shot, together, me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs, placed, park, scrolls, renderer, map };

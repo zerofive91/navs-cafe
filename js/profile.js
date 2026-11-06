@@ -33,6 +33,51 @@ export const STATS = [
   { id: 'obey', name: '순종', color: '#5a9ad0' },
 ];
 
+// ---------- 요한복음 마을 기록 (2026-11, 기획서 6장) ----------
+// 사건 23개의 id와 장 순서 (큰 줄기 'open'은 이 순서에서 더 뒤의 것이 앞섬). 1차 MVP의 js/john/events.js도 이 id를 씀
+export const JOHN_EVENTS = [
+  'word', 'come', 'cana', 'temple', 'nico', 'well', 'official', 'bethesda', 'loaves', 'sea', 'bread', 'light',
+  'siloam', 'shepherd', 'lazarus', 'nard', 'wash', 'way', 'arrest', 'truth', 'mary', 'thomas', 'morning',
+];
+const MODES = 'lrasmd'; // 사건에서 채운 모드: l 듣기 r 읽기 a 적용 s 공부 m 암송 d 묵상
+const MARKS = ['', '증인', '졸업'];
+const isObj = (x) => !!x && typeof x === 'object' && !Array.isArray(x);
+const modes = (m) => [...new Set(String(m || '').split(''))].filter((c) => MODES.includes(c)).sort((a, b) => MODES.indexOf(a) - MODES.indexOf(b)).join('');
+export function fillJohn(j) {
+  j = isObj(j) ? j : {};
+  const ev = {};
+  if (isObj(j.ev)) for (const [k, v] of Object.entries(j.ev)) if (isObj(v)) ev[k] = { done: Number.isFinite(v.done) ? v.done : 0, m: modes(v.m) };
+  return {
+    ev, // 마친 사건과 채운 모드 { come: { done: 1730900000000, m: 'lra' }, ... }
+    open: typeof j.open === 'string' && j.open ? j.open : JOHN_EVENTS[1], // 지금 열린 큰 줄기 사건 (금빛 기둥). 처음은 '와 보라'
+    lamps: Array.isArray(j.lamps) ? [...new Set(j.lamps.filter((x) => typeof x === 'string'))] : [], // 켠 "나는…" 등불
+    signs: Math.max(0, j.signs | 0), // 본 표적 수 (표시용)
+    last: j.last ? 1 : 0, // 마지막에 요한 마을에 있었으면 1 → 다시 들어오면 빛의 광장에서 시작
+    mark: MARKS.includes(j.mark) ? j.mark : '', // '증인' | '졸업' 표지
+    seen: Number.isFinite(j.seen) ? j.seen : 0, // 처음 가 본 때 (지도 "마을" 탭에 보임)
+  };
+}
+// 두 기기 기록 합치기: ev 합집합(같은 사건이면 m 글자 합침, 마친 때는 먼저 것), lamps 합집합, open은 더 뒤의 사건, signs 큰 쪽
+//   last는 나중 기록(b, 서버 쪽)을 따름. mark는 더 높은 표지, seen은 먼저 것
+export function mergeJohn(a, b) {
+  a = fillJohn(a); b = fillJohn(b);
+  const ev = { ...a.ev };
+  for (const [k, v] of Object.entries(b.ev)) {
+    const o = ev[k];
+    ev[k] = o ? { done: [o.done, v.done].filter((x) => x > 0).sort((x, y) => x - y)[0] || 0, m: modes(o.m + v.m) } : { ...v };
+  }
+  const idx = (id) => JOHN_EVENTS.indexOf(id);
+  return {
+    ev,
+    open: idx(b.open) >= idx(a.open) ? b.open : a.open,
+    lamps: [...new Set([...a.lamps, ...b.lamps])],
+    signs: Math.max(a.signs, b.signs),
+    last: b.last,
+    mark: MARKS[Math.max(MARKS.indexOf(a.mark), MARKS.indexOf(b.mark))],
+    seen: [a.seen, b.seen].filter((x) => x > 0).sort((x, y) => x - y)[0] || 0,
+  };
+}
+
 function fill(p = {}) {
   return {
     v: 1,
@@ -58,6 +103,7 @@ function fill(p = {}) {
     sold: Array.isArray(p.sold) ? p.sold : [], // 가게에 판 물품 (다른 기기 기록과 합칠 때 되살아나지 않게)
     fishDay: typeof p.fishDay === 'string' ? p.fishDay : '', // 물고기 입의 한 세겔은 하루 한 번
     walletAt: p.walletAt | 0, // 지갑·소모품이 마지막으로 바뀐 때 (두 기기 기록을 합칠 때 새것을 씀)
+    john: fillJohn(p.john), // 요한복음 마을 (2026-11): { ev, open, lamps, signs, last, mark, seen }
   };
 }
 
