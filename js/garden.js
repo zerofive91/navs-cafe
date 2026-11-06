@@ -9,6 +9,7 @@ import { GARDEN, floorY } from './layout.js';
 import { showVerse } from './verses.js';
 import { nameTag } from './tutorial.js';
 import { offerTalk } from './talkgate.js';
+import { createDialog } from './dialog.js';
 import { addStat, addSteps, earn, STATS } from './profile.js';
 
 const P = {
@@ -162,34 +163,24 @@ export function initGarden(K) {
   // 실라와 바울은 옥 안에 무릎 꿇고 기도
   const silas = L.find((x) => x.id === 'prison').n;
 
-  // ---------- 말풍선 ----------
-  const box = document.createElement('div');
-  box.className = 'npcb'; box.id = 'xtalk'; box.hidden = true;
-  box.innerHTML = '<div class="who"><b></b><span class="n"></span></div><p class="say"></p><p class="how"></p><div class="row"><button class="later">나중에</button><button class="go">해 보기</button></div>';
-  document.body.appendChild(box);
-  const $ = (s) => box.querySelector(s);
-  let cur = null, closedFor = null;
-  box.addEventListener('pointerdown', (e) => e.stopPropagation());
-  box.addEventListener('click', (e) => {
-    e.stopPropagation();
-    if (!cur) return;
-    const c = e.target.classList;
-    if (c.contains('later')) { closedFor = cur; hide(); }
-    else if (c.contains('go')) { const x = cur; closedFor = x; hide(); begin(x); }
-  });
-  const hide = () => { box.hidden = true; cur = null; document.body.classList.remove('talking'); };
+  // ---------- 말풍선 (dialog.js) ----------
+  const dlg = createDialog({ id: 'xtalk' });
+  let cur = null;
+  const hide = () => { dlg.close(); cur = null; };
   const statName = (s) => STATS.find((x) => x.id === s)?.name || '';
   function talk(x) {
     cur = x;
-    $('.who b').textContent = x.d.who;
-    $('.n').textContent = x.d.name;
     const done = rec()[x.id];
-    $('.say').textContent = x.d.about;
-    $('.how').textContent = x.d.how + (done ? ' (이미 체험했어요. 언제든 다시 묵상해요)' : ` 처음 마치면 걸음 +3, ${statName(x.d.stat)} +2, 1 데나리온.`);
     // 체험 시작 단추: 엠마오는 함께 걷기, 나머지는 빛나는 자리로 걸어감
-    $('.go').textContent = x.id === 'emmaus' ? '함께 걷기' : '빛나는 자리로';
-    $('.go').hidden = x.id === 'emmaus' && emm.on;
-    box.hidden = false; document.body.classList.add('talking');
+    dlg.open({
+      who: x.d.who, n: x.d.name, say: x.d.about,
+      how: x.d.how + (done ? ' (이미 체험했어요. 언제든 다시 묵상해요)' : ` 처음 마치면 걸음 +3, ${statName(x.d.stat)} +2, 1 데나리온.`),
+      choices: [
+        { label: '나중에', cls: 'later', on: hide },
+        { label: x.id === 'emmaus' ? '함께 걷기' : '빛나는 자리로', cls: 'go', main: true, hidden: x.id === 'emmaus' && emm.on, on: () => { hide(); begin(x); } },
+      ],
+      esc: hide,
+    });
   }
 
   // ---------- 체험 시작 ----------

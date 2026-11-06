@@ -4,6 +4,7 @@
 //   엘리야(로뎀나무) · 노아(비둘기) / 카페 안: 베드로(증거의 물)
 //   2026-11 더함: 삭개오 · 사마리아인 · 안드레(오병이어) · 요나(요나의 바다) · 솔로몬(푸른 초장) · 이삭(겨자씨) · 요한(포도나무 그늘)
 import { offerTalk } from './talkgate.js';
+import { createDialog } from './dialog.js';
 import * as THREE from 'three';
 import { PARK, floorY, isFree, polar, Q as WHEEL, WITNESS_POOL_R, SYCAMORE } from './layout.js';
 import { VERSES, showVerse } from './verses.js';
@@ -381,32 +382,25 @@ export function initQuests(K) {
   const BY = Object.fromEntries(Q.map((q) => [q.id, q]));
   const doneCount = () => Q.filter((q) => profile.quests[q.id] === 'done').length;
 
-  // ---------- 말풍선과 진행 표시 ----------
-  const box = document.createElement('div');
-  box.className = 'npcb'; box.id = 'quest'; box.hidden = true;
-  box.innerHTML = '<div class="who"><b></b><span class="n"></span></div><p class="say"></p><div class="row"><button class="end">그만두기</button><button class="later">나중에</button><button class="next"></button></div>';
-  document.body.appendChild(box);
+  // ---------- 말풍선(dialog.js)과 진행 표시 ----------
+  const dlg = createDialog({ id: 'quest' });
   const chip = document.createElement('div'); chip.id = 'questChip'; chip.hidden = true; document.body.appendChild(chip);
-  const $ = (s) => box.querySelector(s);
-  let run = null, shown = null, closedFor = null, thanks = null;
-  box.addEventListener('pointerdown', (e) => e.stopPropagation()); // 끌어서 내려 보기(스크롤)가 되도록, 고르기는 click에서
-  box.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const c = e.target.classList;
-    if (c.contains('next')) { if (thanks) { thanks = null; closedFor = shown; hide(); } else if (shown && !run) begin(shown); else hide(); }
-    else if (c.contains('later')) { closedFor = shown; hide(); }
-    else if (c.contains('end')) { if (run) { run = null; updateChip(); } closedFor = shown; hide(); }
-  });
-  const hide = () => { box.hidden = true; shown = null; document.body.classList.remove('talking'); };
+  let run = null, shown = null, thanks = null;
+  const hide = () => { dlg.close(); shown = null; };
+  // 아래 단추: 감사해요(고마움 인사를 닫음) / 도와줄게요(부탁 시작) / 알겠어요(닫기)
+  const onNext = () => { if (thanks) { thanks = null; hide(); } else if (shown && !run) begin(shown); else hide(); };
+  const onEnd = () => { if (run) { run = null; updateChip(); } hide(); };
   function show(q, text, verse, { next = '', later = false, end = false, n = q.title } = {}) {
     shown = q;
-    $('.who b').textContent = q.name; $('.who .n').textContent = n;
-    $('.say').textContent = text;
-    if (verse) { const v = document.createElement('small'); v.textContent = `${VERSES[verse][0]} (${VERSES[verse][1]})`; $('.say').append(v); }
-    $('.next').hidden = !next; $('.next').textContent = next;
-    $('.later').hidden = !later; $('.end').hidden = !end;
-    box.hidden = false;
-    document.body.classList.add('talking');
+    dlg.open({
+      who: q.name, n, say: text, verse,
+      choices: [
+        { label: '그만두기', cls: 'end', hidden: !end, on: onEnd },
+        { label: '나중에', cls: 'later', hidden: !later, on: hide },
+        { label: next, cls: 'next', hidden: !next, main: true, on: onNext },
+      ],
+      esc: () => (thanks ? onNext() : hide()),
+    });
   }
   const hintOf = (r) => { const s = r.q.steps[r.i]; return typeof s.hint === 'function' ? s.hint(r) : s.hint; };
   function updateChip() {
@@ -417,7 +411,7 @@ export function initQuests(K) {
   function begin(q) {
     run = { q, i: 0, n: 0, flags: {} };
     q.reset?.(); // 다시 할 때 처음 자리로 (다친 나그네)
-    hide(); closedFor = q;
+    hide();
     startStep();
     sfx('tap', 0.2, 1.2);
   }

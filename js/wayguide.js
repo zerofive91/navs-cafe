@@ -3,6 +3,7 @@
 //   안내를 받은 뒤에는 말을 걸면 "지금 가 보면 좋은 곳"을 골라 알려 주고, 누르면 그곳까지 걸어감
 //   고르는 차례: 하던 부탁 → 마치지 않은 훈련장 → 정원 말씀 체험 → 영적 전쟁 훈련소 → 성경 인물의 부탁 → 숲길 (가까운 곳 먼저)
 import { offerTalk } from './talkgate.js';
+import { createDialog } from './dialog.js';
 import { R_HALL, polar, WARFARE } from './layout.js';
 import { nearestFree } from './nav.js';
 import { COURSE_META } from './courses.js';
@@ -69,32 +70,26 @@ export function initWayguide(K) {
     return pick;
   }
 
-  // ---------- 말풍선 ----------
-  const box = document.createElement('div');
-  box.className = 'npcb'; box.id = 'wtalk'; box.hidden = true;
-  box.innerHTML = '<div class="who"><b></b><span class="n">길 안내</span></div><p class="say"></p><div class="opts"></div><div class="row"><button class="later">나중에</button><button class="map">지도 보기</button></div>';
-  document.body.appendChild(box);
-  const $ = (s) => box.querySelector(s);
-  let cur = null, closedFor = null, picks = [];
-  box.addEventListener('pointerdown', (e) => e.stopPropagation());
-  box.addEventListener('click', (e) => {
-    e.stopPropagation();
-    if (!cur) return;
-    const b = e.target.closest('button'); if (!b) return;
-    if (b.classList.contains('later')) { closedFor = cur; hide(); }
-    else if (b.classList.contains('map')) { closedFor = cur; hide(); openMap?.(); }
-    else if (b.dataset.i != null) { const s = picks[+b.dataset.i]; closedFor = cur; hide(); if (s) { sfx('tap', 0.2, 1.2); goTo(s.p, `${s.label}${s.label.endsWith('이어 하기') ? '' : '(으)로'} 걸어가요`); } }
-  });
-  const hide = () => { box.hidden = true; cur = null; document.body.classList.remove('talking'); };
-  const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  // ---------- 말풍선 (dialog.js): 가 볼 만한 곳을 고르기 목록으로 ----------
+  const dlg = createDialog({ id: 'wtalk' });
+  let cur = null;
+  const hide = () => { dlg.close(); cur = null; };
+  const go = (s) => { hide(); sfx('tap', 0.2, 1.2); goTo(s.p, `${s.label}${s.label.endsWith('이어 하기') ? '' : '(으)로'} 걸어가요`); };
   function talk(n) {
-    cur = n; picks = suggest();
-    $('.who b').textContent = n.tutName;
-    $('.say').textContent = picks.length
-      ? `${nm()}님, 어디로 가 볼까요? 지금 가 보면 좋은 곳을 골라 봤어요. 누르면 그곳까지 걸어가요.`
-      : `${nm()}님, 정원의 훈련과 체험, 부탁을 모두 마쳤군요! 이제 쉬다가 걷다가 마음 가는 길을 따라 말씀을 묵상해요.`;
-    $('.opts').innerHTML = picks.map((s, i) => `<button data-i="${i}"><b>${esc(s.label)}</b><small>${esc(s.why)}</small></button>`).join('');
-    box.hidden = false; document.body.classList.add('talking');
+    cur = n;
+    const picks = suggest();
+    dlg.open({
+      who: n.tutName, n: '길 안내',
+      say: picks.length
+        ? `${nm()}님, 어디로 가 볼까요? 지금 가 보면 좋은 곳을 골라 봤어요. 누르면 그곳까지 걸어가요.`
+        : `${nm()}님, 정원의 훈련과 체험, 부탁을 모두 마쳤군요! 이제 쉬다가 걷다가 마음 가는 길을 따라 말씀을 묵상해요.`,
+      pick: picks.map((s) => ({ label: s.label, sub: s.why, on: () => go(s) })),
+      choices: [
+        { label: '나중에', cls: 'later', on: hide },
+        { label: '지도 보기', cls: 'map', on: () => { hide(); openMap?.(); } },
+      ],
+      esc: hide,
+    });
   }
 
   // ---------- 매 프레임 ----------
@@ -120,7 +115,7 @@ export function initWayguide(K) {
   }
 
   // 어디서든 (지도 화면의 길잡이 단추): 그 자리에서 가 볼 만한 곳을 보여 줌
-  function openHere() { closedFor = null; talk({ tutName: '길잡이', x: me.x, z: me.z }); }
+  function openHere() { talk({ tutName: '길잡이', x: me.x, z: me.z }); }
 
   return { step, pin, openHere, tutors: () => tutors, active: () => !!cur, suggest, list };
 }

@@ -7,6 +7,7 @@ import { offerTalk } from './talkgate.js';
 import * as THREE from 'three';
 import { giveItem, addSteps, ITEMS } from './profile.js';
 import { ICONS } from './icons.js';
+import { createDialog } from './dialog.js';
 
 const TOUCH = matchMedia('(hover: none)').matches;
 
@@ -46,18 +47,9 @@ export function initTutorial(K) {
   const marks = new Set();
   let run = null; // { id, npc, list, i, t, moved, done }
 
-  // ---------- 말풍선 ----------
-  const box = document.createElement('div');
-  box.id = 'tut'; box.className = 'npcb'; box.hidden = true;
-  box.innerHTML = '<div class="who"><b></b><span class="n"></span></div><p class="say"></p><div class="keys"></div><div class="row"><button class="end">안내 끝내기</button><button class="skip">넘기기</button><button class="next">다음</button></div>';
-  document.body.appendChild(box);
-  const $ = (s) => box.querySelector(s);
-  box.addEventListener('pointerdown', (e) => e.stopPropagation()); // 끌어서 내려 보기(스크롤)가 되도록, 고르기는 click에서
-  box.addEventListener('click', (e) => {
-    e.stopPropagation();
-    if (e.target.classList.contains('next') || e.target.classList.contains('skip')) advance();
-    else if (e.target.classList.contains('end')) stop('skip');
-  });
+  // ---------- 말풍선 (dialog.js). 안내 중에는 body.talking 대신 body.tutoring ----------
+  const dlg = createDialog({ id: 'tut', talking: false });
+  const box = dlg.el;
 
   const nm = () => profile.name || '손님';
   // 단계: aim 눌러야 할 단추(aria-label, 안내 중 초록 고리로 반짝임), say 말, keys 컴퓨터 키 [키, 뜻], touch 휴대폰에서 바꿔 할 말, done 다 했는지, auto 읽고 넘기는 단계
@@ -103,25 +95,27 @@ export function initTutorial(K) {
   }
   function show() {
     const s = run.list[run.i];
-    $('.who b').textContent = run.id === 'cafe' ? '바나바' : run.npc.tutName || '아담';
-    $('.who .n').textContent = `${run.i + 1} / ${run.list.length}`;
     const say = typeof s.say === 'function' ? s.say() : s.say;
-    $('.say').innerHTML = '';
-    $('.say').append(say);
     const verse = typeof s.verse === 'function' ? s.verse() : s.verse;
-    if (verse) { const v = document.createElement('small'); v.textContent = verse; $('.say').append(v); }
-    const showKeys = !TOUCH && s.keys;
-    $('.keys').innerHTML = showKeys ? s.keys.map(([k, d]) => `<span><kbd>${k}</kbd>${d}</span>`).join('') : '';
-    if (TOUCH && s.touch) { const p = document.createElement('span'); p.className = 'tt'; p.textContent = s.touch; $('.keys').append(p); }
+    const keys = [];
     // 눌러야 할 단추 모양을 말풍선에도 보여 줌 (기도·찬양처럼 비슷한 단추를 헷갈리지 않게)
     const icons = (s.aim || []).filter((n) => ICONS[n] && n !== 'cafe menu');
-    if (icons.length) { const q = document.createElement('span'); q.className = 'ico'; q.innerHTML = icons.map((n) => `<i>${ICONS[n]}</i>`).join(''); $('.keys').prepend(q); }
-    $('.next').hidden = !s.auto;
-    $('.next').textContent = s.end ? '감사해요' : '다음';
-    $('.skip').hidden = !!s.auto;
-    $('.end').hidden = !!s.end;
-    box.hidden = false;
+    if (icons.length) { const q = document.createElement('span'); q.className = 'ico'; q.innerHTML = icons.map((n) => `<i>${ICONS[n]}</i>`).join(''); keys.push(q); }
+    if (!TOUCH && s.keys) for (const [k, d] of s.keys) { const p = document.createElement('span'), b = document.createElement('kbd'); b.textContent = k; p.append(b, d); keys.push(p); }
+    if (TOUCH && s.touch) { const p = document.createElement('span'); p.className = 'tt'; p.textContent = s.touch; keys.push(p); }
     box.classList.remove('ok');
+    dlg.open({
+      who: run.id === 'cafe' ? '바나바' : run.npc.tutName || '아담',
+      n: `${run.i + 1} / ${run.list.length}`,
+      say, verse, keys,
+      choices: [
+        { label: '안내 끝내기', cls: 'end', hidden: !!s.end, on: () => stop('skip') },
+        { label: '넘기기', cls: 'skip', hidden: !!s.auto, on: advance },
+        { label: s.end ? '감사해요' : '다음', cls: 'next', hidden: !s.auto, main: true, on: advance },
+      ],
+      // 처음 안내는 Esc로 닫지 않음 (지도·사진을 Esc로 닫는 단계가 있음). 읽고 넘기는 단계에서만 '다음'에 포커스
+      focus: !!s.auto,
+    });
   }
   function advance() {
     if (!run) return;
@@ -137,7 +131,7 @@ export function initTutorial(K) {
     if (!run) return;
     const r = run;
     run = null;
-    box.hidden = true;
+    dlg.close();
     aimAt(null);
     document.body.classList.remove('tutoring');
     if (how) {
@@ -202,7 +196,7 @@ export function initTutorial(K) {
   }
   // 읽고 넘기는 단계에서는 Enter로 다음
   function onKey(code) {
-    if (!run || box.hidden) return false;
+    if (!run || !dlg.isOpen()) return false;
     const s = run.list[run.i];
     if ((code === 'Enter' || code === 'NumpadEnter') && s.auto) { advance(); return true; }
     return false;

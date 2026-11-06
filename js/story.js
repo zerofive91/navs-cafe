@@ -2,6 +2,7 @@
 //   카페의 누가(눅 1:3 "차례대로 써 보내는 것이")가 들려주고, 장마다 정원·숲길 입구·카페의 한 자리에 금빛 기둥이 섬
 //   그 자리에 가서(어떤 장은 기도·말씀·빛 바라보기·인사를 하면) 그 장의 말씀이 뜨고 다음 장으로
 import { offerTalk } from './talkgate.js';
+import { createDialog } from './dialog.js';
 import * as THREE from 'three';
 import { PARK, TRAILS, SPOTS, Q, R_PARK, floorY } from './layout.js';
 import { nearestFree } from './nav.js';
@@ -51,36 +52,31 @@ export function initStory(K) {
   { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.9, 30, 16, 1, true), new THREE.MeshBasicMaterial({ color: 0xffe6a0, transparent: true, opacity: 0.22, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending })); m.position.y = 15; beam.add(m); const s = fxSprite('star_06', 0xfff0c0, 2.4); s.position.y = 3; beam.add(s); beam.userData.star = s; }
   beam.visible = false; scene.add(beam);
 
-  // ---------- 말풍선과 진행 표시 ----------
-  const box = document.createElement('div');
-  box.className = 'npcb'; box.id = 'story'; box.hidden = true;
-  box.innerHTML = '<div class="who"><b>누가</b><span class="n"></span></div><p class="say"></p><div class="row"><button class="later">나중에</button><button class="next"></button></div>';
-  document.body.appendChild(box);
-  const $ = (s) => box.querySelector(s);
+  // ---------- 말풍선(dialog.js)과 진행 표시 ----------
+  const dlg = createDialog({ id: 'story' });
   const chip = document.createElement('div'); chip.id = 'storyChip'; chip.hidden = true; document.body.appendChild(chip);
   let shown = false, closedNear = false;
-  box.addEventListener('pointerdown', (e) => e.stopPropagation()); // 끌어서 내려 보기(스크롤)가 되도록, 고르기는 click에서
-  box.addEventListener('click', (e) => {
-    e.stopPropagation();
-    if (e.target.classList.contains('later')) { close(); closedNear = true; }
-    else if (e.target.classList.contains('next')) {
-      if (!started()) { profile.tut = profile.tut || {}; profile.tut.story = 'start'; save(); sfx('orb', 0.2, 1.1); showVerse('st-luke', { cooldown: 0, title: '큰 이야기를 시작해요' }); }
-      close(); closedNear = true; update();
-    }
-  });
-  const close = () => { box.hidden = true; shown = false; document.body.classList.remove('talking'); };
+  const close = () => { dlg.close(); shown = false; };
+  const later = () => { close(); closedNear = true; };
+  function yes() {
+    if (!started()) { profile.tut = profile.tut || {}; profile.tut.story = 'start'; save(); sfx('orb', 0.2, 1.1); showVerse('st-luke', { cooldown: 0, title: '큰 이야기를 시작해요' }); }
+    close(); closedNear = true; update();
+  }
   function talk() {
     const k = n();
-    $('.n').textContent = k >= CH.length ? '큰 이야기 · 다 마침' : `큰 이야기 · ${k + 1} / ${CH.length}`;
     const say = !started()
       ? '저는 의사 누가예요. 처음부터 자세히 살펴 차례대로 기록했지요. 성경은 창조에서 새 하늘과 새 땅까지 한 줄기 큰 이야기예요. 열두 장을 차례로 따라 걸어 볼래요? 금빛 기둥이 선 곳으로 가면 돼요.'
       : k >= CH.length ? '열두 장을 다 걸었군요! 이 모든 이야기는 예수 그리스도를 가리켜요. 언제든 다시 들러 이야기 나눠요.'
         : `지금은 ${k + 1}장 "${CH[k].t}"예요. ${CH[k].where}${CH[k].act ? '' : '로 가 보세요'}. 금빛 기둥이 그 자리를 비춰요.`;
-    $('.say').textContent = say;
-    $('.next').textContent = started() ? '네' : '따라 걸을게요';
-    $('.later').hidden = !!started();
-    box.hidden = false; shown = true;
-    document.body.classList.add('talking');
+    dlg.open({
+      who: '누가', n: k >= CH.length ? '큰 이야기 · 다 마침' : `큰 이야기 · ${k + 1} / ${CH.length}`, say,
+      choices: [
+        { label: '나중에', cls: 'later', hidden: !!started(), on: later },
+        { label: started() ? '네' : '따라 걸을게요', cls: 'next', main: true, on: yes },
+      ],
+      esc: later, // Esc는 '나중에'와 같음 (큰 이야기를 시작하지 않음)
+    });
+    shown = true;
     luke.face = Math.atan2(me.x - luke.x, me.z - luke.z);
   }
   function update() {
