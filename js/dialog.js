@@ -74,8 +74,6 @@ export function createDialog({ id, cls = '', talking = true } = {}) {
     parts.pick.replaceChildren(...(s.pick || []).map((c, i) => button('p' + i, c, c.cls)));
     const row = (s.choices || []).filter((c) => !c.hidden);
     parts.row.replaceChildren(...row.map((c, i) => button('r' + (c.cls || i), c, c.cls))); // 같은 모양 단추는 다시 그려도 포커스가 그 자리에
-    el.dataset.at = s.at || '';
-    if (!el.dataset.at) delete el.dataset.at;
     return { was, row };
   }
   // 포커스 받을 단추: 고르기 목록의 첫 항목 → main 표시 단추 → 아래 단추의 첫째
@@ -88,9 +86,10 @@ export function createDialog({ id, cls = '', talking = true } = {}) {
   const focus = (x) => { try { x?.focus({ preventScroll: true }); } catch (e) { /* 포커스를 못 옮겨도 그대로 */ } };
 
   // spec: { who, n, say, verse, how, keys, guide:[{label,on}], pick:[{label,sub,on}], choices:[{label,on,cls,main,hidden}],
-  //         esc: Esc로 닫을 때 할 일(없으면 Esc로 닫히지 않음), focus: false면 포커스를 옮기지 않음, at: 'top'|'bottom' 자리 }
-  //   이미 열려 있으면 내용만 바꿈 (포커스가 창 안에 있었으면 같은 자리의 단추로, 없으면 창으로)
-  function open(s = {}) {
+  //         esc: Esc로 닫을 때 할 일(없으면 Esc로 닫히지 않음), focus: false면 포커스를 옮기지 않음 }
+  //   이미 열려 있어도 다시 열면 포커스를 첫 선택지로 (훈련·부탁 마침 인사, 처음 안내 다음 단계). focus:false면 그대로
+  //   update()로 일부만 바꿀 때는 포커스가 창 안에 있었으면 같은 자리의 단추로, 없으면 창으로
+  function open(s = {}, keep = false) {
     spec = s;
     const fresh = el.hidden;
     const { was, row } = render();
@@ -100,11 +99,12 @@ export function createDialog({ id, cls = '', talking = true } = {}) {
       opened.push(self);
       if (talking) document.body.classList.add('talking');
       if (s.focus !== false) focus(target(row));
-    } else if (was != null) focus(el.querySelector(`[data-slot="${was}"]`) || el);
+    } else if (!keep && s.focus !== false) focus(target(row));
+    else if (was != null) focus(el.querySelector(`[data-slot="${was}"]`) || el);
     return self;
   }
   // 열린 채로 일부만 바꿈 (예: 안내 단추를 눌러 말만 바꿀 때)
-  function update(p = {}) { if (!el.hidden) open({ ...spec, ...p }); return self; }
+  function update(p = {}) { if (!el.hidden) open({ ...spec, ...p }, true); return self; }
   function close() {
     if (el.hidden) return;
     const inside = el.contains(document.activeElement);

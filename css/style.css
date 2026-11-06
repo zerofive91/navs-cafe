@@ -932,7 +932,3 @@ html.land #still { bottom: calc(8px + env(safe-area-inset-bottom)); width: min(4
 html.land #still .breath { width: 72px; height: 72px; }
 html.land #still .lines, html.land #still .lines p { font-size: 16px; }
 html.land #still .lines { height: 6.2em; }
-
-/* 말풍선 자리 고르기 (dialog.js open의 at): 기본은 위 규칙대로(컴퓨터 아래 가운데, 폰 세로 위, 가로 아래) */
-html .npcb[data-at="top"] { top: calc(62px + env(safe-area-inset-top)); bottom: auto; }
-html .npcb[data-at="bottom"] { top: auto; bottom: calc(8px + env(safe-area-inset-bottom)); }
