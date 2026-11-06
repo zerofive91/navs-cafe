@@ -3,6 +3,7 @@
 //   부탁을 받은 길은 정거장에 들를 때마다 진행을 알려 주고, 다 들르면 걸음·능력치·데나리온을 받음 (profile.trails)
 //   던전 길(별 표시)은 들어갈 수 있는 단계가 되어야 부탁을 줌
 import { offerTalk } from './talkgate.js';
+import { createDialog } from './dialog.js';
 import { TRAILS, R_PARK, isFree } from './layout.js';
 import { COURSE_META, COURSE_STATIONS, foundCourses } from './courses.js';
 import { TIER, TIER_STAGE, stars } from './dungeon.js';
@@ -58,39 +59,30 @@ export function initGuides(K) {
     list.push({ id, n, name, stat, about, said: false });
   }
 
-  // ---------- 말풍선 ----------
-  const box = document.createElement('div');
-  box.className = 'npcb'; box.id = 'gtalk'; box.hidden = true;
-  box.innerHTML = '<div class="who"><b></b><span class="n"></span></div><p class="say"></p><div class="row"><button class="later">나중에</button><button class="go" hidden>길 시작점으로</button><button class="next">부탁 받기</button></div>';
-  document.body.appendChild(box);
-  const $ = (s) => box.querySelector(s);
-  let cur = null, closedFor = null;
-  box.addEventListener('pointerdown', (e) => e.stopPropagation()); // 끌어서 내려 보기(스크롤)가 되도록, 고르기는 click에서
-  box.addEventListener('click', (e) => {
-    e.stopPropagation();
-    if (!cur) return;
-    const c = e.target.classList;
-    if (c.contains('later')) { closedFor = cur; hide(); }
-    else if (c.contains('next')) accept(cur);
-    else if (c.contains('go')) { const g = cur; closedFor = g; hide(); goTo?.(TRAILS[g.id].samples[Math.min(12, TRAILS[g.id].samples.length - 1)], `${COURSE_META[g.id].name}${jo(COURSE_META[g.id].name, '으로', '로')} 들어가요`); }
-  });
-  const hide = () => { box.hidden = true; cur = null; document.body.classList.remove('talking'); };
+  // ---------- 말풍선 (dialog.js) ----------
+  const dlg = createDialog({ id: 'gtalk' });
+  let cur = null;
+  const hide = () => { dlg.close(); cur = null; };
   const statName = (s) => STATS.find((x) => x.id === s)?.name || '';
+  const enter = (g) => { hide(); goTo?.(TRAILS[g.id].samples[Math.min(12, TRAILS[g.id].samples.length - 1)], `${COURSE_META[g.id].name}${jo(COURSE_META[g.id].name, '으로', '로')} 들어가요`); };
   function talk(g) {
     cur = g;
     const nm = COURSE_META[g.id].name, R = rec()[g.id], tt = total(g.id), sn = Math.min(seen(g.id), tt);
-    $('.who b').textContent = g.name;
-    $('.n').textContent = `${nm} ${stars(g.id)}`.trim();
     let say = g.about, btn = '부탁 받기';
     const quest = `부탁: 이 길의 정거장 ${tt}곳을 모두 들러 말씀을 보고 오세요. 마치면 걸음 +10, ${statName(g.stat)} +3, 2 데나리온.`;
     if (!isOpen(g.id)) { say += ` 이 길은 ${TIER_STAGE[TIER[g.id]]}부터 들어갈 수 있어요. 정원 훈련장과 부탁으로 자란 뒤에 다시 와요.`; btn = ''; }
     else if (R === 'done') { say = `${nm}${jo(nm, '을', '를')} 끝까지 걸었군요! 정거장 ${tt}곳을 다 들렀어요. 언제든 다시 걸으며 말씀을 묵상해요.`; btn = ''; }
     else if (R === 'on') { say = `${nm}: 정거장 ${sn} / ${tt}곳을 들렀어요.${TIER[g.id] ? ' 길을 막는 어둠의 속삭임은 말씀으로 이겨요.' : ''} 길 끝까지 가면 E로 입구에 돌아올 수 있어요.`; btn = ''; }
     else say += ` ${quest}${TIER[g.id] ? ` 길 ${TIER[g.id] + 1}곳에서 어둠의 속삭임이 길을 막아요.` : ''}`;
-    $('.say').textContent = say;
-    $('.next').hidden = !btn; $('.next').textContent = btn;
-    $('.go').hidden = !isOpen(g.id) || R === 'done';
-    box.hidden = false; document.body.classList.add('talking');
+    dlg.open({
+      who: g.name, n: `${nm} ${stars(g.id)}`.trim(), say,
+      choices: [
+        { label: '나중에', cls: 'later', on: hide },
+        { label: '길 시작점으로', cls: 'go', hidden: !isOpen(g.id) || R === 'done', main: !btn, on: () => enter(g) },
+        { label: btn, cls: 'next', hidden: !btn, main: !!btn, on: () => accept(g) },
+      ],
+      esc: hide,
+    });
   }
   function accept(g) {
     if (!isOpen(g.id)) return;
