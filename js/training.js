@@ -6,6 +6,7 @@
 //   순종: 아브라함 (창 12:4, 히 11:8) - 갈 바를 몰라도 앞서가는 등불을 따라 걷기
 // 사부 곁에 가면 말을 걸고, 기초 과정을 마치면 그 능력치와 걸음이 자라고 성경 물품을 받음
 import { offerTalk } from './talkgate.js';
+import { createDialog } from './dialog.js';
 import * as THREE from 'three';
 import { TRAIN, floorY } from './layout.js';
 import { VERSES, showVerse } from './verses.js';
@@ -230,35 +231,33 @@ export function initTraining(K) {
     },
   };
 
-  // ---------- 말풍선 (안내와 같은 모양) ----------
-  const box = document.createElement('div');
-  box.className = 'npcb'; box.id = 'talk'; box.hidden = true;
-  box.innerHTML = '<div class="who"><b></b><span class="n"></span></div><p class="say"></p><div class="keys"></div><div class="guide"><button data-g="how">하는 방법</button><button data-g="prog">진행 보기</button><button data-g="quest">부탁 받기</button></div><div class="row"><button class="end">그만두기</button><button class="goq" hidden>그 사람에게 가기</button><button class="later">나중에</button><button class="next">훈련 시작</button></div>';
-  document.body.appendChild(box);
-  const $ = (s) => box.querySelector(s);
-  let offer = null, run = null, closedFor = null;
-  box.addEventListener('pointerdown', (e) => e.stopPropagation()); // 끌어서 내려 보기(스크롤)가 되도록, 고르기는 click에서
-  box.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const c = e.target.classList;
-    const g = e.target.closest('[data-g]');
-    if (g && offer) { guide(offer, g.dataset.g); return; }
-    if (c.contains('goq')) { const q = pickQ; closedFor = offer; hide(); if (q) goTo(q.who, `${q.name}에게 가요`); return; }
-    if (c.contains('next')) { if (offer) begin(offer); else if (run && run.finished) finish(); }
-    else if (c.contains('later')) { closedFor = offer; hide(); }
-    else if (c.contains('end')) stop();
-  });
-  const hide = () => { box.hidden = true; offer = null; document.body.classList.remove('talking'); };
-  function show(who, text, verse, { n = '', keys = '', next = '', later = false, end = false } = {}) {
-    $('.who b').textContent = who; $('.who .n').textContent = n;
-    $('.say').textContent = text;
-    if (verse) { const v = document.createElement('small'); v.textContent = verse; $('.say').append(v); }
-    $('.keys').textContent = keys;
-    $('.next').hidden = !next; $('.next').textContent = next;
-    $('.guide').hidden = !offer; $('.goq').hidden = true;
-    $('.later').hidden = !later; $('.end').hidden = !end;
-    box.hidden = false; box.classList.remove('ok');
-    document.body.classList.add('talking');
+  // ---------- 말풍선 (dialog.js, 안내와 같은 모양) ----------
+  const dlg = createDialog({ id: 'talk' });
+  let offer = null, run = null;
+  const hide = () => { dlg.close(); offer = null; };
+  const later = () => hide();
+  const goQ = () => { const q = pickQ; hide(); if (q) goTo(q.who, `${q.name}에게 가요`); };
+  const onNext = () => { if (offer) begin(offer); else if (run && run.finished) finish(); };
+  // 훈련 안내 단추: 하는 방법·진행 보기·부탁 받기 (사부에게 말을 걸었을 때만)
+  const GUIDE = [['하는 방법', 'how'], ['진행 보기', 'prog'], ['부탁 받기', 'quest']].map(([label, g]) => ({ label, on: () => { if (offer) guide(offer, g); } }));
+  let row = {};
+  const rowOf = (goq = false) => [
+    { label: '그만두기', cls: 'end', hidden: !row.end, on: stop },
+    { label: '그 사람에게 가기', cls: 'goq', hidden: !goq, on: goQ },
+    { label: '나중에', cls: 'later', hidden: !row.later, on: later },
+    { label: row.next, cls: 'next', hidden: !row.next, main: true, on: onNext },
+  ];
+  function show(who, text, verse, { n = '', next = '', later: canLater = false, end = false } = {}) {
+    row = { next, later: canLater, end };
+    dlg.el.classList.remove('ok');
+    dlg.open({
+      who, n, say: text, verse,
+      guide: offer ? GUIDE : [],
+      choices: rowOf(false),
+      // Esc: 말을 건 때는 '나중에', 마친 인사는 '감사해요'. 훈련 중(그만두기만 있을 때)은 Esc로 그만두지 않음
+      esc: offer ? later : run && run.finished ? onNext : null,
+      focus: !run || !!run.finished,
+    });
   }
   const whoName = (id) => (id === 'fellow' ? '아굴라' : T[id].who.tag ? { word: '에스라', pray: '다니엘', witness: '빌립', obey: '아브라함' }[id] : '');
   function offerTo(id) {
@@ -300,8 +299,7 @@ export function initTraining(K) {
           : `${pickQ.name}${jo(pickQ.name, '이', '가')} 도움을 기다려요. "${pickQ.title}" (${(STATS.find((x) => x.id === pickQ.stat)?.name || '')}${jo(STATS.find((x) => x.id === pickQ.stat)?.name || '', '을', '를')} 길러요)${qdone(pickQ) ? '. 이미 마친 부탁이지만 한 번 더 할 수 있어요' : ''}. 그 사람 곁으로 가면 부탁을 들려줘요.`;
       }
     }
-    $('.say').textContent = text;
-    $('.goq').hidden = !pickQ;
+    dlg.update({ say: text, verse: '', choices: rowOf(!!pickQ) });
   }
   function begin(id) {
     offer = null;
@@ -318,7 +316,7 @@ export function initTraining(K) {
     const d = T[run.id];
     d.end?.(run); d.glow(null, 0);
     if (run.id === 'fellow') carried.visible = false;
-    closedFor = run.id; run = null; hide();
+    run = null; hide();
   }
   function complete() {
     const d = T[run.id];
