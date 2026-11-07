@@ -379,6 +379,9 @@ export const SEATS_J = {
   crossSeat: seat(SP.crossSeat, 0, 'floor', W(SP.crossSeat.u, SP.crossSeat.v - 0.7)),
   garden11: seat(SP.garden11, Math.atan2(TOMB11.rock.x - SP.garden11.x, TOMB11.rock.z - SP.garden11.z), 'gbench', W(SP.garden11.u - 0.7, SP.garden11.v)),
   fireSeat: seat(SP.fireSeat, Math.PI, 'floor', W(SP.fireSeat.u, SP.fireSeat.v + 0.7)),
+  // 쉼 놀이(별 보기) 눕는 자리 둘: 벳새다 언덕 마루, 니고데모 집 지붕 (구절·구역은 villages/john.js rest·seatVerse)
+  hillLie: seat(S(105.5, -69), Math.PI / 2, 'lie', W(104.6, -69)),
+  roofLie: seat(S(-114.4, 24.7), Math.PI / 2, 'lie', W(-113.5, 24.7)),
 };
 
 // ---------- 바닥·막힘·길값 (layout.js가 이 상자 안이면 이 함수로 넘김) ----------

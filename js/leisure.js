@@ -15,12 +15,21 @@ VERSES['l-skip'] = ['천하에 범사가 기한이 있고 모든 목적이 이�
 const M = (c, r = 0.85, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: r, ...o });
 const ease = (x) => (x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x));
 
-export function initLeisure({ scene, me, camera, renderer, view, lights, act, sfx, burst, walkTo, faceTo, standUp, nearestPerson, toast, ICONS, LIEABLE }) {
+// rest: () => null(초보자 마을: 정원 판정 그대로) | 쉼 구역 목록(마을 등록부 rest[], 마을 안에서는 이 구역에서만 물수제비·낚시·별 보기)
+//   구역 { kind: 'shore'|'hill'|'roof', at: {x,z}, r, test?(x,z) → 구역 안인가, water?: {x,z,y?} (shore: 물 쪽), inWater?(x,z,pad) (shore: 물 안인가) }
+export function initLeisure({ scene, me, camera, renderer, view, lights, act, sfx, burst, walkTo, faceTo, standUp, nearestPerson, toast, ICONS, LIEABLE, rest = () => null }) {
   const actions = {}, avail = [], steps = [];
   const r0 = () => Math.hypot(me.x, me.z);
   const inGarden = () => r0() > R_HALL + 1.5 && r0() < R_GARDEN + 1;
   const lying = () => me.state === 'sit' && me.seat && (me.seat.kind === 'lie' || LIEABLE.has(me.seat.kind));
   const say = (k, o = {}) => showVerse(k, { delay: 1.2, cooldown: 120, ...o });
+  // 마을 쉼 구역 판정: 정원 판정(inGarden)은 그대로 두고, 마을에서는 등록부 rest[] 구역만 더함
+  const inZone = (z) => (z.test ? z.test(me.x, me.z) : Math.hypot(me.x - z.at.x, me.z - z.at.z) < z.r);
+  const restHere = (kinds) => (rest() || []).find((z) => kinds.includes(z.kind) && inZone(z)) || null;
+  const shoreZone = () => {
+    const z = restHere(['shore']);
+    return z && z.inWater && z.inWater(me.x, me.z, 3.2) && !z.inWater(me.x, me.z, 0.2) ? z : null;
+  };
 
   // ---------- 꽃 따서 건네기 ----------
   const nearBed = () => FLOWER_BEDS.some((b) => Math.hypot(me.x - b.x, me.z - b.z) < b.r + 1.4) || PARK.meadow.inside(me.x, me.z);
@@ -74,12 +83,22 @@ export function initLeisure({ scene, me, camera, renderer, view, lights, act, sf
   const onShore = () => inGarden() && JONAH_SEA.inside(me.x, me.z, 3.2) && !JONAH_SEA.inside(me.x, me.z, 0.2);
   const stones = [], rings = [];
   const ringGeo = new THREE.RingGeometry(0.18, 0.26, 28);
-  const waterY = () => -0.47;
+  let skipY = -0.47; // 던진 곳 물 높이 (정원 -0.47, 마을은 구역 값)
+  const waterY = () => skipY;
   actions.skip = () => {
     if (me.skipping > 0) return;
+    const sz = shoreZone();
     standUp(me); me.path = [];
-    const L = Z.local(me.x, me.z);
-    const aim = Z.at(L.u + 6, L.v * 0.85);
+    let aim;
+    if (sz && !onShore()) { // 마을 물가: 물 쪽으로 6m
+      const w = sz.water, d = Math.hypot(w.x - me.x, w.z - me.z) || 1;
+      aim = { x: me.x + ((w.x - me.x) / d) * 6, z: me.z + ((w.z - me.z) / d) * 6 };
+      skipY = sz.waterY ?? -0.47;
+    } else {
+      const L = Z.local(me.x, me.z);
+      aim = Z.at(L.u + 6, L.v * 0.85);
+      skipY = -0.47;
+    }
     faceTo(me, aim); act('skip', 1.1); me.skipT = 0.5; me.skipping = 1.4;
     setTimeout(() => {
       const dir = new THREE.Vector3(aim.x - me.x, 0, aim.z - me.z).normalize();
@@ -91,7 +110,7 @@ export function initLeisure({ scene, me, camera, renderer, view, lights, act, sf
     }, 330);
     say('l-skip', { delay: 3, cooldown: 300 });
   };
-  avail.push(() => (onShore() && me.state !== 'walk' ? ['place', 'skip'] : null));
+  avail.push(() => ((onShore() || shoreZone()) && me.state !== 'walk' ? ['place', 'skip'] : null));
   steps.push((dt) => {
     if (me.skipping > 0) me.skipping -= dt;
     for (let i = stones.length - 1; i >= 0; i--) {
@@ -150,7 +169,7 @@ export function initLeisure({ scene, me, camera, renderer, view, lights, act, sf
     if (me.action === 'stars') me.action = null;
     if (prevView) { view.mode = prevView.mode; view.az = prevView.az; view.pitch = 0; prevView = null; }
   }
-  avail.push(() => (night.on ? 'stars' : lying() && r0() > R_HALL + 1.5 ? ['place', 'stars'] : null));
+  avail.push(() => (night.on ? 'stars' : lying() && (rest() ? restHere(['hill', 'roof']) : r0() > R_HALL + 1.5) ? ['place', 'stars'] : null));
   steps.push((dt) => {
     if (night.on && (!lying() || me.state !== 'sit')) stopStars();
     night.k += ((night.on ? 1 : 0) - night.k) * Math.min(1, dt * (night.on ? 0.45 : 1.2));
@@ -254,6 +273,8 @@ export function initLeisure({ scene, me, camera, renderer, view, lights, act, sf
     actions,
     available: () => avail.flatMap((f) => { const v = f(); return v == null ? [] : [v]; }),
     step(dt, t) { for (const f of steps) f(dt, t); },
+    // 마을 물가에서 낚시할 물 쪽 점 (signs.js가 씀). 물 높이는 구역 값
+    fishSpot: () => { const z = shoreZone(); return z && z.fish !== false ? { x: z.water.x, z: z.water.z, y: z.waterY ?? -0.42 } : null; },
     togglePhoto: () => setPhoto(photo.hidden),
     photoOn: () => !photo.hidden,
     snap,

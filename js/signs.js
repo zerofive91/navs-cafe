@@ -190,19 +190,22 @@ export function initSigns({ scene, me, npcs, interactive, act, sfx, fxSprite, bu
   const coinMat = new THREE.MeshStandardMaterial({ color: 0xe6c35a, metalness: 0.8, roughness: 0.3, emissive: 0x6a4a10, emissiveIntensity: 0.4 });
   const lineMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 });
   const fishing = { phase: null, t: 0, wait: 3, bob: null, line: null, fish: null, coin: null, spot: null };
-  const nearPool = () => (me.seat && me.seat.kind === 'boat') || Math.hypot(me.x - Q.witness.x, me.z - Q.witness.z) < WITNESS_POOL_R + 1.8;
+  let shoreAt = () => null; // 마을 물가(요한복음 마을 쉼 구역): () → { x, z, y } 물 쪽 점 | null (leisure.fishSpot, main.js가 연결)
+  const nearPool = () => (me.seat && me.seat.kind === 'boat') || !!shoreAt() || Math.hypot(me.x - Q.witness.x, me.z - Q.witness.z) < WITNESS_POOL_R + 1.8;
   const tip = new THREE.Vector3();
   function startFish() {
     if (fishing.phase || !nearPool()) return;
     // 물 쪽(연못 가운데 방향)으로 2.4m 앞에 찌를 던짐, 배 위라면 오른편으로 (요 21:6)
     let dx = Q.witness.x - me.x, dz = Q.witness.z - me.z;
     if (me.seat && me.seat.kind === 'boat') { dx = -Math.cos(me.face); dz = Math.sin(me.face); }
+    const sh = !(me.seat && me.seat.kind === 'boat') ? shoreAt() : null;
+    if (sh) { dx = sh.x - me.x; dz = sh.z - me.z; }
     const d = Math.hypot(dx, dz) || 1;
-    const r = Math.min(2.4, Math.max(1.4, d - 0.6));
+    const r = sh ? 2.4 : Math.min(2.4, Math.max(1.4, d - 0.6));
     const sx = me.x + (dx / d) * r, sz = me.z + (dz / d) * r;
     faceTo(me, { x: sx, z: sz });
     act('fish', 9);
-    fishing.spot = { x: sx, z: sz, y: (onWater(sx, sz) || { y: -0.06 }).y };
+    fishing.spot = { x: sx, z: sz, y: sh ? sh.y : (onWater(sx, sz) || { y: -0.06 }).y };
     fishing.bob = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 8), new THREE.MeshStandardMaterial({ color: 0xd9483b, roughness: 0.5 }));
     fishing.line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), lineMat);
     scene.add(fishing.bob, fishing.line);
@@ -268,6 +271,8 @@ export function initSigns({ scene, me, npcs, interactive, act, sfx, fxSprite, bu
     step(dt) { stepWater(dt); stepStorm(dt); stepBread(dt); stepFish(dt); },
     fish: startFish,
     canFish: () => nearPool() && !fishing.phase,
+    atShore: () => !!shoreAt(),
+    setShore: (f) => { shoreAt = f; },
     storm,
     feed,
     calm,

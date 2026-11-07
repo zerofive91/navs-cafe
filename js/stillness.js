@@ -17,7 +17,8 @@ const CUES = ['들이쉬어요', '잠시 멈춰요', '내쉬어요'];
 const FIRST = 5000, MIN_GAP = 5000; // 첫 구는 숨 한 번 고른 뒤, 구 사이는 적어도 5초
 const ease = (x) => (x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x));
 
-export function initStillness({ me, profile, save, busy, rest = () => 0, music, sfx }) {
+// seatVerse: (seat) → 그 자리 구절 키 | null (마을 등록부 seatVerse, 요한복음 마을 쉼 자리 12곳). 없으면 자리와 상관없이 고름
+export function initStillness({ me, profile, save, busy, rest = () => 0, music, sfx, seatVerse = () => null }) {
   let seat = null, sitAt = 0; // 지금 앉은 자리와 앉은 때
   let S = null; // 진행 중인 묵상
   const canSit = () => me.state === 'sit' && !!me.seat && !NO_SEAT.has(me.seat.kind) && !me.climb && !BUSY_ACT.has(me.action);
@@ -49,9 +50,11 @@ export function initStillness({ me, profile, save, busy, rest = () => 0, music, 
   const ring = el.querySelector('.breath i'), cueEl = el.querySelector('.cue'), linesEl = el.querySelector('.lines'), citeEl = el.querySelector('cite');
 
   // 오늘 만난 말씀 가운데 아직 묵상하지 않은 것 → 없으면 쉼 묶음 (오늘 묵상한 것은 빼고). 시간 안에 다 떠오를 길이만
-  function choose(sec) {
+  function choose(sec, seat) {
     const maxN = Math.floor((sec * 1000 - FIRST - 4000) / MIN_GAP);
     const fits = (k) => VERSES[k] && phrases(VERSES[k][0]).length <= maxN;
+    const here = seat && seatVerse(seat); // 그 자리 구절이 시간 안에 다 떠오르면 늘 그 말씀으로
+    if (here && fits(here)) return here;
     rollMet(profile.met);
     const done = new Set(profile.met.k.filter((x) => x[2] === 'm').map((x) => x[0]));
     const met = profile.met.k.map((x) => x[0]).filter((k) => !done.has(k) && fits(k));
@@ -62,9 +65,9 @@ export function initStillness({ me, profile, save, busy, rest = () => 0, music, 
 
   async function start(sec) {
     if (S || !canSit()) return;
-    const key = choose(sec);
-    if (!key) return;
     const at = me.seat;
+    const key = choose(sec, at);
+    if (!key) return;
     await bibleReady(); // 현대어 짝을 불러온 뒤 구로 나눔
     if (S || !canSit() || me.seat !== at) return;
     const [text, ref] = VERSES[key];
