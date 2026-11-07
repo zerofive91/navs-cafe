@@ -679,7 +679,8 @@ body.bigtrial #trial { box-shadow: 0 0 0 2px #6a4a9a, 0 10px 40px rgba(20, 10, 4
 #meCard .items.bible .none { flex-basis: 100%; font-size: 13px; }
 /* 영적 전쟁 훈련소 (2026-11): 성경 속 장면 + 속삭임 + 이긴 이야기 */
 #wtrial { max-height: calc(var(--vh) - 96px); overflow-y: auto; }
-#wtrial .scene { margin: 0 0 6px; font: 500 13px/1.5 "Noto Serif KR", serif; color: #cdbfe0; word-break: keep-all; }
+#trial .scene[hidden] { display: none; }
+#trial .scene, #wtrial .scene { margin: 0 0 6px; font: 500 13px/1.5 "Noto Serif KR", serif; color: #cdbfe0; word-break: keep-all; }
 #wtrial .why { margin: 8px 0 0; padding: 8px 10px; border-radius: 10px; background: rgba(255, 250, 238, 0.12); font: 500 13px/1.55 "Noto Serif KR", serif; color: #f3ecf8; word-break: keep-all; }
 #wtrial .why[hidden] { display: none; }
 #wtrial.ok .why { background: rgba(185, 212, 138, 0.2); color: #e8f4d0; }

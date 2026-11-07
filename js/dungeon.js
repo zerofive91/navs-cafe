@@ -6,11 +6,13 @@
 //   형식 (2026-11 단위 5): 작은 시험은 고르기, 길 끝 큰 시험은 채우기(구절 빈칸 낱말 고르기) 또는
 //   버티기(속삭임이 되풀이되는 동안 말씀을 붙들고 그 자리에 서 있기, 떠나면 넘어지지 않고 "다시 서기").
 //   틀린 보기를 고르면 "왜 아닌가" 한 줄(그 구절이 실제로 말하는 바)을 보여 줌
+//   자료집 (2026-11 단위 10): 시험 자료는 js/trials.js 하나 (훈련소와 같이 씀). 속삭임마다 문항은 처음 만날 때 고름
+//   (이번 걸음에 나온 것·최근 본 것은 뒤로). 길을 다 이긴 뒤 입구로 돌아오면 속삭임이 새로 생겨 다시 걸을 때 다른 시험을 만남
 import * as THREE from 'three';
 import { TRAILS, R_PARK, floorY } from './layout.js';
-import { VERSES, showVerse } from './verses.js';
+import { showVerse } from './verses.js';
 import { STAGES, stageOf, addSteps, addStat, earn, useGood, GOODS } from './profile.js';
-import { TRIALS } from './dungeon-trials.js';
+import { BY, pool, draw, markSeen, vkey, verseOf, firstRedoToday } from './trials.js';
 import { bibleMode } from './bible.js';
 
 // 채우기는 지금 고른 번역(개역한글 / AI 현대어)으로 빈칸을 냄. 현대어 짝은 처음 한 번 불러 둠 (bible.js와 같은 모듈)
@@ -34,25 +36,8 @@ export const TIER_STAGE = { 1: '새싹', 2: '제자', 3: '일꾼' };
 export const stars = (id) => (TIER[id] ? '★'.repeat(TIER[id]) : '');
 const REWARD = { 1: 30, 2: 50, 3: 80 };
 
-// 시험 자료(속삭임·틀린 보기·이기는 까닭)는 js/dungeon-trials.js, 말씀은 js/verses.js의 'dg-<id>'
-//   길마다 자기 세트가 있고(없으면 common), 작은 시험은 시드로 섞은 차례에서 최근 본 문항을 뒤로 미뤄 고름
-const BY = {};
-for (const list of Object.values(TRIALS)) for (const T of list) BY[T.id] = T;
-// 최근 본 문항: 이 기기에만 { 길 id: [가장 최근 id, ...] } (계정에 올리지 않음, 못 쓰면 이번만)
-const SEEN_KEY = 'navs-cafe-dg-seen';
-let seen = {};
-try { seen = JSON.parse(localStorage.getItem(SEEN_KEY) || '{}') || {}; } catch (e) { seen = {}; }
-function markSeen(course, id) {
-  const list = (Array.isArray(seen[course]) ? seen[course] : []).filter((x) => x !== id);
-  list.unshift(id); seen[course] = list.slice(0, 8);
-  try { localStorage.setItem(SEEN_KEY, JSON.stringify(seen)); } catch (e) { /* 이번만 */ }
-}
-// 시드 차례를 지키되, 본 적 없는 문항이 먼저, 본 문항은 오래전에 본 것부터
-function pick(course, list, seed) {
-  const order = shuffle(list, seed), recent = Array.isArray(seen[course]) ? seen[course] : [];
-  const rank = (T) => { const i = recent.indexOf(T.id); return i < 0 ? -1 : recent.length - i; };
-  return order.map((T, i) => [T, i]).sort((a, b) => rank(a[0]) - rank(b[0]) || a[1] - b[1]).map((x) => x[0]);
-}
+// 시험 자료(속삭임·틀린 보기·이기는 까닭·갈래·형식)는 js/trials.js, 말씀은 verseOf(id) (숲길 'dg-<id>', 훈련소 장면 'wf-<id>')
+//   길마다 자기 세트(길 문항 + 그 길에 맞는 훈련소 장면, 없으면 common). 출제는 trials.js draw
 
 const hash = (s) => { let h = 7; for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; };
 const shuffle = (a, seed) => { const r = a.slice(); let s = seed || 1; for (let i = r.length - 1; i > 0; i--) { s = (s * 1103515245 + 12345) >>> 0; const j = s % (i + 1); [r[i], r[j]] = [r[j], r[i]]; } return r; };
@@ -97,10 +82,6 @@ export function initDungeon(K) {
     const gaps = new Set();
     for (let k = 0; k < n - 1; k++) gaps.add(Math.max(0, Math.min(last - 2, Math.round(((k + 1) * (last - 1)) / n) - 1)));
     gaps.add(last - 1);
-    const seed = hash(id);
-    const pool = TRIALS[id] || TRIALS.common;
-    const small = pick(id, pool.filter((T) => !T.big), seed), bigs = pick(id, pool.filter((T) => T.big), seed);
-    const big = bigs[0] || pick(id, TRIALS.common.filter((T) => T.big), seed)[0];
     const list = [...gaps].sort((a, b) => a - b);
     byCourse[id] = [];
     list.forEach((gi, k) => {
@@ -112,15 +93,33 @@ export function initDungeon(K) {
       for (let q = 0; q < 3; q++) { const s = fxSprite('circle_05', 0x2a2038, 2.6); s.material.blending = THREE.NormalBlending; s.material.opacity = 0.45; s.position.y = 1 + q * 0.5; g.add(s); parts.push(s); }
       g.scale.setScalar(isBig ? 1.9 : 1);
       g.position.set(p.x, gy(p), p.z); scene.add(g);
-      const S = { id, k, g, parts, x: p.x, z: p.z, back: st[gi], lie: (isBig || !small.length ? big : small[k % small.length]).id, big: isBig, beaten: false, fade: -1 };
+      const S = { id, k, g, parts, x: p.x, z: p.z, back: st[gi], lie: null, big: isBig, beaten: false, fade: -1 }; // lie: 처음 만날 때 고름 (assign)
       shades.push(S); byCourse[id].push(S);
     });
+  }
+
+  // 이 속삭임의 문항 고르기: 작은 시험은 그 길의 작은 문항(+맞는 훈련소 장면), 큰 시험은 그 길의 큰 문항 (세트가 없으면 common)
+  //   같은 걸음의 다른 속삭임에 이미 정해진 문항은 피함. 한 번 정하면 이길 때까지 그대로 (넘어져 다시 와도 같은 시험)
+  function assign(S) {
+    const used = byCourse[S.id].map((x) => x.lie).filter(Boolean);
+    const own = (at) => { const l = pool(at, { path: S.id, tier: TIER[S.id] || 3 }); return l.length ? l : pool(at, { path: 'common' }); };
+    const T = (!S.big && draw(own('small'), S.id, { avoid: used })[0]) || draw(own('big'), S.id, { avoid: used })[0];
+    return T.id;
+  }
+  // 다시 걷기: 길을 다 이긴 뒤 입구 가까이 오면 속삭임이 새로 생김 (문항은 다시 고름, 최근 본 것은 뒤로)
+  function revive(id) {
+    for (const S of byCourse[id]) {
+      Object.assign(S, { beaten: false, fade: -1, lie: null, sz: null, wait: false, belt: false });
+      S.g.scale.setScalar(S.big ? 1.9 : 1);
+      S.parts.forEach((m) => { m.material.opacity = m.isSprite ? 0.45 : 0.55; });
+    }
+    entered.delete(id);
   }
 
   // ---------- 시험 말풍선 ----------
   const box = document.createElement('div');
   box.className = 'npcb trial'; box.id = 'trial'; box.hidden = true;
-  box.innerHTML = '<div class="who"><b></b><span class="n"></span></div><p class="say"></p><div class="verse" hidden></div><div class="opts"></div><div class="row"><button class="later">물러나기</button><button class="again" hidden>다시 서기</button><button class="oil" hidden></button></div>';
+  box.innerHTML = '<div class="who"><b></b><span class="n"></span></div><p class="scene" hidden></p><p class="say"></p><div class="verse" hidden></div><div class="opts"></div><div class="row"><button class="later">물러나기</button><button class="again" hidden>다시 서기</button><button class="oil" hidden></button></div>';
   document.body.appendChild(box);
   const $ = (s) => box.querySelector(s);
   let cur = null, closedFor = null, opts = [];
@@ -154,11 +153,13 @@ export function initDungeon(K) {
     if (S.big) bigOn(S);
     me.path = []; me.task = null; if (me.state === 'walk') me.state = 'idle';
     me.face = Math.atan2(S.x - me.x, S.z - me.z);
-    const T = BY[S.lie], ref = VERSES['dg-' + T.id];
+    if (!S.lie) S.lie = assign(S);
+    const T = BY[S.lie], ref = verseOf(T.id);
     S.kind = T.kind || 'pick';
     markSeen(S.id, T.id);
     const list = byCourse[S.id];
-    $('.who b').textContent = (S.big ? '큰 시험 · ' : '') + '어둠의 속삭임' + (KIND_NAME[S.kind] ? ' · ' + KIND_NAME[S.kind] : '');
+    $('.who b').textContent = (S.big ? '큰 시험 · ' : '') + '어둠의 속삭임' + (KIND_NAME[S.kind] ? ' · ' + KIND_NAME[S.kind] : '') + (T.who ? ' · ' + T.who : '');
+    const sc = $('.scene'); sc.hidden = !T.scene; sc.textContent = T.scene ? `${T.scene} (${T.at})` : ''; // 훈련소 장면이 숲길에 나올 때
     $('.n').textContent = `${courseName(S.id)} · ${list.indexOf(S) + 1} / ${list.length}`;
     say(T.lie, PROMPT[S.kind]);
     const vb = $('.verse'); vb.textContent = ''; vb.hidden = S.kind === 'pick';
@@ -181,7 +182,7 @@ export function initDungeon(K) {
     } else {
       S.right = T.id;
       opts = shuffle([T.id, ...T.no], hash(S.id + S.k + performance.now()));
-      $('.opts').innerHTML = opts.map((k, i) => `<button class="opt" data-i="${i}"><kbd>${i + 1}</kbd><span>${VERSES['dg-' + k][0]} <em>${VERSES['dg-' + k][1]}</em></span></button>`).join('');
+      $('.opts').innerHTML = opts.map((k, i) => `<button class="opt" data-i="${i}"><kbd>${i + 1}</kbd><span>${verseOf(k)[0]} <em>${verseOf(k)[1]}</em></span></button>`).join('');
     }
     box.hidden = false; box.classList.remove('ok');
     S.oiled = false; oilBtn();
@@ -196,7 +197,7 @@ export function initDungeon(K) {
   }
   const note = (text, cls) => { const sm = $('.say small'); if (sm) { sm.textContent = text; sm.className = cls || ''; } };
   function fillOf(T) {
-    const krv = VERSES['dg-' + T.id][0], mod = bibleMode() === 'modern' && MOD && MOD.get(krv);
+    const krv = verseOf(T.id)[0], mod = bibleMode() === 'modern' && MOD && MOD.get(krv);
     return mod && T.fill.m ? { text: mod, words: T.fill.m } : { text: krv, words: T.fill.k };
   }
   // 틀린 보기를 골랐을 때: 그 구절이 실제로 말하는 바 (채우기는 그 낱말이 왜 아닌지)
@@ -211,7 +212,7 @@ export function initDungeon(K) {
     if (S.kind === 'hold') { lamp(1); $('.again').hidden = true; }
     const win = BY[S.lie].win; if (win) note(win); // 이 말씀이 왜 이기는지 한 줄
     sfx('orb', 0.3, 1.2); burst(S.x, gy(S) + 1.2, S.z);
-    showVerse('dg-' + S.lie, { cooldown: 0, title: '말씀으로 물리쳤어요' });
+    showVerse(vkey(BY[S.lie]), { cooldown: 0, title: '말씀으로 물리쳤어요' });
     setTimeout(() => { S.wait = false; if (cur === S) close(); checkWin(S.id); }, win ? 2200 : 900);
   }
   function choose(i) {
@@ -341,7 +342,11 @@ export function initDungeon(K) {
     shieldUsed.delete(id); swordUsed.delete(id);
     const bigS = list.find((S) => S.big); if (bigS) victory(bigS);
     profile.dungeon = profile.dungeon || {};
-    if (profile.dungeon[id]) { addSteps(profile, 5); earn(profile, 1); save(); onChange?.(); toast(`${courseName(id)}의 시험을 다시 이겼어요 (걸음 +5, 1 데나리온)`, 4); return; }
+    if (profile.dungeon[id]) { // 다시 이김: 길마다 하루 첫 번째만 걸음 +5·1 데나리온, 그 뒤 같은 날은 걸음 +1
+      const first = firstRedoToday(id);
+      addSteps(profile, first ? 5 : 1); if (first) earn(profile, 1); save(); onChange?.();
+      toast(`${courseName(id)}의 시험을 다시 이겼어요 (걸음 +${first ? '5, 1 데나리온' : '1 · 데나리온은 하루 한 번'})`, 4); return;
+    }
     profile.dungeon[id] = 'clear';
     const n = REWARD[TIER[id]] * (K.gear?.()?.full() ? 2 : 1); // 전신갑주를 다 갖추면 두 배
     addStat(profile, 'word', 5); addStat(profile, 'obey', 5);
@@ -366,6 +371,7 @@ export function initDungeon(K) {
   // ---------- 매 프레임 ----------
   let lockAt = 0, lockSaid = 0;
   const entered = new Set();
+  let enterSaid = false;
   function step(dt, t) {
     const now = performance.now() / 1000;
     // 표지와 속삭임은 가까이 있을 때만 그림
@@ -392,6 +398,11 @@ export function initDungeon(K) {
     // 잠긴 길과 처음 들어선 길 (0.3초마다)
     if (now - lockAt < 0.3) return;
     lockAt = now;
+    // 다 이긴 길의 입구 가까이 오면 속삭임이 새로 생김 (입구는 정원 둘레 바로 바깥이라 아래 정원 안 검사보다 먼저 봄)
+    if (!cur) for (const [cid, list] of Object.entries(byCourse)) {
+      if (!list.every((S) => S.beaten)) continue; // 흩어지는 중인 것도 됨 (멀리 있으면 흩어짐이 끝나지 않으므로, revive가 되돌림)
+      const g = gateOf(TRAILS[cid]); if (Math.hypot(me.x - g.x, me.z - g.z) < 6) revive(cid);
+    }
     const r = Math.hypot(me.x, me.z);
     if (r < R_PARK + 2.5) return;
     let best = null, bd = 3.2;
@@ -410,7 +421,7 @@ export function initDungeon(K) {
       return;
     }
     if (!entered.has(id)) {
-      if (!entered.size) showVerse('dg-enter', { cooldown: 0, title: '숲길 던전' });
+      if (!enterSaid) { enterSaid = true; showVerse('dg-enter', { cooldown: 0, title: '숲길 던전' }); }
       entered.add(id);
       const n = byCourse[id].filter((S) => !S.beaten).length;
       if (n) setTimeout(() => toast(`${courseName(id)} ${stars(id)}: 이 길에 어둠의 속삭임 ${n}이 있어요. 말씀으로 이겨요.`, 5), 600);

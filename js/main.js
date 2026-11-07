@@ -1730,6 +1730,7 @@ guides = initGuides({
 warfare = initWarfare({
   scene, me, makeChar, npcs, profile, save: saveMe, toast, sfx, burst, fxSprite,
   busy: busyOf('warfare'),
+  courseName: (id) => (COURSE_META[id] ? COURSE_META[id].name : id), // 훈련소에 섞이는 숲길 속삭임의 길 이름
   onChange: () => character.showChip(),
 });
 garden = initGarden({
