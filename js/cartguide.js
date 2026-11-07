@@ -83,7 +83,7 @@ export function initCartGuide(K) {
       esc: hide,
     });
   }
-  const talk = (g) => (g.id === 'base' ? talkBase() : talkJohn());
+  const talk = (g) => { if (busy()) return; g.id === 'base' ? talkBase() : talkJohn(); }; // 말 걸기 단추를 누른 때 다른 창이 열려 있으면 열지 않음
 
   function step() {
     for (const g of list) {
