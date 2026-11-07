@@ -4,8 +4,8 @@
 //   소모품: 등잔 기름(숲길 시험에서 틀린 말씀 하나 걷어 냄) · 보리떡(넘어져도 그 자리에서 일어남) · 향(기도 +1)
 //   다니기 (2026-11 둘째): 병거 삯(고른 곳으로 순간이동, 행 8:28) · 나귀 빌리기(2분 빨리, 마 21:2) · 안약(3분 동안 할 일의 사람에게 빛기둥, 계 3:18)
 import * as THREE from 'three';
-import { PARK, isFree, SPAWN, floorY, regionIdAt } from './layout.js';
-import { ZONES as JZONES, CART as JCART } from './john/layout.js';
+import { PARK, isFree, floorY, regionIdAt } from './layout.js';
+import { village } from './villages/registry.js';
 import { nearestFree } from './nav.js';
 import { nameTag } from './tutorial.js';
 import { GOODS, ITEMS, MONEY, SELL, fmtMoney, earn, spend, addGood, useGood, sellItem, openWallet, addStat } from './profile.js';
@@ -128,23 +128,10 @@ export function initShop(K) {
   }
 
   // ---------- 병거: 고른 곳으로 (순간이동) ----------
-  const PLACES = [
-    ['cafe', '카페 입구'], ['market', '루디아의 가게'],
-    ['t_word', '말씀 훈련장'], ['t_pray', '기도 훈련장'], ['t_fellow', '교제 훈련장'], ['t_witness', '증거 훈련장'], ['t_obey', '순종 훈련장'],
-    ['warfare', '영적 전쟁 훈련소'], ['emmaus', '엠마오 가는 길'], ['mount', '산 위의 가르침'], ['prison', '빌립보 감옥'], ['shiloh', '실로의 성막'], ['meadow', '푸른 초장'], ['sower', '씨 뿌리는 밭'], ['mustard', '겨자씨'], ['vine', '포도나무'], ['fold', '잃은 양'], ['well', '우물'],
-    ['jericho', '여리고 성'], ['david', '다윗과 골리앗'], ['jonah', '요나의 바다'], ['ark', '노아의 방주'],
-    ['zacc', '삭개오의 뽕나무'], ['road', '여리고 길'], ['wild', '들짐승 들판'], ['bethsaida', '벳새다 들녘'],
-  ].filter(([id]) => id === 'cafe' || PARK[id]);
-  // 병거는 같은 마을 안에서만 (2026-11 요한복음 마을): 요한 마을에서는 그 마을 구역으로
-  const JPLACES = Object.entries(JZONES).map(([id, z]) => ['j:' + id, z.name]);
-  const placesHere = () => (regionIdAt(me.x, me.z) === 'john' ? JPLACES : PLACES);
-  const placeOf = (id) => {
-    if (id === 'j:light') return { p: JCART.arrive, look: JCART.look };
-    if (id.startsWith('j:')) { const z = JZONES[id.slice(2)]; return { p: { x: z.x, z: z.z + z.r * 0.5 }, look: { x: z.x, z: z.z } }; }
-    if (id === 'cafe') return { p: { x: SPAWN.x, z: SPAWN.z + 6 }, look: { x: 0, z: 0 } };
-    const z = PARK[id];
-    return { p: z.at(0, -(z.d / 2 + 3)), look: { x: z.x, z: z.z } };
-  };
+  // 병거는 같은 마을 안에서만 (2026-11 요한복음 마을): 목적지 목록과 자리는 마을 등록부의 trips (js/villages/<id>.js)
+  const tripsHere = () => (village(regionIdAt(me.x, me.z)) || village('base')).trips;
+  const placesHere = () => tripsHere()?.list() || [];
+  const placeOf = (id) => tripsHere()?.at(id) || null; // trips가 없는 마을이면 null
   const trip = document.createElement('div');
   trip.id = 'trip'; trip.hidden = true;
   document.body.appendChild(trip);
@@ -154,6 +141,7 @@ export function initShop(K) {
   function openTrip() {
     if (!(profile.bag?.chariot > 0)) { toast('병거 삯이 없어요. 루디아의 가게에서 살 수 있어요', 3.5); return; }
     if (busy?.() || me.climb) { toast('지금 하던 일을 마친 뒤에 병거를 타요', 3); return; }
+    if (!placesHere().length) { toast('이 마을에서는 병거를 쓸 수 없어요', 3); return; } // trips가 없는 마을
     trip.innerHTML = `<div class="pad"><button class="close" aria-label="닫기">×</button><h3>병거 타기</h3><p class="sub">어디로 갈까요? (병거 삯 ${profile.bag.chariot}개)</p><div class="list">${placesHere().map(([id, n]) => `<button data-to="${id}">${n}</button>`).join('')}</div></div>`;
     trip.hidden = false;
   }
@@ -166,8 +154,9 @@ export function initShop(K) {
     go(b.dataset.to, b.textContent);
   });
   function go(id, name) {
+    const at = placeOf(id); if (!at) return; // 삯을 쓰기 전에 확인
     if (!useGood(profile, 'chariot')) return;
-    const { p, look } = placeOf(id);
+    const { p, look } = at;
     const to = nearestFree(p) || p;
     if (me.seat) K.standUp?.(me);
     me.path = []; me.task = null; me.action = null; me.state = 'idle';

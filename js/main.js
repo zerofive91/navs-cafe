@@ -39,6 +39,8 @@ import { initQuestLog, walkToward } from './questlog.js';
 import { talkOffer, pressTalk } from './talkgate.js';
 import { escDialog } from './dialog.js';
 import { initRegion } from './region.js';
+import { VILLAGES, visitedTowns, lastTown } from './villages/registry.js';
+import { initCartGuide } from './cartguide.js';
 
 const canvas = document.getElementById('cafe');
 const bar = document.getElementById('actions');
@@ -158,6 +160,7 @@ function makeChar(look, x, z) {
 
 const myLook = loadLook();
 let region = null; // 마을 사이 다니기 (region.js). 맨 아래에서 만듦
+let cartGuide = null; // 수레 안내인 (cartguide.js)
 let tut = null, character = null, training = null, dungeon = null, warfare = null, guides = null, garden = null, wayguide = null, quests = null, shop = null, gear = null, story = null, pets = null, questLog = null, stillness = null; // 안내와 캐릭터 창은 맨 아래에서 만듦
 const profile = loadProfile(); // 닉네임·걸음·받은 것·안내 기록 (이 기기 안에만)
 if (profile.name) myLook.name = profile.name;
@@ -1351,10 +1354,12 @@ function frame(now) {
   pets.step(dt);
   questLog?.step(dt);
   region.step(dt);
+  cartGuide?.step(dt);
   for (const n of npcs) { stepChar(n, dt); poseAvatar(n.av, n, t, dt); }
   training.pin();
   warfare.pin();
   guides.pin();
+  cartGuide?.pin();
   garden.pin();
   wayguide.pin();
   together.step(dt, t);
@@ -1524,7 +1529,7 @@ const map = initMap({
   me, people: () => [...together.people.values()].filter((p) => p.net && p.inTown), walkTo, // people: 이 마을 사람만 (멀어서 안 그리는 사람도 지도에는)
   say: toast, icon: ICONS.map, placesEl, before: peopleBtn,
   // 마을 탭: 가 본 마을만. 다른 마을을 고르면 이 마을의 수레 곁으로 걸어감
-  towns: () => ['base', ...(profile.john?.seen ? ['john'] : [])], toTown: () => region?.toCart(),
+  towns: () => visitedTowns(profile), toTown: () => region?.toCart(), // 등록부 (js/villages/registry.js)
 });
 
 // 모임 번호 (링크를 주고받지 않고, 같은 네 자리 번호를 넣은 사람끼리만 모임)
@@ -1574,8 +1579,8 @@ function goIn() {
   document.body.classList.remove('at-door');
   setTimeout(() => { for (const [m, sec] of doorToasts.splice(0)) toast(m, sec); }, 2500);
   setTimeout(() => enter.remove(), 700);
-  // 지난번에 요한복음 마을에 있었으면 그 마을 도착 자리(빛의 광장)에서 시작
-  if (profile.john?.last && profile.name) { region.go('john', { fromDoor: true }); character.showChip(); setTimeout(maybeHint, 1200); return; }
+  // 지난번에 다른 마을(요한복음 마을 등)에 있었으면 그 마을 도착 자리(빛의 광장)에서 시작
+  if (lastTown(profile) !== 'base' && profile.name) { region.go(lastTown(profile), { fromDoor: true }); character.showChip(); setTimeout(maybeHint, 1200); return; }
   // 처음 오면 이름과 모습을 정하고, 바나바의 카페 안내를 받음
   walkTo(me, { x: 0, z: 19 }, () => {
     if (!profile.name) character.openCreator(true);
@@ -1653,20 +1658,23 @@ function setEnv(env) {
 }
 region = initRegion({
   scene, me, profile, save: () => saveProfile(profile), toast, sfx, standUp, walkTo, interactive, occluders, setEnv,
-  // 요한복음 마을 사건(js/john/engine.js)이 쓰는 것: 마을을 처음 지을 때 넘겨받음
-  johnKit: {
+  blocked: () => !!cartGuide?.active(), // 수레 안내인 말풍선이 열려 있는 동안은 수레 단추가 쉼
+  chooseTown: (ids) => cartGuide?.choose(ids), // 초보자 마을 수레가 갈 마을이 여럿이면 수레꾼이 고르기 말풍선을 엶 (사도행전 마을을 연 뒤)
+  // 마을 사건 엔진(요한복음 마을: js/john/engine.js)이 쓰는 것: 마을을 처음 지을 때 넘겨받음 (등록부 load의 kit)
+  townKit: {
     scene, me, makeChar, npcs, profile, save: () => saveProfile(profile), toast, sfx, burst, fxSprite, walkTo, standUp, shot,
     busy: () => busyOf('john')(), onChange: () => character?.showChip(), openLog: (k) => questLog?.open(k), lights: { hemi, sun },
   },
   camBehind: () => { view.az = me.face + Math.PI; view.tx = me.x; view.tz = me.z; view.ty = me.y + 0.62; view.shot = null; view.lift = 0; },
   onSwitch: (id) => {
-    document.body.classList.toggle('region-john', id === 'john');
+    for (const v of VILLAGES) if (v.bodyClass) document.body.classList.toggle(v.bodyClass, v.id === id);
     placesEl.classList.remove('open');
     if (!map.el.hidden) map.shut();
     together.refresh?.();
   },
 });
 Object.assign(ACTIONS, region.actions);
+cartGuide = initCartGuide({ me, makeChar, npcs, profile, toast, busy: () => busyOf('cart')(), region: () => region });
 // 열려 있는 창 등록부 (2026-11): 말풍선·안내·훈련 등 창이 하나라도 열려 있으면 다른 말풍선은 열리지 않음
 //   새 모듈이 생기면 여기 한 줄만 보태면 됨. busyOf(자기 이름, ...보지 않을 이름)은 자기 자신을 뺀 나머지를 살핌
 //   story(누가) 말풍선이 열려 있으면 훈련·시험·부탁·가게도 열리지 않음 (2026-11 단위 6에서 정리, 예전엔 예외였음)
@@ -1674,8 +1682,9 @@ const OPEN_WINDOWS = {
   tut: () => tut?.active(), character: () => character?.isOpen(), training: () => training?.active(), dungeon: () => dungeon?.active(),
   guides: () => guides?.active(), garden: () => garden?.active(), wayguide: () => wayguide?.active(), warfare: () => warfare?.active(),
   quests: () => quests?.active(), shop: () => shop?.active(), story: () => story?.active?.(),
+  cart: () => cartGuide?.active(), // 수레 안내인 말풍선
   region: () => region?.active(), // 마을을 옮기는 중
-  john: () => !!region?.engine?.active(), // 요한복음 마을 사건 말풍선 (시험·공부·암송·묵상 창 포함)
+  john: () => !!region?.anyActive(), // 마을 사건 말풍선 (요한복음 마을: 시험·공부·암송·묵상 창 포함). 이름은 예전 그대로
   stillness: () => !!stillness?.active(), // 머무름 묵상 (고르는 창 포함)
 };
 const busyOf = (self, ...skip) => {
@@ -1771,7 +1780,7 @@ story = initStory({
   busy: busyOf('story'),
   onChange: () => character.showChip(),
 });
-questLog = initQuestLog({ me, quests, story, walkTo, toast, john: () => region.engine, town: () => region.here() });
+questLog = initQuestLog({ me, quests, story, walkTo, toast, john: () => region.engineHere(), town: () => region.here() });
 requestAnimationFrame(frame);
 if (window.__pick) choose(window.__pick);
 // 첫 화면이 뜬 뒤 소품 모델을 천천히 불러와 바꿔 끼움
@@ -1781,4 +1790,4 @@ setTimeout(() => {
   for (const n of npcs) if (n.av) upgradeCup(n.av);
 }, 300);
 
-window.__cafe = { get region() { return region; }, get questLog() { return questLog; }, get pets() { return pets; }, get story() { return story; }, get shop() { return shop; }, get gear() { return gear; }, get warfare() { return warfare; }, get guides() { return guides; }, get garden() { return garden; }, get wayguide() { return wayguide; }, availableActions, profile, tut, character, training, dungeon, quests, camera, shot, together, me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs, placed, park, scrolls, renderer, map };
+window.__cafe = { get region() { return region; }, get cartGuide() { return cartGuide; }, get questLog() { return questLog; }, get pets() { return pets; }, get story() { return story; }, get shop() { return shop; }, get gear() { return gear; }, get warfare() { return warfare; }, get guides() { return guides; }, get garden() { return garden; }, get wayguide() { return wayguide; }, availableActions, profile, tut, character, training, dungeon, quests, camera, shot, together, me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs, placed, park, scrolls, renderer, map };
