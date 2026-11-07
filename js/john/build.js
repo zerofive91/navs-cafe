@@ -3,7 +3,7 @@
 // 나머지 구역 열한 곳의 빈 자리(둥근 돌 테두리와 이름 팻말)만. 사건 모형은 1차 MVP부터
 import * as THREE from 'three';
 import {
-  JX, JZ, HALF_W, HALF_D, W, ZONES, LAKE, RIVER, RIVER_HALF, FORD, ROADS, groundH, WATER_Y, PLAZA, PLAZA_LIGHT, LAMPS, BENCHES, CART, SIGNPOSTS, TREES,
+  JX, JZ, HALF_W, HALF_D, W, ZONES, LAKE, RIVER, RIVER_HALF, FORD, ROADS, groundH, WATER_Y, PLAZA, PLAZA_LIGHT, LAMPS, BENCHES, CART, SIGNPOSTS, TREES, BOARD,
   SP, HOUSE2, YARD3, YARD3_GAPS, HOUSE3, JARS, TABLE3, HOUSE10, ROOF_Y, STAIR10, LINE10, GATE7, POOL9,
   WELL6, HOUSES6, FIELD6, SYN4, SYN4_DOOR, HOUSE4, BOAT,
   HOLY7, STALLS7, STALL_KIND, PORTICO7, FOLD7, FOLD7_DOOR, POOL8, HOUSE12, TABLE12, PLOT12, TOMB12, noStone,
@@ -169,6 +169,40 @@ function plaza(root) {
   }
   return flames;
 }
+// 소식판 (채우기 E3 · 오늘의 마을): 사도 요한 곁 나무 판. 판 위 세 칸(이야기·부탁·머무름)에 한 일이 불로 켜지고, 셋을 다 하면 위에 작은 표지(깃발)가 달림
+//   set(got, full): got는 오늘 한 일 글자('a'·'b'·'c'), full은 셋 다 했는지. 모양만 바꾸고 판정은 js/village/daily.js
+function noticeBoard(root) {
+  const g = new THREE.Group();
+  g.position.set(BOARD.x, PLAZA.y, BOARD.z); g.rotation.y = BOARD.face;
+  for (const sx of [-0.85, 0.85]) bx(g, 0.12, 2.0, 0.12, mat.wood, sx, 1.0, -0.05);
+  const cv = document.createElement('canvas'); cv.width = 512; cv.height = 300;
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+  const face = new THREE.Mesh(new THREE.BoxGeometry(1.95, 1.15, 0.08), [mat.wood, mat.wood, mat.wood, mat.wood, new THREE.MeshStandardMaterial({ map: tex, roughness: 0.95 }), mat.wood]);
+  face.position.set(0, 1.35, 0); face.castShadow = true; g.add(face);
+  const roof = bx(g, 2.35, 0.08, 0.7, mat.clay, 0, 2.05, 0.1); roof.rotation.x = 0.12;
+  const flag = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.26, 0.03), new THREE.MeshStandardMaterial({ color: 0xe8b84a, roughness: 0.7, emissive: 0x6a4a10, emissiveIntensity: 0.5 }));
+  flag.position.set(0.35, 2.42, 0.1); flag.visible = false; g.add(flag);
+  const pole = bx(g, 0.04, 0.5, 0.04, mat.wood, 0.12, 2.3, 0.1); pole.visible = false;
+  const names = ['이야기', '부탁', '머무름'];
+  const draw = (got, full) => {
+    const c = cv.getContext('2d');
+    c.fillStyle = '#e9d9b4'; c.fillRect(0, 0, 512, 300);
+    c.strokeStyle = '#a9895a'; c.lineWidth = 8; c.strokeRect(6, 6, 500, 288);
+    c.fillStyle = '#6a4a2a'; c.textAlign = 'center'; c.font = '700 40px "Noto Serif KR", serif'; c.fillText('오늘의 마을', 256, 62);
+    for (let i = 0; i < 3; i++) {
+      const x = 96 + i * 160, done = got.includes('abc'[i]);
+      c.beginPath(); c.arc(x, 158, 46, 0, Math.PI * 2);
+      c.fillStyle = done ? '#ffd57a' : '#f4ecd6'; c.fill(); c.lineWidth = 5; c.strokeStyle = done ? '#c88a22' : '#b9a67e'; c.stroke();
+      c.fillStyle = done ? '#8a5a10' : '#b9a67e'; c.font = '700 54px system-ui, sans-serif'; c.fillText(done ? '✓' : '·', x, 176);
+      c.fillStyle = '#6a4a2a'; c.font = '600 28px "Noto Serif KR", serif'; c.fillText(names[i], x, 252);
+    }
+    tex.needsUpdate = true;
+  };
+  draw('', false);
+  root.add(g);
+  return { set(got, full) { draw(got || '', !!full); flag.visible = pole.visible = !!full; } };
+}
+
 function glowTex() {
   const cv = document.createElement('canvas'); cv.width = cv.height = 128;
   const g = cv.getContext('2d'), gr = g.createRadialGradient(64, 64, 4, 64, 64, 64);
@@ -776,6 +810,7 @@ export function buildJohn({ scene, occluders, makeCart, makeSignpost }) {
   zoneStones(root);
   trees(root);
   const flames = plaza(root);
+  const board = noticeBoard(root);
   // 돌아가는 수레와 이정표
   const cart = makeCart();
   cart.position.set(CART.x, PLAZA.y - 0.1, CART.z); cart.rotation.y = CART.rot;
@@ -790,7 +825,7 @@ export function buildJohn({ scene, occluders, makeCart, makeSignpost }) {
     root.add(sp);
   }
   const parts = mvp(root);
-  parts.plazaFlames = flames; parts.plazaHalo = root.userData.plazaHalo;
+  parts.plazaFlames = flames; parts.plazaHalo = root.userData.plazaHalo; parts.board = board;
   stage2a(root, parts);
   stage2b(root, parts);
   stage3(root, parts);

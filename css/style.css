@@ -810,6 +810,23 @@ body.region-john #storyChip, body.region-john #questChip { display: none; } /* �
 #questLog .erl ul { margin: 4px 0 0; padding-left: 18px; }
 #questLog .erl li { margin: 2px 0; }
 #questLog .erl li span { color: #8a7a5a; font-size: 13px; }
+/* 오늘의 마을 (js/village/daily.js): 부탁 창 목록과 소식판 말풍선 */
+#questLog .dl h3 { color: #4f7a46; }
+#questLog .dlist { list-style: none; margin: 4px 0 6px; padding: 0; }
+#questLog .dlist li { margin: 5px 0; line-height: 1.5; }
+#questLog .dlist li b { display: block; color: #6b4c32; }
+#questLog .dlist li span { color: #8a7a5a; font-size: 13px; }
+#questLog .dlist li.done b { color: #4f8a46; }
+#questLog .dlist li.done span, #questLog .dlist li.off { opacity: 0.65; }
+#questLog .dlist .go.sm { border: 0; border-radius: 10px; padding: 3px 10px; margin-left: 4px; font: 600 12px "Noto Serif KR", serif; background: #e8b860; color: #4a3010; cursor: pointer; vertical-align: 1px; }
+.npcb.jn .board { list-style: none; margin: 8px 0 2px; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.npcb.jn .board li { padding: 6px 10px; border-radius: 12px; background: #fffaf0; border: 1px solid #e4d4b4; color: #5a4030; font: 500 14px/1.45 "Noto Serif KR", serif; word-break: keep-all; }
+.npcb.jn .board li b { display: block; color: #8a5a2a; font-weight: 700; }
+.npcb.jn .board li span { color: #7a6a52; font-size: 13px; }
+.npcb.jn .board li.done { background: #eef6e2; border-color: #c4dba0; }
+.npcb.jn .board li.done b { color: #4f8a46; }
+.npcb.jn .board li.off { opacity: 0.6; }
+html.land .npcb.jn .board li { padding: 4px 8px; font-size: 13px; }
 .npcb.jn .note { margin: 6px 0 0; font: 500 13px/1.5 "Noto Serif KR", serif; color: #9a7c5c; word-break: keep-all; }
 .npcb.jn.trial .note { color: #c8b8e0; }
 .npcb.jn .why { margin: 8px 0 0; padding: 6px 10px; border-radius: 10px; background: rgba(255, 214, 120, 0.18); font: 500 14px/1.5 "Noto Serif KR", serif; color: #8a5a2a; word-break: keep-all; }
