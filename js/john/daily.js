@@ -33,7 +33,8 @@ export function linkDaily(kit) {
     if (Object.values(J().er || {}).some((r) => r && r.last === t)) daily.mark('b');
   }
   const link = {
-    kit: { ...kit, onChange: () => { kit.onChange?.(); sync(true); } },
+    // 오늘의 마을 쪽 예외가 사건 마침 카드·NPC 복귀를 끊지 않게 감쌈
+    kit: { ...kit, onChange: () => { kit.onChange?.(); try { sync(true); } catch (e) { console.warn('오늘의 마을 기록 중 오류', e); } } },
     attach(engine, built, events) {
       eng = engine; EV = events.EV;
       const { ORDER } = events, N = engine.N, er = engine.errands;
@@ -42,7 +43,7 @@ export function linkDaily(kit) {
       const zoneOf = (e) => ZONES[e.start || e.zone]?.name || '';
       const T = {
         name: '요한복음 마을',
-        board: { x: BOARD.x, z: BOARD.z, r: BOARD.r, set: (got, full) => built.parts.board?.set(got, full) },
+        board: { x: BOARD.x, z: BOARD.z, r: BOARD.r, set: (got, full, skip) => built.parts.board?.set(got, full, skip) },
         tasks() {
           const evs = ORDER.map((id) => EV[id]);
           // a: 다음 이야기(마친 것이 아직 남았으면). 그것이 수난 구역이거나 다 마쳤으면 마친 이야기 가운데 날마다 하나
@@ -55,8 +56,9 @@ export function linkDaily(kit) {
           const list = er.open(), doneToday = Object.values(J().er || {}).some((r) => r && r.last === today());
           const eb = list.length ? dayPick(list, 'b') : null;
           const b = eb ? { k: 'b', text: `${eb.who}의 부탁 "${eb.title}"`, where: eb.where, target: eb.target } : doneToday ? { k: 'b', text: '오늘 부탁을 도왔어요' } : { k: 'b', text: '', off: true };
-          // c: 쉼 자리 하나
-          const sp = dayPick(REST, 'c');
+          // c: 쉼 자리 하나. 이야기를 몇 개 못 마친 사람에게는 먼 자리 대신 광장 벤치 (가까운 곳)
+          const few = evs.filter((e) => done(e)).length < 5;
+          const sp = few ? { ...dayPick(BENCHES, 'c'), name: '빛의 광장 벤치' } : dayPick(REST, 'c');
           const c = { k: 'c', text: `${sp.name}에 앉아 "머무르기" 1분`, where: '앉으면 머무르기 단추가 떠요', target: { x: sp.x, z: sp.z } };
           return [a, b, c];
         },

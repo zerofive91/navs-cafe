@@ -10,9 +10,9 @@ import { VERSES } from '../verses.js';
 export const FIRST = { steps: 5, stat: 1, coin: 1 };
 export const AGAIN = { steps: 2 };
 const pad = (n) => String(n).padStart(2, '0');
-// 오늘 (기기 날짜). 주소에 ?day=YYYY-MM-DD가 있으면 그날로 (시험용)
+// 오늘 (기기 날짜). 주소에 ?day=YYYY-MM-DD가 있으면 그날로 (시험용, 내 컴퓨터 localhost·127.0.0.1에서만: 공개 주소에서는 가짜 날짜로 보상을 못 받게)
 export function today() {
-  try { const q = new URLSearchParams(location.search).get('day'); if (q && /^\d{4}-\d{2}-\d{2}$/.test(q)) return q; } catch (e) { /* 주소를 못 읽는 환경 */ }
+  try { const q = new URLSearchParams(location.search).get('day'); if (q && /^\d{4}-\d{2}-\d{2}$/.test(q) && /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)) return q; } catch (e) { /* 주소를 못 읽는 환경 */ }
   const d = new Date();
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
