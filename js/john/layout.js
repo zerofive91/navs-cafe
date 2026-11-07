@@ -115,7 +115,8 @@ export const LAMP_IDS = ['bread', 'light', 'door', 'shepherd', 'life', 'way', 'v
 export const JN_ACTS = ['jn_lamp', 'jn_water', 'jn_draw', 'jn_give', 'jn_look', 'jn_wash', 'jn_put', 'jn_boat', 'jn_row', 'jn_call',
   'jn_clear', 'jn_lift', 'jn_push', 'jn_untie', 'jn_pour', 'jn_plant', // 2차 나: 장사판 치우기 · 자리 들기 · 돌 옮기기 · 베 풀기 · 향유 붓기 · 밀 심기
   'jn_towel', 'jn_feet', 'jn_sheathe', 'jn_spice', 'jn_net', 'jn_pull', 'jn_feed', // 3차: 수건과 대야 · 발 씻기기 · 검 꽂기 · 향품 놓기 · 그물 던지기 · 그물 끌어 올리기 · 어린 양 먹이기
-  'jn_oil', 'jn_dry', 'jn_pick']; // 증인의 작은 부탁 (js/john/errands.js): 기름 붓기 · 그물 널기 · 줍기
+  'jn_oil', 'jn_dry', 'jn_pick', // 증인의 작은 부탁 (js/john/errands.js): 기름 붓기 · 그물 널기 · 줍기
+  'jn_board']; // 소식판 보기 (오늘의 마을, js/village/daily.js)
 // 구역 팻말 (빈 자리마다 하나)
 export const SIGNPOSTS = Object.entries(ZONES).map(([id, z]) => {
   const p = id === 'light' ? W(PU + 4.5, PV + 15.5) : W(z.u - z.r * 0.55, z.v - z.r * 0.55);
@@ -168,6 +169,8 @@ export const SP = {
   blindSeat: gAt(3.4, 1.3), blindMan: gAt(-3.4, 1.4), pharisee: [S(C7.u + 0.5, C7.v - 1.5), S(C7.u + 2.4, C7.v - 0.4)], outside: gAt(0.6, 14),
   wash: S(-70, 134.1), med9: S(-72.8, 130.9),
 };
+// 소식판 (오늘의 마을, 채우기 E3): 빛의 광장 사도 요한 곁. 앞면이 가운데 빛을 봄. r: 이 안에서 소식판 단추가 뜸
+export const BOARD = (() => { const p = S(PU + 5.4, PV + 3.2); return { ...p, face: Math.atan2(PLAZA_LIGHT.x - p.x, PLAZA_LIGHT.z - p.z), r: 2.9 }; })();
 
 // ---------- 2차 가 사건 자리 (2026-11): 수가 우물(Z6) · 가나 길목과 가버나움(Z4: 회당·신하의 집·물가) · 벳새다 들녘(Z5) · 호수 배 길 ----------
 // Z6 수가: 야곱의 우물, 동네 집 둘(문은 동쪽), 희어진 밭(요 4:35, 걸어 들어갈 수 있음), 우물가 그늘 의자
@@ -321,6 +324,7 @@ const block = (p, r, h = Infinity) => obstacles.push({ x: p.x, z: p.z, r, h });
 block(PLAZA_LIGHT, PLAZA_LIGHT.r);
 for (const l of LAMPS) block(l, 0.35, 1.1);
 block(CART, 1.25, 1.3);
+block(BOARD, 0.95, 2.2);
 for (const sp of SIGNPOSTS) block(sp, 0.25);
 for (const t of TREES) block(t, t.kind === 'palm' ? 0.35 : 0.5);
 // 사건 자리의 물건 (원으로 막음)
