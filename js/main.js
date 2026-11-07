@@ -39,6 +39,7 @@ import { initQuestLog, walkToward } from './questlog.js';
 import { talkOffer, pressTalk } from './talkgate.js';
 import { escDialog } from './dialog.js';
 import { initRegion } from './region.js';
+import { initCartGuide } from './cartguide.js';
 
 const canvas = document.getElementById('cafe');
 const bar = document.getElementById('actions');
@@ -158,6 +159,7 @@ function makeChar(look, x, z) {
 
 const myLook = loadLook();
 let region = null; // 마을 사이 다니기 (region.js). 맨 아래에서 만듦
+let cartGuide = null; // 수레 안내인 (cartguide.js)
 let tut = null, character = null, training = null, dungeon = null, warfare = null, guides = null, garden = null, wayguide = null, quests = null, shop = null, gear = null, story = null, pets = null, questLog = null, stillness = null; // 안내와 캐릭터 창은 맨 아래에서 만듦
 const profile = loadProfile(); // 닉네임·걸음·받은 것·안내 기록 (이 기기 안에만)
 if (profile.name) myLook.name = profile.name;
@@ -1351,10 +1353,12 @@ function frame(now) {
   pets.step(dt);
   questLog?.step(dt);
   region.step(dt);
+  cartGuide?.step(dt);
   for (const n of npcs) { stepChar(n, dt); poseAvatar(n.av, n, t, dt); }
   training.pin();
   warfare.pin();
   guides.pin();
+  cartGuide?.pin();
   garden.pin();
   wayguide.pin();
   together.step(dt, t);
@@ -1653,6 +1657,7 @@ function setEnv(env) {
 }
 region = initRegion({
   scene, me, profile, save: () => saveProfile(profile), toast, sfx, standUp, walkTo, interactive, occluders, setEnv,
+  blocked: () => !!cartGuide?.active(), // 수레 안내인 말풍선이 열려 있는 동안은 수레 단추가 쉼
   // 요한복음 마을 사건(js/john/engine.js)이 쓰는 것: 마을을 처음 지을 때 넘겨받음
   johnKit: {
     scene, me, makeChar, npcs, profile, save: () => saveProfile(profile), toast, sfx, burst, fxSprite, walkTo, standUp, shot,
@@ -1667,6 +1672,7 @@ region = initRegion({
   },
 });
 Object.assign(ACTIONS, region.actions);
+cartGuide = initCartGuide({ me, makeChar, npcs, profile, busy: () => busyOf('cart')(), region: () => region });
 // 열려 있는 창 등록부 (2026-11): 말풍선·안내·훈련 등 창이 하나라도 열려 있으면 다른 말풍선은 열리지 않음
 //   새 모듈이 생기면 여기 한 줄만 보태면 됨. busyOf(자기 이름, ...보지 않을 이름)은 자기 자신을 뺀 나머지를 살핌
 //   story(누가) 말풍선이 열려 있으면 훈련·시험·부탁·가게도 열리지 않음 (2026-11 단위 6에서 정리, 예전엔 예외였음)
@@ -1674,6 +1680,7 @@ const OPEN_WINDOWS = {
   tut: () => tut?.active(), character: () => character?.isOpen(), training: () => training?.active(), dungeon: () => dungeon?.active(),
   guides: () => guides?.active(), garden: () => garden?.active(), wayguide: () => wayguide?.active(), warfare: () => warfare?.active(),
   quests: () => quests?.active(), shop: () => shop?.active(), story: () => story?.active?.(),
+  cart: () => cartGuide?.active(), // 수레 안내인 말풍선
   region: () => region?.active(), // 마을을 옮기는 중
   john: () => !!region?.engine?.active(), // 요한복음 마을 사건 말풍선 (시험·공부·암송·묵상 창 포함)
   stillness: () => !!stillness?.active(), // 머무름 묵상 (고르는 창 포함)
@@ -1780,4 +1787,4 @@ setTimeout(() => {
   for (const n of npcs) if (n.av) upgradeCup(n.av);
 }, 300);
 
-window.__cafe = { get region() { return region; }, get questLog() { return questLog; }, get pets() { return pets; }, get story() { return story; }, get shop() { return shop; }, get gear() { return gear; }, get warfare() { return warfare; }, get guides() { return guides; }, get garden() { return garden; }, get wayguide() { return wayguide; }, availableActions, profile, tut, character, training, dungeon, quests, camera, shot, together, me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs, placed, park, scrolls, renderer, map };
+window.__cafe = { get region() { return region; }, get cartGuide() { return cartGuide; }, get questLog() { return questLog; }, get pets() { return pets; }, get story() { return story; }, get shop() { return shop; }, get gear() { return gear; }, get warfare() { return warfare; }, get guides() { return guides; }, get garden() { return garden; }, get wayguide() { return wayguide; }, availableActions, profile, tut, character, training, dungeon, quests, camera, shot, together, me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs, placed, park, scrolls, renderer, map };

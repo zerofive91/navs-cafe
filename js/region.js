@@ -60,7 +60,7 @@ export function makeSignpost(title, sub, h = 2.1) {
 }
 
 export function initRegion(K) {
-  const { scene, me, profile, save, toast, sfx, standUp, camBehind, setEnv, onSwitch, interactive, occluders, walkTo, johnKit } = K;
+  const { scene, me, profile, save, toast, sfx, standUp, camBehind, setEnv, onSwitch, interactive, occluders, walkTo, johnKit, blocked } = K;
   let eng = null; // 요한복음 마을 사건 진행 (js/john/engine.js, 마을을 처음 지을 때 함께 불러옴)
   const john = () => profile.john;
 
@@ -181,7 +181,7 @@ export function initRegion(K) {
     go, board, here: currentRegion,
     active: () => busy,
     locked: () => busy,
-    available: () => (busy ? [] : [...(nearCart() && me.state !== 'walk' ? [['place', 'jcart']] : []), ...(eng?.available() || [])]),
+    available: () => (busy || blocked?.() ? [] : [...(nearCart() && me.state !== 'walk' ? [['place', 'jcart']] : []), ...(eng?.available() || [])]),
     actions: { jcart: board, ...Object.fromEntries(JN_ACTS.map((k) => [k, jnAct(k)])) },
     get engine() { return eng; },
     wants: () => (eng && state.id === 'john' ? eng.wants() : []),
