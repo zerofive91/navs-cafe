@@ -2,13 +2,15 @@
 // 찾은 코스는 길과 정거장(지나온 곳은 채운 점)까지 보이고, 아직 못 찾은 코스는 입구만 반짝임
 // 지도를 누르면 그곳으로 걸어감
 import { TRAILS, PARK, R_HALL, R_WALK, R_PARK, R_GARDEN, BRIDGE, FLOWER_BEDS, TERRAIN, JONAH_SEA, CITY, Q, WALK_MAX, VILLAGE_GATE, regionIdAt } from './layout.js';
-import { JX, JZ, HALF_W, HALF_D, ZONES as JZONES, ROADS as JROADS, LAKE as JLAKE, RIVER as JRIVER, RIVER_HALF as JRIVER_HALF, PLAZA as JPLAZA, CART as JCART } from './john/layout.js';
+import { VILLAGES, village, destinations } from './villages/registry.js';
 import { COURSE_META, COURSE_STATIONS as STN, foundCourses } from './courses.js';
 import { stars } from './dungeon.js';
 import { nearestFree, findPath } from './nav.js';
 
 // 마을 (2026-11): 지금 있는 마을의 지도를 그림. 위쪽 "마을" 탭에 가 본 마을만 (다른 마을을 누르면 이 마을의 수레 곁으로)
-const TOWN_NAME = { base: '초보자 마을', john: '요한복음 마을' };
+//   마을 이름·지도 맞춤·그림·구역 목록은 마을 등록부(js/villages/<id>.js map). 초보자 마을 그림은 이 파일 draw()
+const TOWN_NAME = Object.fromEntries(VILLAGES.map((v) => [v.id, v.name]));
+const mapOf = (id) => village(id)?.map || null;
 export function initMap({ me, people, walkTo, say, icon, placesEl, before, towns = () => ['base'], toTown }) {
   const here = () => regionIdAt(me.x, me.z);
   const btn = document.createElement('button');
@@ -78,22 +80,27 @@ export function initMap({ me, people, walkTo, say, icon, placesEl, before, towns
     b.addEventListener('click', (e) => { e.stopPropagation(); goStart(id); });
     pick.appendChild(b);
   }
-  // 요한복음 마을 구역 목록 (이름을 누르면 그 빈 자리로 걸어감)
-  const pickJ = document.createElement('div');
-  pickJ.className = 'courses john';
-  { const sp = document.createElement('span'); sp.textContent = '요한복음 마을'; pickJ.appendChild(sp); }
-  for (const [id, z] of Object.entries(JZONES)) {
-    const b = document.createElement('button');
-    b.textContent = z.name; b.style.setProperty('--c', id === 'light' ? '#ffe2a0' : '#d9c39a'); b.dataset.jzone = id;
-    b.addEventListener('pointerdown', (e) => e.stopPropagation());
-    b.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const q = nearestFree(id === 'light' ? JCART.arrive : { x: z.x, z: z.z + z.r * 0.5 });
-      const path = q ? findPath(me, q) : [];
-      if (q && (path.length || Math.hypot(q.x - me.x, q.z - me.z) < 1)) { walkTo(me, q, null, path); shut(); say?.(z.name + '(으)로 가요', 2); }
-      else say?.('그곳은 걸어서 갈 수 없어요', 2);
-    });
-    pickJ.appendChild(b);
+  // 다른 마을 구역 목록 (등록부 map.picks, 이름을 누르면 그 빈 자리로 걸어감). 요한복음 마을은 class 'courses john'
+  const townPicks = new Map();
+  for (const v of VILLAGES) {
+    const M = v.map; if (v.status !== 'open' || !M?.picks) continue;
+    const el = document.createElement('div');
+    el.className = 'courses ' + v.id;
+    { const sp = document.createElement('span'); sp.textContent = M.title || v.name; el.appendChild(sp); }
+    for (const [id, nm, c] of M.picks()) {
+      const b = document.createElement('button');
+      b.textContent = nm; b.style.setProperty('--c', c); b.dataset.jzone = id;
+      b.addEventListener('pointerdown', (e) => e.stopPropagation());
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const q = nearestFree(M.pick(id));
+        const path = q ? findPath(me, q) : [];
+        if (q && (path.length || Math.hypot(q.x - me.x, q.z - me.z) < 1)) { walkTo(me, q, null, path); shut(); say?.(nm + '(으)로 가요', 2); }
+        else say?.('그곳은 걸어서 갈 수 없어요', 2);
+      });
+      el.appendChild(b);
+    }
+    townPicks.set(v.id, el);
   }
   // 마을 탭
   const tabs = document.createElement('div');
@@ -102,7 +109,7 @@ export function initMap({ me, people, walkTo, say, icon, placesEl, before, towns
     const list = towns(), cur = here();
     tabs.innerHTML = `<span>마을</span>${list.map((id) => `<button data-town="${id}" class="${id === cur ? 'on' : ''}">${TOWN_NAME[id] || id}</button>`).join('')}`;
     tabs.hidden = list.length < 2;
-    pick.hidden = cur !== 'base'; pickJ.hidden = cur !== 'john';
+    pick.hidden = cur !== 'base'; for (const [id, el] of townPicks) el.hidden = cur !== id;
   };
   tabs.addEventListener('pointerdown', (e) => e.stopPropagation());
   tabs.addEventListener('click', (e) => {
@@ -110,7 +117,7 @@ export function initMap({ me, people, walkTo, say, icon, placesEl, before, towns
     const b = e.target.closest('[data-town]'); if (!b || b.dataset.town === here()) return;
     shut(); say?.(`${TOWN_NAME[b.dataset.town]}에는 수레를 타고 가요. 수레 곁으로 걸어가요`, 3.5); toTown?.(b.dataset.town);
   });
-  wrap.append(cv, close, pick, pickJ, tabs);
+  wrap.append(cv, close, pick, ...townPicks.values(), tabs);
   document.body.appendChild(wrap);
   const g = cv.getContext('2d');
 
@@ -118,7 +125,7 @@ export function initMap({ me, people, walkTo, say, icon, placesEl, before, towns
   const V = { cx: 0, cz: 0, k: 1 };
   let raf = 0, dpr = 1, W = 0, Hh = 0;
   const fit = () => {
-    if (here() === 'john') { V.k = Math.min(W / (HALF_W * 2 + 20), (Hh - 110) / (HALF_D * 2 + 20)) * 0.98; V.cx = JX; V.cz = JZ + 10 / V.k; return; }
+    const M = mapOf(here()); if (M) { Object.assign(V, M.fit(W, Hh)); return; }
     const found = foundCourses();
     let R = R_GARDEN + 42; // 숲 쪽으로 펼친 코스 이름까지
     for (const id of Object.keys(found)) { const t = TRAILS[id]; if (t) for (const q of t.samples) R = Math.max(R, Math.hypot(q.x, q.z) + 10); }
@@ -168,26 +175,10 @@ export function initMap({ me, people, walkTo, say, icon, placesEl, before, towns
     g.lineWidth = 3; g.strokeStyle = /^#[0-6]/.test(color) ? 'rgba(255,250,235,0.7)' : 'rgba(0,0,0,0.6)'; g.strokeText(text, sx(x), sy(z) + dy);
     g.fillStyle = color; g.fillText(text, sx(x), sy(z) + dy);
   };
-  // 요한복음 마을 지도: 땅·호수·요단강·길·구역 빈 자리·빛의 광장·수레
-  function drawJohn(t) {
+  // 다른 마을 지도 (등록부 map.draw): 땅·물·길·구역은 마을이 그리고, 함께 있는 사람과 나는 여기서
+  function drawTown(M, t) {
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    g.fillStyle = '#2a2a20'; g.fillRect(0, 0, W, Hh);
-    g.fillStyle = '#9fa66f'; g.beginPath(); g.roundRect(sx(JX - HALF_W), sy(JZ - HALF_D), HALF_W * 2 * V.k, HALF_D * 2 * V.k, 10); g.fill();
-    // 북(갈릴리)은 푸르게, 남(유대)은 마르게
-    const gr = g.createLinearGradient(0, sy(JZ - HALF_D), 0, sy(JZ + HALF_D));
-    gr.addColorStop(0, 'rgba(110,150,90,0.55)'); gr.addColorStop(1, 'rgba(200,180,120,0.45)');
-    g.fillStyle = gr; g.beginPath(); g.roundRect(sx(JX - HALF_W), sy(JZ - HALF_D), HALF_W * 2 * V.k, HALF_D * 2 * V.k, 10); g.fill();
-    g.save(); g.translate(sx(JX + JLAKE.u), sy(JZ + JLAKE.v)); g.scale(JLAKE.ru, JLAKE.rv);
-    g.beginPath(); g.arc(0, 0, V.k, 0, Math.PI * 2); g.restore(); g.fillStyle = '#3a8fb5'; g.fill();
-    line(JRIVER.map(([u, v]) => ({ x: JX + u, z: JZ + v })), '#3a8fb5', Math.max(2, JRIVER_HALF * 2 * V.k));
-    for (const r of JROADS) line(r.map(([u, v]) => ({ x: JX + u, z: JZ + v })), 'rgba(240,226,190,0.85)', Math.max(1.5, 2.6 * V.k));
-    for (const [id, z] of Object.entries(JZONES)) {
-      circle(z.x, z.z, z.r, id === 'light' ? 'rgba(255,240,200,0.55)' : 'rgba(250,240,215,0.22)', 'rgba(255,245,215,0.7)', 1.2);
-      label(z.name, z.x, z.z, { size: Math.max(10, Math.min(13, 2.4 * V.k + 7)), color: '#fff6e0', dy: id === 'light' ? -2 : 0 });
-    }
-    circle(JPLAZA.x, JPLAZA.z, 1.6, '#fff1c8', null, 1, 4);
-    circle(JCART.x, JCART.z, 1.6, '#c99a5e', '#fff', 1.5, 4.5); label('수레 (초보자 마을)', JCART.x, JCART.z, { size: 10, dy: 12 });
-    label('요한복음 마을', JX, JZ - HALF_D - 6, { size: 13, color: '#fff6dc', weight: 700 });
+    M.draw({ g, sx, sy, k: V.k, W, H: Hh, line, circle, label, t });
     for (const p of people()) circle(p.x, p.z, 1.1, '#ffd36b', '#4a3a10', 1, 4);
     drawMe(t);
   }
@@ -200,7 +191,7 @@ export function initMap({ me, people, walkTo, say, icon, placesEl, before, towns
     g.restore();
   }
   function draw(t) {
-    if (here() === 'john') return drawJohn(t);
+    { const M = mapOf(here()); if (M) return drawTown(M, t); }
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.fillStyle = '#1d2a22'; g.fillRect(0, 0, W, Hh);
     const found = foundCourses();
@@ -288,8 +279,8 @@ export function initMap({ me, people, walkTo, say, icon, placesEl, before, towns
     }
     if (found.pilgrim) { circle(CITY.x, CITY.z, (CITY.r0 + CITY.r1) / 2, null, '#f6f0e2', Math.max(2, 1.2 * V.k)); if (V.k > 1.4) label('시온산', CITY.x, CITY.z, { size: 11, color: '#fff', dy: 16 }); }
     if (found.sinai && TERRAIN.sinai) label('시내산', TERRAIN.sinai.x, TERRAIN.sinai.z, { size: 11, color: '#e8d8c0' });
-    // 마을 길목: 요한복음 마을로 가는 수레
-    { const c = VILLAGE_GATE.cart; circle(c.x, c.z, 1.8, '#c99a5e', '#fff', 1.5, 4.5); label('요한복음 마을 수레', c.x, c.z, { size: 10, color: '#ffe2a8', weight: 700, dy: 12 }); }
+    // 마을 길목: 다른 마을로 가는 수레 (갈 마을이 하나면 그 이름)
+    { const c = VILLAGE_GATE.cart, outs = destinations('base'); circle(c.x, c.z, 1.8, '#c99a5e', '#fff', 1.5, 4.5); label(outs.length === 1 ? outs[0].name + ' 수레' : '마을 수레', c.x, c.z, { size: 10, color: '#ffe2a8', weight: 700, dy: 12 }); }
     // 함께 있는 사람들
     for (const p of people()) circle(p.x, p.z, 1.1, '#ffd36b', '#4a3a10', 1, 4);
     // 나: 바라보는 쪽으로 화살표 + 숨 쉬는 빛

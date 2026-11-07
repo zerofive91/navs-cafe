@@ -1,6 +1,7 @@
 // 부탁 창 (2026-11): 왼쪽 진행 표시(📜 부탁, ✦ 큰 이야기)를 누르면 지금 하는 일의 내용과 할 자리를 보여 줌
 //   "그곳으로 가기"를 누르면 그 자리까지 걸어감
 import { nearestFree, findPath } from './nav.js';
+import { village } from './villages/registry.js';
 
 // 그 자리 가까이 빈 곳까지 걸어감 (길을 못 찾으면 false)
 export function walkToward(me, walkTo, t) {
@@ -20,12 +21,12 @@ export function initQuestLog({ me, quests, story, walkTo, toast, john = () => nu
 
   let last = '';
   function render() {
-    // 요한복음 마을에 있으면 그 마을 이야기만 (초보자 마을 부탁·큰 이야기는 그 마을에서)
-    const inJohn = town() === 'john';
-    const q = inJohn ? null : quests.info(), s = inJohn ? null : story.info(), j = inJohn ? john()?.info() : null;
+    // 다른 마을(요한복음 마을 등)에 있으면 그 마을 이야기만 (초보자 마을 부탁·큰 이야기는 그 마을에서). john(): 지금 마을의 사건 엔진
+    const inTown = town() !== 'base';
+    const q = inTown ? null : quests.info(), s = inTown ? null : story.info(), j = inTown ? john()?.info() : null;
     let h = '<button class="x" aria-label="닫기">×</button>';
     if (j) {
-      h += `<section class="st jn"><h3>✦ 요한복음 마을 · ${esc(j.title)}${j.ch ? ` (${esc(j.ch)})` : ''}</h3>
+      h += `<section class="st jn"><h3>✦ ${esc(village(town())?.name || '')} · ${esc(j.title)}${j.ch ? ` (${esc(j.ch)})` : ''}</h3>
         <p class="now"><b>${j.running ? `지금 할 일 ${j.step} / ${j.steps}` : '다음 이야기'}</b>${esc(j.hint)}</p>
         ${j.where ? `<p class="where">어디서: ${esc(j.where)} (금빛 기둥)</p>` : ''}${verse(j.verse)}
         <div class="row">${j.running ? '<button class="quit" data-q="j">그만두기</button>' : ''}<button class="go" data-go="j">그곳으로 가기</button></div></section>`;
