@@ -1,13 +1,41 @@
 // 요한복음 마을 등록부 항목 (2026-11 마을 등록부)
 //   땅·구역·수레 자리는 js/john/layout.js(그림 없음, addRegion으로 땅 등록), 모형·사건은 처음 들어갈 때 dynamic import (load)
 //   필드 설명은 js/villages/registry.js 맨 위
-import { REGION, CART, ZONES, JN_ACTS, JX, JZ, HALF_W, HALF_D, LAKE, RIVER, RIVER_HALF, ROADS, PLAZA, SEATS_J } from '../john/layout.js';
+import { REGION, CART, ZONES, JN_ACTS, JX, JZ, HALF_W, HALF_D, LAKE, RIVER, RIVER_HALF, ROADS, PLAZA, SEATS_J, SHORE_ZONE, HOUSE10, WATER_Y } from '../john/layout.js';
 import { TOWN_SAVES } from './saves.js';
 import { JOHN_EVENTS } from '../profile.js';
 
 // 마친 사건 수 (사건 'word'는 '와 보라'에 합쳐져 있어 22개)
 const EVENTS = JOHN_EVENTS.filter((id) => id !== 'word');
 const zoneAt = (id) => (id === 'light' ? { p: CART.arrive, look: CART.look } : { p: { x: ZONES[id].x, z: ZONES[id].z + ZONES[id].r * 0.5 }, look: { x: ZONES[id].x, z: ZONES[id].z } });
+
+// ---- 쉼 놀이 구역 (J4): leisure.js가 마을에서 물수제비·낚시·별 보기를 이 구역에서만 엶 ----
+//   물가: 디베랴 바다(호수) 가장자리 3.2m 안쪽 밖, 던질 물 쪽은 호수 가운데. 언덕: 벳새다 언덕 마루. 지붕: 니고데모 집 지붕
+const lakeIn = (x, z, pad = 0) => ((x - JX - LAKE.u) / (LAKE.ru + pad)) ** 2 + ((z - JZ - LAKE.v) / (LAKE.rv + pad)) ** 2 < 1;
+const LAKE_W = { x: JX + LAKE.u, z: JZ + LAKE.v };
+const shore = (id, at, r) => ({ id, kind: 'shore', at, r, inWater: lakeIn, water: LAKE_W, waterY: WATER_Y, fish: true });
+const REST = [
+  shore('capernaum', { x: JX + 22, z: JZ - 127 }, 13),   // 가버나움 물가
+  shore('tiberias', { x: SHORE_ZONE.x, z: SHORE_ZONE.z }, SHORE_ZONE.r + 4), // 디베랴 바닷가 (21장 숯불 곁)
+  { id: 'bethsaida-hill', kind: 'hill', at: { x: JX + 105, z: JZ - 69 }, r: 9 },  // 벳새다 언덕 (6:3)
+  { id: 'nico-roof', kind: 'roof', at: { x: HOUSE10.cu + JX, z: HOUSE10.cv + JZ }, r: 5.5, test: (x, z) => x > JX + HOUSE10.u0 - 0.6 && x < JX + HOUSE10.u1 + 0.6 && z > JZ + HOUSE10.v0 - 0.6 && z < JZ + HOUSE10.v1 + 0.6 }, // 니고데모 집 지붕 (3장 밤)
+];
+// ---- 쉼 자리 12곳과 그 자리 구절 (J5): 머무름 묵상이 자리마다 그 말씀을 고름. 키는 verses.js jn-* ----
+const SEAT_VERSES = [
+  [SEATS_J.seat6, 'jn-4-14'],      // 수가 우물가 그늘: 영원히 목마르지 아니하리니
+  [SEATS_J.synW, 'jn-6-35'],       // 가버나움 회당 돌 의자: 생명의 떡
+  [SEATS_J.mat8, 'jn-5-8'],        // 베데스다 돗자리: 일어나 걸어가라
+  [SEATS_J.foldSeat, 'jn-10-11'],  // 양 우리 깔개: 선한 목자
+  [SEATS_J.med9, 'jn-9-25'],       // 실로암 계단: 보게 되었다
+  [SEATS_J.feast12[0], 'jn-12-3'], [SEATS_J.feast12[1], 'jn-12-3'], [SEATS_J.feast12[2], 'jn-12-3'], // 베다니 잔치: 향유 향기
+  [SEATS_J.up10, 'jn-14-27'],      // 다락방: 평안
+  [SEATS_J.vineSeat, 'jn-15-4'],   // 포도나무 곁: 내 안에 거하라
+  [SEATS_J.crossSeat, 'jn-19-30'], // 십자가 아래: 다 이루었다
+  [SEATS_J.fireSeat, 'jn-21-12'],  // 바닷가 숯불: 와서 조반을 먹으라
+  [SEATS_J.roofLie, 'jn-3-8'],     // 니고데모 지붕(별 보기): 바람이 임의로 불매
+  [SEATS_J.hillLie, 'jn-6-10'],    // 벳새다 언덕(별 보기): 그 곳에 잔디가 많은지라 앉으니
+];
+const SEAT_VERSE = new Map(SEAT_VERSES);
 
 export default {
   id: 'john', name: '요한복음 마을', short: '요한복음', book: '요한복음', status: 'open',
@@ -77,10 +105,10 @@ export default {
   center: { x: JX, z: JZ }, half: { w: HALF_W, d: HALF_D },
   zones: ZONES,          // 구역 12곳 (병거 trips·지도 picks가 씀)
   seats: SEATS_J,        // 앉을 자리 (js/john/layout.js가 layout seats에 이미 넣음, 참조만)
-  rest: null,            // 쉼 놀이 판정 구역 [{ kind: 'shore'|'hill'|'roof', at, r, verse }] (요한 채우기 단위에서)
-  seatVerse: null,       // (seat) → 머무름 묵상 구절 키
+  rest: REST,            // 쉼 놀이 판정 구역 [{ kind: 'shore'|'hill'|'roof', at, r, ... }] (js/leisure.js가 읽음, 마을 안에서는 이 구역에서만 물수제비·낚시·별 보기)
+  seatVerse: (seat) => SEAT_VERSE.get(seat) || null, // 머무름 묵상이 그 자리 구절을 고름 (js/stillness.js)
   transit: [],           // 마을 안 이동 노선 [{ id, from, to, route, open(profile) }] (밤바다 배는 사건 전용 galilee.js)
-  shopGoods: [],         // 수레꾼이 파는 물품 id
+  shopGoods: ['chariot', 'donkey', 'oil'], // 수레꾼 두기고의 수레 짐 (profile.js GOODS id, 루디아와 같은 값). 안약은 초보자 마을 사람 기준이라 뺌 (E2 두기고 부탁과 이을 때 다시)
   quietZones: ['passion'], // 부탁·오늘의 일을 두지 않는 구역 (수난과 동산 Z11)
   errands: null, daily: null, pieces: null, // 공용 장치 자료 모듈 경로 (요한 채우기 E1·E3·E5)
   folk: null,            // (profile) → 지금 보여 줄 주민 목록 (자라는 마을)

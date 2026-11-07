@@ -91,7 +91,7 @@ export default {
   restSpots: REST_SPOTS, // 쉼 자리 열다섯 (자리 말씀 머무름은 1차 이후 seatVerse로)
   seatVerse: null,
   transit: TRANSIT,      // 배 노선 일곱 { id, name, kind 'ship'|'road', from, to, route, opens, ref, open(profile) } — 타기는 2차 나 (js/village/transit.js)
-  shopGoods: ['chariot', 'donkey', 'oil', 'salve'], // 수레꾼 아리스다고의 수레 짐 (요한 E6과 같은 모양, 여는 일은 그 뒤)
+  shopGoods: ['chariot', 'donkey', 'oil'], // 수레꾼 아리스다고의 수레 짐 (요한 E6과 같은 물품, 안약은 뺌. 수레 짐 단추는 사도행전 1차 이후)
   quietZones: [],        // 1차에서 스데반 자리
   errands: null, daily: null, pieces: null,
   folk: null,            // (profile) → 지금 보여 줄 주민 목록 (자라는 마을, 1차부터)

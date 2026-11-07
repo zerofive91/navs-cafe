@@ -39,7 +39,7 @@ import { initQuestLog, walkToward } from './questlog.js';
 import { talkOffer, pressTalk } from './talkgate.js';
 import { escDialog } from './dialog.js';
 import { initRegion } from './region.js';
-import { VILLAGES, visitedTowns, lastTown } from './villages/registry.js';
+import { VILLAGES, village, visitedTowns, lastTown } from './villages/registry.js';
 import { initCartGuide } from './cartguide.js';
 
 const canvas = document.getElementById('cafe');
@@ -589,7 +589,7 @@ function availableActions() {
   if (me.item === 'cup') list.push('sip');
   if (me.food) list.push('eat');
   if (signs.nearBread()) place('loaves');
-  if (inBoat && !netting && signs.canFish()) place('fish');
+  if ((inBoat || signs.atShore()) && !netting && signs.canFish()) place('fish');
   place(...park.available());
   if (outdoors(me) && nearTree(me.x, me.z, 1.8, 3.6)) list.push('climb');
   for (const v of leisure.available()) { if (Array.isArray(v)) place(v[1]); else list.push(v); } // 연·꽃·물수제비·별·씨앗
@@ -1634,11 +1634,14 @@ window.__enterReady = true;
 const signs = initSigns({ scene, me, npcs, interactive, act, sfx, fxSprite, burst, sun, walkTo, faceTo, onShekel: () => shop?.shekel() });
 const park = initPark({ scene, me, interactive, act, sfx, fxSprite, burst, walkTo, faceTo, standUp, shot });
 Object.assign(ACTIONS, park.actions);
-const leisure = initLeisure({ scene, me, camera, renderer, view, lights: [hemi, sun, warm], act, sfx, burst, walkTo, faceTo, standUp, nearestPerson, toast, ICONS, LIEABLE });
+// rest: 마을에서는 등록부 rest[] 쉼 구역 (초보자 마을은 null = 정원 판정 그대로)
+const leisure = initLeisure({ scene, me, camera, renderer, view, lights: [hemi, sun, warm], act, sfx, burst, walkTo, faceTo, standUp, nearestPerson, toast, ICONS, LIEABLE, rest: () => { const id = region?.here?.(); return id && id !== 'base' ? village(id)?.rest || [] : null; } });
+signs.setShore(leisure.fishSpot);
 Object.assign(ACTIONS, leisure.actions);
 // 머무름 묵상 (2026-11, js/stillness.js): 쉬는 자리에서 1~2분 숨 고르기 + 말씀 한 구절
 //   내 카드(#meCard)는 등록부에 없어(열려 있어도 단축키·Esc가 카드를 다뤄야 함) 여기서만 따로 봄: 카드를 열면 묵상이 조용히 끝남
-stillness = initStillness({ me, profile, save: () => saveProfile(profile), busy: () => busyOf('stillness')() || !!document.getElementById('meCard'), rest: () => restK, music, sfx });
+stillness = initStillness({ me, profile, save: () => saveProfile(profile), busy: () => busyOf('stillness')() || !!document.getElementById('meCard'), rest: () => restK, music, sfx,
+  seatVerse: (seat) => { const id = region?.here?.(); return id && id !== 'base' ? village(id)?.seatVerse?.(seat) || null : null; } });
 Object.assign(ACTIONS, stillness.actions);
 // 오늘 만난 말씀 (2026-11, js/met.js): 화면에 떠오른 말씀을 하루치 모아 내 카드 '오늘 말씀' 탭에
 onVerseShown((key) => { if (recordMet(profile.met, key)) saveProfile(profile); });
@@ -1658,7 +1661,7 @@ function setEnv(env) {
 }
 region = initRegion({
   scene, me, profile, save: () => saveProfile(profile), toast, sfx, standUp, walkTo, interactive, occluders, setEnv,
-  blocked: () => !!cartGuide?.active(), // 수레 안내인 말풍선이 열려 있는 동안은 수레 단추가 쉼
+  blocked: () => !!cartGuide?.active() || !!shop?.active(), // 수레 안내인 말풍선·수레 짐 창이 열려 있는 동안은 수레 단추가 쉼
   chooseTown: (ids) => cartGuide?.choose(ids), // 초보자 마을 수레가 갈 마을이 여럿이면 수레꾼이 고르기 말풍선을 엶 (사도행전 마을을 연 뒤)
   // 마을 사건 엔진(요한복음 마을: js/john/engine.js)이 쓰는 것: 마을을 처음 지을 때 넘겨받음 (등록부 load의 kit)
   townKit: {
@@ -1674,7 +1677,7 @@ region = initRegion({
   },
 });
 Object.assign(ACTIONS, region.actions);
-cartGuide = initCartGuide({ me, makeChar, npcs, profile, toast, busy: () => busyOf('cart')(), region: () => region });
+cartGuide = initCartGuide({ me, makeChar, npcs, profile, toast, busy: () => busyOf('cart')(), region: () => region, shop: () => shop });
 // 열려 있는 창 등록부 (2026-11): 말풍선·안내·훈련 등 창이 하나라도 열려 있으면 다른 말풍선은 열리지 않음
 //   새 모듈이 생기면 여기 한 줄만 보태면 됨. busyOf(자기 이름, ...보지 않을 이름)은 자기 자신을 뺀 나머지를 살핌
 //   story(누가) 말풍선이 열려 있으면 훈련·시험·부탁·가게도 열리지 않음 (2026-11 단위 6에서 정리, 예전엔 예외였음)
@@ -1730,6 +1733,7 @@ guides = initGuides({
 warfare = initWarfare({
   scene, me, makeChar, npcs, profile, save: saveMe, toast, sfx, burst, fxSprite,
   busy: busyOf('warfare'),
+  courseName: (id) => (COURSE_META[id] ? COURSE_META[id].name : id), // 훈련소에 섞이는 숲길 속삭임의 길 이름
   onChange: () => character.showChip(),
 });
 garden = initGarden({
