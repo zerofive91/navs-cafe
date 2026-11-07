@@ -73,34 +73,44 @@ const MARKS = ['', '증인', '졸업'];
 const isObj = (x) => !!x && typeof x === 'object' && !Array.isArray(x);
 // 모르는 칸 그대로 넘기기 (2026-11, PR #62 데이터 리뷰 C): 새 판 기기가 더한 칸(예: er·day·pc, acts)을 옛 판 기기가 채우기·합치기에서 지우지 않게
 //   이 판이 아는 칸(known)은 빼고 나머지를 그대로 둠. 이 판이 아는 칸은 뒤에서 검사한 값으로 덮어씀
-//   상한: 칸 64개, 이름 40자 (손상된 기록이 계정 저장 크기를 넘기지 않게). __proto__는 넘기지 않음
-const PASS_MAX = 64, PASS_KEY = 40;
+//   상한: 칸 64개, 이름 40자, 값은 칸마다 JSON 4000자 (손상된 기록이 계정 저장 크기를 넘기지 않게, PR #65 리뷰 A). 넘는 칸은 버림. __proto__는 넘기지 않음
+const PASS_MAX = 64, PASS_KEY = 40, PASS_VAL = 4000;
+const small = (v) => { try { const t = JSON.stringify(v); return t !== undefined && t.length <= PASS_VAL; } catch { return false; } };
 export function passUnknown(o, known) {
   const out = {};
   if (!isObj(o)) return out;
   let n = 0;
   for (const k of Object.keys(o)) {
-    if (known.has(k) || k === '__proto__' || k.length > PASS_KEY || o[k] === undefined) continue;
+    if (known.has(k) || k === '__proto__' || k.length > PASS_KEY || o[k] === undefined || !small(o[k])) continue;
     if (n++ >= PASS_MAX) break;
     out[k] = o[k];
   }
   return out;
 }
-// 두 기기의 모르는 칸: 둘 다 있으면 나중 기록(b, 서버 쪽)
-const mergeUnknown = (a, b, known) => ({ ...passUnknown(a, known), ...passUnknown(b, known) });
+// 두 기기의 모르는 칸: 둘 다 있으면 나중 기록(b, 서버 쪽). 합친 뒤에도 64칸 상한 (다음 채우기와 같은 결과가 되게)
+const mergeUnknown = (a, b, known) => passUnknown({ ...passUnknown(a, known), ...passUnknown(b, known) }, known);
 const modes = (m) => [...new Set(String(m || '').split(''))].filter((c) => MODES.includes(c)).sort((a, b) => MODES.indexOf(a) - MODES.indexOf(b)).join('');
+// 마친 사건 ev (요한·사도행전 공용, PR #65 리뷰 B·C): 키는 40자 안·99개까지, done은 0~4e12의 정수 (음수·이상한 값은 0 = 안 마침)
+//   사건 id가 이 판 목록에 있는지는 보지 않음 (더 새 판 기기가 더한 사건을 지우지 않게)
+const EV_MAX = 99, EV_KEY = 40, MAX_TS = 4e12;
+const evTs = (n) => (Number.isFinite(n) && n > 0 && n <= MAX_TS ? Math.floor(n) : 0);
 const fillEv = (e) => {
   const ev = {};
-  if (isObj(e)) for (const [k, v] of Object.entries(e)) if (isObj(v) && k !== '__proto__') ev[k] = { done: Number.isFinite(v.done) ? v.done : 0, m: modes(v.m) };
+  let n = 0;
+  if (isObj(e)) for (const [k, v] of Object.entries(e)) {
+    if (!isObj(v) || k === '__proto__' || !k || k.length > EV_KEY) continue;
+    if (n++ >= EV_MAX) break;
+    ev[k] = { done: evTs(v.done), m: modes(v.m) };
+  }
   return ev;
 };
 const mergeEv = (a, b) => {
   const ev = { ...a };
   for (const [k, v] of Object.entries(b)) {
-    const o = ev[k];
+    const o = Object.hasOwn(ev, k) ? ev[k] : undefined; // toString 같은 상속 이름을 기록으로 잡지 않게
     ev[k] = o ? { done: [o.done, v.done].filter((x) => x > 0).sort((x, y) => x - y)[0] || 0, m: modes(o.m + v.m) } : { ...v };
   }
-  return ev;
+  return fillEv(ev); // 합친 뒤에도 99개 상한 (다음 채우기와 같은 결과가 되게)
 };
 const strList = (x) => (Array.isArray(x) ? [...new Set(x.filter((s) => typeof s === 'string' && s && s.length <= 40))].slice(0, 99) : []);
 const firstTime = (...xs) => xs.filter((x) => x > 0).sort((x, y) => x - y)[0] || 0;
