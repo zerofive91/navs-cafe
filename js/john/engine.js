@@ -10,9 +10,10 @@ import { nameTag } from '../tutorial.js';
 import { addSteps, addStat, earn, giveItem, STATS, ITEMS, JOHN_EVENTS } from '../profile.js';
 import { findPath, nearestFree } from '../nav.js';
 import { floorY } from '../layout.js';
-import { JX, JZ, ZONES, SP, PLAZA_LIGHT, JARS, ROOF_Y, HOUSE10, REGION, LAKE_AT, JN_ACTS } from './layout.js';
+import { JX, JZ, ZONES, SP, PLAZA_LIGHT, JARS, ROOF_Y, HOUSE10, REGION, LAKE_AT, JN_ACTS, LAMP_IDS } from './layout.js';
 import { initGalilee } from './galilee.js'; // 2차 가 (갈릴리·사마리아) 사건 도구
 import { initJerusalem } from './jerusalem.js'; // 2차 나 (예루살렘·베다니) 사건 도구
+import { initPassion, callName } from './passion.js'; // 3차 (다락방·수난·부활) 사건 도구, 이름 부르기
 // events·trials·modes는 region.js가 불러와 넘김 (불러오기에 실패해 다시 시도할 때 주소 끝을 바꿀 수 있게)
 
 const MODE_NAME = { l: '듣기', r: '읽기', a: '적용', s: '공부', m: '암송', d: '묵상' };
@@ -37,7 +38,16 @@ const SKY = {
   // 2차 나
   morn: { bg: 0xf4dcc4, fogC: 0xf0d8c0, fog: [50, 200], hemiSky: 0xfff0e0, hemiGround: 0xd8c0a0, hemi: 0.95, sun: 0.8 },        // 8:2 아침에
   winter: { bg: 0xd6dde4, fogC: 0xd4dae0, fog: [45, 190], hemiSky: 0xeef2f6, hemiGround: 0xb8b4aa, hemi: 0.9, sun: 0.7 },     // 10:22 수전절, 때는 겨울이라
+  // 3차 (수난 구역은 어둠을 절제: 밤이어도 길이 보이게)
+  eve: { bg: 0xe8b890, fogC: 0xe0ae86, fog: [45, 180], hemiSky: 0xffd8b0, hemiGround: 0xb88a68, hemi: 0.8, sun: 0.6 },         // 13:4 저녁 잡수시던 자리
+  kidron: { bg: 0x1a2240, fogC: 0x1c2440, fog: [26, 120], hemiSky: 0x7080b0, hemiGround: 0x30303a, hemi: 0.48, sun: 0.12, stars: 1 }, // 18:3 등과 홰 (밤)
+  dawn: { bg: 0xb8b4c8, fogC: 0xc4bccc, fog: [40, 170], hemiSky: 0xdcd4e8, hemiGround: 0xa89a90, hemi: 0.7, sun: 0.4 },        // 18:28 새벽이라
+  darkdawn: { bg: 0x3a4060, fogC: 0x4a4e68, fog: [30, 140], hemiSky: 0x9098c0, hemiGround: 0x4a4440, hemi: 0.55, sun: 0.2, stars: 0.5 }, // 20:1 아직 어두울 때에
+  evening: { bg: 0xd8a888, fogC: 0xc89c80, fog: [40, 170], hemiSky: 0xf0c8a8, hemiGround: 0xa07c60, hemi: 0.72, sun: 0.5 },    // 20:19 저녁 때에
+  daybreak: { bg: 0xf4d0b0, fogC: 0xf0ccb0, fog: [50, 200], hemiSky: 0xffe2c8, hemiGround: 0xc8a888, hemi: 0.88, sun: 0.7 },  // 21:4 날이 새어갈 때에
 };
+// 마리아야(20장)를 마친 뒤 마을 전체에 감도는 새벽빛: 안개와 하늘빛(반구광) 색만 조금 (조명 수·세기는 그대로, 하늘 그림은 건드리지 않음)
+const RISEN = { fogC: 0xefdccc, hemiSky: 0xfff0e2, hemiGround: 0xdcc4a4, k: 0.45 };
 
 export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
   const { scene, me, makeChar, npcs, profile, save, toast, sfx, burst, fxSprite, walkTo, standUp, shot, busy, onChange, here, openLog, lights } = K;
@@ -88,6 +98,8 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
   const g2 = initGalilee({ root: built.root, me, parts, N, person, GREET, toast, sfx, burst, fxSprite, dist, G, profile, noBlur });
   // 2차 나: 제자·성전 뜰의 여인·목자·베데스다의 병자들·마르다·마리아·나사로와 장사판·무덤 돌·향기 도구 (js/john/jerusalem.js). runId는 매 프레임에만 부름
   const g3 = initJerusalem({ root: built.root, me, parts, N, person, GREET, toast, sfx, burst, fxSprite, dist, G, profile, runId: () => (run ? run.ev.id : '') });
+  // 3차: 도마·다른 제자·막달라 마리아·여종·빌라도·니고데모·횃불 무리와 대야·문·검·무덤 돌·그물·어린 양 (js/john/passion.js)
+  const g4 = initPassion({ root: built.root, me, parts, N, person, GREET, toast, sfx, burst, fxSprite, dist, G, profile, runId: () => (run ? run.ev.id : '') });
 
   // ---------- 머리 위 표시: 할 사건 두루마리, 마침 별, 여섯 모드를 다 채우면 금빛 별 ----------
   const markTex = (kind) => {
@@ -223,6 +235,15 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
     } else if (kind === 'nard') { // 나드 향유 (12:3)
       const b = new THREE.Mesh(new THREE.SphereGeometry(0.075, 12, 10), M(0xf2ece0, 0.35)); b.scale.y = 1.25; g.add(b);
       const n = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.034, 0.1, 10), M(0xf2ece0, 0.35)); n.position.y = 0.12; g.add(n);
+    } else if (kind === 'basin') { // 수건과 대야 (13:4-5)
+      const b = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.13, 0.09, 16, 1, true), M(0xb9805a)); b.material.side = THREE.DoubleSide; g.add(b);
+      const w = new THREE.Mesh(new THREE.CircleGeometry(0.17, 16), M(0x8fc4d8, 0.1)); w.rotation.x = -Math.PI / 2; w.position.y = 0.02; g.add(w);
+      const t = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.28, 0.02), M(0xf4ecd8, 1)); t.position.set(0.2, -0.08, 0); g.add(t);
+      g.position.set(0, -0.45, 0.16);
+      return g;
+    } else if (kind === 'spice') { // 몰약과 침향 섞은 것 (19:39)
+      const b = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.16, 0.18), M(0x8a6a48)); g.add(b);
+      for (const s of [-1, 1]) { const j = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 0.1, 10), M(0xe8dcc0, 0.5)); j.position.set(s * 0.07, 0.12, 0); g.add(j); }
     } else {
       const c = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.045, 0.13, 12), M(0xb9805a)); g.add(c);
       const w = new THREE.Mesh(new THREE.CircleGeometry(0.055, 12), new THREE.MeshStandardMaterial({ color: 0x8fc4d8, roughness: 0.1 })); w.rotation.x = -Math.PI / 2; w.position.y = 0.06; g.add(w);
@@ -364,9 +385,9 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
     if (me.action === 'stars') return; // 누워서 별 보기(leisure.js)가 빛을 쥐고 있는 동안
     const want = skyWant(), T = tgt(SKY[want] || null);
     if (!cur.applied) {
-      if (!want && darkK < 0.01) return; // 기본 낮: 마을 기본 그대로 (region.js setEnv)
+      if (!want && darkK < 0.01) { risen(dt); return; } // 기본 낮: 마을 기본 그대로 (region.js setEnv), 부활 뒤에는 새벽빛만 더함
       cur.bg.copy(scene.background?.isColor ? scene.background : base.bg); cur.fogC.copy(scene.fog.color); cur.hemiSky.copy(lights.hemi.color); cur.hemiGround.copy(lights.hemi.groundColor);
-      cur.near = scene.fog.near; cur.far = scene.fog.far; cur.hemi = lights.hemi.intensity / base.hemi; cur.sun = lights.sun.intensity / base.sun; cur.applied = true;
+      cur.near = scene.fog.near; cur.far = scene.fog.far; cur.hemi = lights.hemi.intensity / base.hemi; cur.sun = lights.sun.intensity / base.sun; cur.applied = true; unRisen();
     }
     const k = Math.min(1, dt * (want === 'dark' ? 2.2 : 1.1));
     cur.bg.lerp(tmp.set(T.bg), k); cur.fogC.lerp(tmp.set(T.fogC), k); cur.hemiSky.lerp(tmp.set(T.hemiSky), k); cur.hemiGround.lerp(tmp.set(T.hemiGround), k);
@@ -386,6 +407,21 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
       stars.visible = false; parts.roofLight.intensity = 0; cur.applied = false;
     }
   }
+
+  // 부활 뒤 새벽빛: 마을 기본 색(env)에서 RISEN 쪽으로 k만큼. 하늘 시각(SKY)이 걸리면 그쪽이 맡고, 풀리면 다시 천천히 스밈
+  let risenK = 0;
+  const envC = { fog: new THREE.Color(), sky: new THREE.Color(), ground: new THREE.Color() };
+  function risen(dt) {
+    const want = isDone(EV.mary) ? RISEN.k : 0;
+    if (want === 0 && risenK === 0) return;
+    risenK += (want - risenK) * Math.min(1, dt * 0.8);
+    if (Math.abs(want - risenK) < 0.002) risenK = want;
+    scene.fog.color.copy(envC.fog.set(env.sky)).lerp(tmp.set(RISEN.fogC), risenK);
+    lights.hemi.color.copy(envC.sky.set(env.hemiSky)).lerp(tmp.set(RISEN.hemiSky), risenK);
+    lights.hemi.groundColor.copy(envC.ground.set(env.hemiGround)).lerp(tmp.set(RISEN.hemiGround), risenK);
+  }
+  // 시각이 바뀌면(SKY) 새벽빛은 그 색에서 다시 시작
+  const unRisen = () => { risenK = 0; };
 
   // ---------- 기록 ----------
   const rec = (id) => J().ev[id];
@@ -441,7 +477,7 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
   const readSeen = new Set();
   function markRead(keys) { for (const k of keys) readSeen.add(k); }
 
-  Object.assign(X, g2.X, g3.X);
+  Object.assign(X, g2.X, g3.X, g4.X);
   X.ui = ui; // 사건 자리의 짧은 대화 (아이·종·동네 사람)
   // 멀리 바라보기 (희어진 밭 등): gaze와 같되 놋뱀 빛은 건드리지 않음
   X.look = (p) => { if (me.seat) standUp(me); me.face = Math.atan2(p.x - me.x, p.z - me.z); me.action = 'gaze'; shot?.(p, { dist: 8, el: 0.3, side: 0.4, dur: 6, mid: 0.4, y: 1.4 }); setTimeout(() => { if (me.action === 'gaze') me.action = null; }, 6000); };
@@ -490,6 +526,7 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
     const keys = e.reset || { come: ['andrew', 'nathan'], nico: ['nico'], cana: [], siloam: [] }[e.id] || [];
     for (const k of keys) { const n = N[k]; n.path = []; n.state = 'idle'; n.x = n.home0.x; n.z = n.home0.z; n.home = { ...n.home0 }; n.face = n.face0; }
     N.nathan.action = 'read';
+    g4.reset(); // 3차 사람 자리·물건 (베드로를 먼저 세운 뒤 제자리로: placeShared)
     placeShared();
     g3.reset(); // 2차 나 사람 자리·물건 (마친 사건의 흔적은 기록대로)
   }
@@ -523,16 +560,24 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
     if (first) j.ev[e.id].done = Date.now();
     const R = e.reward;
     let msg;
-    if (first) {
+    let all7 = false;
+    if (first && e.quiet) { // 수난 구역: 보상 없이 기록만 (기획서 9장 결정 4)
+      const nx = ORDER[ORDER.indexOf(e.id) + 1];
+      if (nx && JOHN_EVENTS.indexOf(nx) > JOHN_EVENTS.indexOf(j.open)) j.open = nx;
+      msg = `${e.done} (기록에 남았어요)`;
+    } else if (first) {
       addSteps(profile, R.steps); addStat(profile, e.stat, R.stat); earn(profile, R.coin);
       for (const it of R.items) giveItem(profile, it);
       const nx = ORDER[ORDER.indexOf(e.id) + 1];
       if (nx && JOHN_EVENTS.indexOf(nx) > JOHN_EVENTS.indexOf(j.open)) j.open = nx;
       j.signs = Math.max(j.signs | 0, ORDER.filter((id) => EV[id].sign && isDone(EV[id])).length);
       const lit = [].concat(e.lamp || []).filter((l) => !j.lamps.includes(l)); // 선한 목자는 문과 목자 둘
-      if (lit.length) { j.lamps.push(...lit); setTimeout(() => toast(`빛의 광장 등잔 ${lit.length > 1 ? `${lit.length}개` : '하나'}에 불이 켜졌어요 (${e.lampName || lit.join('·')})`, 5), 5200); }
+      if (lit.length) { j.lamps.push(...lit); setTimeout(() => toast(`빛의 광장 등잔 ${lit.length > 1 ? `${lit.length}개` : '하나'}에 불이 켜졌어요 (${e.lampName || lit.join('·')})`, 5), 5200); all7 = LAMP_IDS.every((l) => j.lamps.includes(l)); }
       msg = `${e.done} (걸음 +${R.steps}, ${statName(e.stat)} +${R.stat}, ${R.coin} 데나리온, ${R.items.map((x) => ITEMS[x]?.name || x).join('·')})`;
-    } else { addSteps(profile, 2); msg = `다시 걸어 주었군요. 말씀은 할 때마다 새로워요 (걸음 +2)`; }
+    } else if (e.quiet) msg = '다시 걸어 주었군요. 그 밤과 그 아침을 다시 기억했어요';
+    else { addSteps(profile, 2); msg = `다시 걸어 주었군요. 말씀은 할 때마다 새로워요 (걸음 +2)`; }
+    const grad = first && allDone() && j.mark !== '졸업'; // ORDER 22개를 다 마침 → 마을 졸업 표지 (기획서의 23사건 중 1번은 '와 보라'에 합쳐짐)
+    if (grad) j.mark = '졸업';
     save(); onChange?.();
     sfx('orb', 0.3, 1.05); burst(me.x, me.y + 1.4, me.z);
     resetNpcs(e);
@@ -542,15 +587,33 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
       ui.open({
         who: e.who, sub: `${e.title} · 마침`, text: msg, note: '깊이 보기(공부·암송·묵상)는 언제든 이 증인에게 다시 말을 걸면 해요.',
         buttons: [{ t: '감사해요', cls: 'next' }],
-        onClose: () => { if (first && allDone()) setTimeout(() => toast('사도 요한이 빛의 광장에서 기다려요. 이야기는 이어져요 (금빛 기둥)', 6), 800); },
+        onClose: () => {
+          if (all7) X.verse(['jn-1-5', 'jn-8-12'], '일곱 등불이 다 켜졌어요'); // 광장 가운데 빛이 커짐 (passion.js)
+          if (grad) setTimeout(graduate, 800);
+          else if (first && allDone()) setTimeout(() => toast('사도 요한이 빛의 광장에서 기다려요. 이야기는 이어져요 (금빛 기둥)', 6), 800);
+        },
       });
     };
     setTimeout(showDone, 2200);
   }
 
+  // 요한복음 마을 졸업 (21장 카드): 내 닉네임과 "너는 나를 따르라". 카드를 넘기면 21:22·21:25가 오늘 만난 말씀에 남음
+  function graduate() {
+    if (busy() || ui.isOpen() || !inTown()) { setTimeout(graduate, 800); return; }
+    const c = callName(profile.name), j = J();
+    ui.open({
+      who: '사도 요한', sub: '요한복음 마을 졸업', quote: 'jn-21-22',
+      text: `${c ? c.voc : '친구여'}, 요한복음 마을의 이야기를 처음부터 끝까지 다 따라왔어요! 그분이 베드로에게 마지막으로 하신 말씀은 "너는 나를 따르라"였어요. 이제 그 말씀을 들고 초보자 마을, 당신의 자리로 돌아가요.`,
+      note: `졸업 표지를 받았어요 · 표적 ${ORDER.filter((id) => EV[id].sign && isDone(EV[id])).length}개 · "나는…" 등불 ${j.lamps.length}개 · 이야기 ${ORDER.length}개`,
+      buttons: [{ t: '"나를 따르라"', cls: 'next', fn: () => X.verse(['jn-21-22', 'jn-21-25'], '요한복음 마을 졸업') }],
+    });
+    sfx('orb', 0.3, 0.9); burst(me.x, me.y + 1.6, me.z);
+  }
+
   // ---------- 증인과 대화 ----------
   function rewardNote(e) {
     const R = e.reward;
+    if (e.quiet) return '이 이야기는 시험도 보상도 없어요. 곁에서 보고 머물며 기록만 남겨요.';
     return `처음 마치면 걸음 +${R.steps}, ${statName(e.stat)} +${R.stat}, ${R.coin} 데나리온${e.sign ? '(표적)' : ''}, ${R.items.map((x) => ITEMS[x]?.name || x).join('·')}${e.lamp ? ` · 💡 ${e.lampName || ''}` : ''}.`;
   }
   function marks(id) { const m = modesOf(id); return 'lrasmd'.split('').map((c) => (m.includes(c) ? `✓${MODE_NAME[c]}` : `·${MODE_NAME[c]}`)).join(' '); }
@@ -561,7 +624,8 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
     const m = modesOf(e.id);
     const fin = (letter, name) => () => {
       const fresh = addMode(e.id, letter);
-      if (fresh) { addSteps(profile, 2); toast(`${name}을(를) 채웠어요 (걸음 +2)${gold(e.id) ? ` · "${e.title}"의 여섯 손가락을 다 채웠어요! 표시가 금빛이 돼요` : ''}`, 5); }
+      if (fresh && e.quiet) toast(`${name}을(를) 채웠어요${gold(e.id) ? ` · "${e.title}"의 여섯 손가락을 다 채웠어요! 표시가 금빛이 돼요` : ''}`, 5);
+      else if (fresh) { addSteps(profile, 2); toast(`${name}을(를) 채웠어요 (걸음 +2)${gold(e.id) ? ` · "${e.title}"의 여섯 손가락을 다 채웠어요! 표시가 금빛이 돼요` : ''}`, 5); }
       save(); onChange?.();
     };
     const seat = e.med.at === 'feast' ? SP.feast[1] : SP[e.med.at];
@@ -604,11 +668,13 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
     if (!isDone(e) || (run && run.ev === e)) return talkWitness(e);
     const book = ORDER.map((id) => `${EV[id].title} ${isDone(EV[id]) ? (gold(id) ? '★' : '✓') : isOpen(EV[id]) ? '…' : '·'}`).join(' · ');
     if (allDone()) {
+      // 다른 기기 기록을 합쳐(mergeJohn) 다 마치게 된 경우: 여기서 졸업 표지를 세우고 졸업 카드부터
+      if (J().mark !== '졸업') { J().mark = '졸업'; save(); onChange?.(); graduate(); return; }
       lsSet(END_SEEN, String(ORDER.length));
       const lamps = J().lamps.length, signs = ORDER.filter((id) => EV[id].sign && isDone(EV[id])).length;
       ui.open({
-        who: '사도 요한', sub: '이야기는 이어져요', quote: 'jn-20-31',
-        text: `지금까지 지어진 ${ORDER.length} 이야기를 다 따라왔군요! 빛이 어둠에 비치고, 물이 포도주가 되고, 아버지의 집이 깨끗해지고, 우물가의 여인이 동네로 달려갔어요. 서른여덟 해 된 병자가 자리를 들고 걸었고, 떡 다섯 개가 무리를 먹이고, 밤바다에 빛이 다가왔어요. 돌을 내려놓은 뜰에 빛이 비치고, 소경이 눈을 뜨고, 양들이 목자의 음성을 따라갔어요. 나사로가 무덤에서 나왔고, 나드 향유 냄새가 집에 가득했어요. 표적 ${signs}개를 보았고, "나는…" 등불 ${lamps}개가 켜졌어요. 아직 다락방과 동산, 빈 무덤의 이야기가 남아 있어요. 마을은 계속 지어지고 있어요. 이야기는 이어져요.`,
+        who: '사도 요한', sub: J().mark === '졸업' ? '요한복음 마을 졸업' : '이야기는 이어져요', quote: 'jn-21-25',
+        text: `${ORDER.length} 이야기를 다 따라왔군요! 빛이 어둠에 비치고, 물이 포도주가 되고, 우물가의 여인이 동네로 달려갔어요. 떡 다섯 개가 무리를 먹이고, 소경이 눈을 뜨고, 나사로가 무덤에서 나왔어요. 다락방에서 그분이 발을 씻기셨고, 숯불 곁의 밤과 "다 이루었다" 하신 십자가를 지나, 동산에서 "마리아야" 이름을 부르셨어요. 닫힌 문 안에 평강을 주셨고, 바닷가 숯불 곁에서 "너는 나를 따르라" 하셨어요. 표적 ${signs}개를 보았고, "나는…" 등불 ${lamps}개가 켜졌어요. 이 외에도 많아서 낱낱이 기록하면 이 세상이라도 그 책을 두기에 부족하대요. 이제 당신의 이야기로 이어져요.`,
         note: `마을 기록장: ${book}`,
         buttons: [{ t: '와 보라 깊이 보기', fn: () => deep(e) }, { t: '감사해요', cls: 'next' }],
       });
@@ -706,7 +772,7 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
       if (n.hide || n.state === 'walk') return;
       const to = SP.walkers[(n.walkI = (n.walkI | 0) + 1) % 2]; n.path = [{ x: to.x + i * 0.8, z: to.z + i * 0.6 }]; n.state = 'walk';
     });
-    g2.step(town); g3.step(town);
+    g2.step(town); g3.step(town); g4.step(town);
     if (!town) { chip.hidden = true; beam.visible = false; ring.visible = false; return; }
     reattach();
     trials.step(); modes.step();
