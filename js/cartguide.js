@@ -75,11 +75,11 @@ export function initCartGuide(K) {
     const erBtn = (er?.buttons('tychicus') || [])[0];
     dlg.open({
       who: g.name, n: g.n, say,
-      guide: [info ? { label: '돌아가기', on: () => talkJohn(false) } : { label: '초보자 마을은 어떤 곳이에요?', on: () => talkJohn(true) }],
+      guide: [info ? { label: '돌아가기', on: () => talkJohn(false) } : { label: '초보자 마을은 어떤 곳이에요?', on: () => talkJohn(true) },
+        { label: erBtn?.t || '', hidden: !erBtn || info, on: () => { hide(); erBtn.fn(); } }],
       choices: [
         { label: '다음에요', cls: 'later', on: hide },
         { label: '수레 짐', hidden: !goods.length, on: () => openGoods(g) },
-        { label: erBtn?.t || '', hidden: !erBtn, on: () => { hide(); erBtn.fn(); } },
         { label: '초보자 마을로 돌아가요', cls: 'go', main: true, on: () => board() },
       ],
       esc: hide,
