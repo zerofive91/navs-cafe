@@ -17,8 +17,10 @@
 //   paths: 훈련소 장면 가운데 그 길 이야기와 맞는 것은 그 길의 작은 시험에도 나옴 (숲길에서는 장면 설명을 한 줄 보여 줌)
 //
 // 말씀: 숲길 문항은 js/verses.js의 'dg-<id>' (개역한글), 훈련소 장면은 a(개역한글)를 'wf-<id>'로 등록. 현대어 짝은 js/bible-modern.js
-//   새 마을 시험을 들여올 때(예: 요한복음 마을 js/john/trials.js, 아직 이 자료집 밖)는 path: 'john:<사건 id>'처럼 이름을 붙이고
-//   v: 'jn-…'(이미 있는 구절 키)를 적으면 같은 출제기(pool·draw)와 같은 태그(cat·kind·tier)를 그대로 쓸 수 있음
+//   village: 문항이 속한 마을 (region.js REGIONS id, 지금은 모두 'base' 초보자 마을). 마을 등록부는 TRIAL_SETS로 세트를 찾음
+//   새 마을 시험을 들여올 때(예: 요한복음 마을 js/john/trials.js는 아직 이 자료집 밖, 다음 마을 사도행전)는
+//   PATHS처럼 세트를 하나 더 두고 세트 id를 '<마을>:<자리>'(예: 'acts:pentecost', 'john:cana'), village를 그 마을 id로,
+//   v: '<구절 키>'(예: 'jn-…', 새 마을은 그 마을 접두어)를 적으면 같은 출제기(pool·draw)와 같은 태그(cat·kind·tier)를 그대로 씀
 //   틀린 보기도 모두 실제 성경 구절이지만 그 속삭임에 맞지 않는 다른 문맥의 말씀 (성경을 바꿔 쓴 문장은 없음)
 //   한 구절이 틀린 보기로 세 번 이상 나오지 않게(늘 틀리는 구절이 단서가 되지 않게), 되도록 같은 길 안에서 하나를 섞음.
 //   틀린 보기가 우연히 그 속삭임에도 맞는 답처럼 읽히지 않는지 꼭 볼 것
@@ -701,9 +703,9 @@ export const TRIALS = []; // 모든 문항 (숲길 길별 + common + 훈련소 �
 const OWN = {}; // 길 id → 그 길의 문항
 for (const [path, list] of Object.entries(PATHS)) {
   OWN[path] = list;
-  for (const T of list) { T.path = path; T.src = 'dg'; TRIALS.push(T); }
+  for (const T of list) { T.path = path; T.src = 'dg'; T.village = T.village || 'base'; TRIALS.push(T); }
 }
-for (const T of SCENES) { T.path = null; T.src = 'wf'; VERSES['wf-' + T.id] = T.a; TRIALS.push(T); }
+for (const T of SCENES) { T.path = null; T.src = 'wf'; T.village = 'base'; VERSES['wf-' + T.id] = T.a; TRIALS.push(T); }
 export const BY = Object.fromEntries(TRIALS.map((T) => [T.id, T]));
 export { SCENES };
 export const kindOf = (T) => T.kind || 'pick';
@@ -719,6 +721,14 @@ export function where(T) {
   if (campable(T)) out.push(T.scene ? 'camp-scene' : 'camp-forest');
   return out;
 }
+// 시험 세트 (마을 등록부·다른 모듈이 id로 참조): { 세트 id: { village, at: 'forest' 숲길 길 | 'camp' 훈련소 | 'any' 떠도는 속삭임, n: 문항 수 } }
+//   숲길 세트 id = 길 id (layout.js TRAILS, dungeon.js TIER). pool(at, { path: 세트 id })로 그 세트의 문항을 꺼냄
+export const TRIAL_SETS = Object.freeze(Object.fromEntries([
+  ...Object.entries(PATHS).map(([id, list]) => [id, Object.freeze({ village: 'base', at: id === 'common' ? 'any' : 'forest', n: list.length })]),
+  ['camp', Object.freeze({ village: 'base', at: 'camp', n: TRIALS.filter((T) => campable(T)).length })],
+]));
+export const setsOf = (village) => Object.keys(TRIAL_SETS).filter((id) => TRIAL_SETS[id].village === village);
+
 // 상황별 문항 목록
 //   'small' 숲길 작은 시험 { path, tier } · 'big' 숲길 큰 시험 { path } · 'camp' 훈련소 { cat(없으면 전부), scene: true 장면만 / false 숲길 문항만 }
 export function pool(at, { path, tier = 3, cat = null, scene = null } = {}) {
