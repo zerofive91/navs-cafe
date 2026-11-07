@@ -1,5 +1,6 @@
-// 수레 안내인 (2026-11): 두 마을의 수레 곁에 한 사람씩 서서 수레와 마을을 알려 줌
-//   초보자 마을 길목(정원 둘레길 246°) 수레꾼 에바브라 · 요한복음 마을 광장 남쪽 수레꾼 두기고 (둘 다 먼 길에 소식을 전하던 사람)
+// 수레 안내인 (2026-11): 마을마다 수레 곁에 한 사람씩 서서 수레와 마을을 알려 줌
+//   초보자 마을 길목(정원 둘레길 246°) 수레꾼 에바브라 · 요한복음 마을 광장 남쪽 수레꾼 두기고 · 사도행전 마을 다락방 광장 남쪽 수레꾼 아리스다고
+//   (모두 먼 길에 소식을 전하던 사람. 두기고와 아리스다고는 행 20:4 같은 일행)
 //   수레를 타는 일은 그대로 region.js의 board()가 함 (E나 반짝이는 단추로 바로 타도 됨). 안내인은 말로 안내하고 같은 board()를 부름
 //   말풍선은 dialog.js. 곁에 가면 '말 걸기' 단추가 뜨고(talkgate), 말풍선이 열려 있는 동안은 수레 단추가 쉼 (region.js blocked)
 //   안내인 이름·모습·서는 자리는 마을 등록부(js/villages/<id>.js guide), 말 문구는 여기 마을 id별 (talkBase·talkJohn, 다른 마을은 talkTown)
@@ -37,6 +38,9 @@ export function initCartGuide(K) {
   const hide = () => { dlg.close(); cur = null; };
   const done = () => eventsDone(profile.john);
   const board = (to) => { hide(); region().board(to); };
+  // 이 마을 수레가 가는 마을마다 마을 이름 단추 (폰 세로 한 줄에 맞게 짧은 이름: 초보자·요한복음·사도행전) (2026-11 사도행전 0-나: 마을이 셋). 첫 단추(초보자 마을)가 main
+  const goTo = (from) => destinations(from).map((v, i) => ({ label: v.short || v.name, cls: 'go', main: i === 0, on: () => board(v.id) }));
+  const fresh = (v) => (v.save ? !profile[v.save.key]?.seen : false); // 아직 가 보지 않은 마을
 
   function talkBase(info = false) {
     const outs = destinations('base');
@@ -76,7 +80,7 @@ export function initCartGuide(K) {
       choices: [
         { label: '다음에요', cls: 'later', on: hide },
         { label: '수레 짐', hidden: !goods.length, on: () => openGoods(g) },
-        { label: '초보자 마을로 돌아가요', cls: 'go', main: true, on: () => board() },
+        ...goTo('john'), // 초보자 마을 · 사도행전 마을
       ],
       esc: hide,
     });
@@ -93,9 +97,11 @@ export function initCartGuide(K) {
   // 초보자 마을 수레가 갈 마을이 여럿일 때 (사도행전 마을을 연 뒤): 마을마다 '…로 가요' 단추
   //   g: 말하는 안내인(기본은 초보자 마을 수레꾼), outs: 갈 수 있는 마을 (기본은 초보자 마을 수레의 목적지)
   function talkPick(info = false, g = base, outs = destinations(g.id)) {
+    // 요한복음 마을을 아직 안 가 봤는데 사도행전 마을도 갈 수 있으면: 요한복음 마을부터 권함 (기획서 8장, 이야기가 이어지게)
+    const hint = g === base && outs.some((v) => v.id === 'acts') && outs.some((v) => v.id === 'john') && !profile.john?.seen ? ' 처음이면 요한복음 마을부터 가 보세요. 이야기가 이어져요.' : '';
     const say = info
-      ? outs.map((v) => `${v.name}${v.progress ? `(${v.progress(profile).done}/${v.progress(profile).total})` : ''}`).join(', ') + '로 수레가 다녀요. 마을마다 그 권의 이야기를 직접 걸어 봐요.'
-      : g === base ? '어서 와요. 저는 마을과 마을 사이를 수레로 오가며 소식을 전하는 에바브라예요. 어느 마을로 갈까요? 마을 이름을 눌러요.'
+      ? outs.map((v) => `${v.name}${fresh(v) ? '(처음)' : v.progress ? `(${v.progress(profile).done}/${v.progress(profile).total})` : ''}`).join(', ') + '로 수레가 다녀요. 마을마다 그 권의 이야기를 직접 걸어 봐요.'
+      : g === base ? `어서 와요. 저는 마을과 마을 사이를 수레로 오가며 소식을 전하는 에바브라예요. 어느 마을로 갈까요? 마을 이름을 눌러요.${hint}`
         : '어느 마을로 갈까요? 마을 이름을 눌러요.';
     cur = g;
     dlg.open({
@@ -103,21 +109,25 @@ export function initCartGuide(K) {
       guide: [info ? { label: '돌아가기', on: () => talkPick(false, g, outs) } : { label: '마을들은 어떤 곳이에요?', on: () => talkPick(true, g, outs) }],
       choices: [
         { label: '다음에요', cls: 'later', on: hide },
-        ...outs.map((v, i) => ({ label: v.short || v.name, cls: 'go', main: i === 0, on: () => board(v.id) })), // 폰 세로 한 줄에 맞게 짧은 이름
+        ...outs.map((v, i) => ({ label: (v.short || v.name) + (fresh(v) ? ' · 처음' : ''), cls: 'go', main: i === 0, on: () => board(v.id) })), // 폰 세로 한 줄에 맞게 짧은 이름
       ],
       esc: hide,
     });
   }
-  // 그 밖의 마을 (사도행전 마을 등): 돌아가는 수레만
-  function talkTown(g) {
+  // 그 밖의 마을 (사도행전 마을 등): 진행과 가는 마을들. 사도행전 마을 수레꾼 아리스다고는 제 소개를 함 (행 27:2)
+  function talkTown(g, info = false) {
     const V = village(g.id), P = V.progress?.(profile);
+    let say;
+    if (info) say = '수레는 초보자 마을과 요한복음 마을로 다녀요. 이 마을 안에서는 길을 따라 걷거나, 병거 삯이 있으면 병거를 타요. 항구의 배는 이야기가 열리면 다닐 거예요.';
+    else if (g.id === 'acts' && !P?.done) say = '어서 와요. 저는 데살로니가 사람 아리스다고예요. 바울과 함께 배를 타고 로마까지 갔지요(행 27:2). 이 마을은 바다를 둘러 예루살렘에서 로마까지 이어져요. 지금은 짓는 중이니 길을 따라 걸으며 쉬어 가요.';
+    else say = P ? `마친 사건은 ${P.done}/${P.total}이에요. 쉬다 가도 좋고, 다른 마을로 가려면 말해 줘요.` : '쉬다 가도 좋고, 다른 마을로 가려면 말해 줘요.';
     cur = g;
     dlg.open({
-      who: g.name, n: g.n,
-      say: P ? `마친 사건은 ${P.done}/${P.total}이에요. 쉬다 가도 좋고, 돌아가려면 말해 줘요.` : '쉬다 가도 좋고, 돌아가려면 말해 줘요.',
+      who: g.name, n: g.n, say,
+      guide: [info ? { label: '돌아가기', on: () => talkTown(g, false) } : { label: '수레는 어디로 가요?', on: () => talkTown(g, true) }],
       choices: [
         { label: '다음에요', cls: 'later', on: hide },
-        { label: '초보자 마을로 돌아가요', cls: 'go', main: true, on: () => board('base') },
+        ...goTo(g.id),
       ],
       esc: hide,
     });

@@ -1,5 +1,5 @@
-// 마을 사이 다니기 (2026-11 요한복음 마을 0단계 → 2026-11 마을 등록부)
-//   마을마다 수레가 있음 (초보자 마을은 정원 바깥 둘레길의 "마을 길목", 요한복음 마을은 빛의 광장 남쪽 끝). 수레에 오르면(E 또는 반짝이는 단추)
+// 마을 사이 다니기 (2026-11 요한복음 마을 0단계 → 2026-11 마을 등록부 → 2026-11 사도행전 마을 0-나: 세 마을)
+//   마을마다 수레가 있음 (초보자 마을은 정원 바깥 둘레길의 "마을 길목", 요한복음 마을은 빛의 광장 남쪽 끝, 사도행전 마을은 다락방 광장 남쪽 끝). 수레에 오르면(E 또는 반짝이는 단추)
 //   화면이 흐려졌다 밝아지며 다른 마을 도착 자리에 섬. 어느 마을이 있고 어디에 무엇이 있는지는 등록부(js/villages/registry.js)가 정함
 //   입장 조건은 마을 항목의 entry (요한복음 마을: 정원 안내를 마친 사람, 기획서 9장 결정 3). 걸음·단계 잠금 없음
 //   마을 모형은 처음 들어갈 때만 불러와 지음 (마을 항목의 load, dynamic import) → 첫 접속은 지금과 같음
@@ -88,6 +88,8 @@ export function initRegion(K) {
   veil.id = 'regionVeil';
   const [vt, vr] = VERSES['jn-14-6'] || ['', ''];
   veil.innerHTML = `<div class="pad"><p>${vt}</p><cite>${vr}</cite><small></small></div>`;
+  // 가는 마을이 제 말씀을 주면 (등록부 travel.veil, 사도행전 마을: 행 1:8) 그 말씀, 아니면 요 14:6
+  const veilVerse = (V) => { const [t, r] = V.travel?.veil || [vt, vr]; veil.querySelector('p').textContent = t; veil.querySelector('cite').textContent = r; };
   veil.addEventListener('pointerdown', (e) => { e.stopPropagation(); e.preventDefault(); });
   document.body.appendChild(veil);
 
@@ -138,6 +140,7 @@ export function initRegion(K) {
       me.path = []; me.task = null; me.action = null; me.state = 'idle'; me.jumps = 0; me.vy = 0; me.hop = 0;
       const T0 = performance.now();
       veil.querySelector('small').textContent = V.travel?.going || `${V.name}(으)로 가는 중`;
+      veilVerse(V);
       veil.classList.add('on');
       if (!fromDoor) sfx?.('impact/impactSoft_medium_000', 0.2, 0.9);
       await wait(650); // 다 흐려질 때까지
