@@ -1292,16 +1292,19 @@ function restMode(dt) {
   }
 }
 let prevAct = null, prevSeat = null;
+// 마을 사건·부탁을 따라가는 중이면 그 이야기의 말씀 카드가 이어지도록 앉기·동작 말씀을 띄우지 않음
+//   (앉자마자 시편 카드가 사건 말씀 묶음을 덮어쓰던 일, 2026-11-07 흐름 점검)
+const storyOn = () => { const e = region?.engineHere?.(); return !!(e && (e.run || e.errands?.running?.())); };
 function verseHooks() {
   if (me.action !== prevAct) {
     prevAct = me.action;
     const k = ACTION_VERSE[me.action];
-    if (k && !(me.action === 'gaze' && Math.hypot(me.x, me.z) > 8)) showVerse(k, { delay: me.action === 'pray' || me.action === 'read' || me.action === 'gaze' ? 2.5 : 1.2 });
+    if (k && !storyOn() && !(me.action === 'gaze' && Math.hypot(me.x, me.z) > 8)) showVerse(k, { delay: me.action === 'pray' || me.action === 'read' || me.action === 'gaze' ? 2.5 : 1.2 });
   }
   const sk = me.state === 'sit' && me.seat ? me.seat.kind : null;
   if (sk !== prevSeat) {
     prevSeat = sk;
-    if (SEAT_VERSE[sk] && !me.action) showVerse(SEAT_VERSE[sk], { delay: 2.2 });
+    if (SEAT_VERSE[sk] && !me.action && !storyOn()) showVerse(SEAT_VERSE[sk], { delay: 2.2 });
   }
 }
 
