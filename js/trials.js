@@ -726,6 +726,9 @@ export function where(T) {
 export const TRIAL_SETS = Object.freeze(Object.fromEntries([
   ...Object.entries(PATHS).map(([id, list]) => [id, Object.freeze({ village: 'base', at: id === 'common' ? 'any' : 'forest', n: list.length })]),
   ['camp', Object.freeze({ village: 'base', at: 'camp', n: TRIALS.filter((T) => campable(T)).length })],
+  // 묶음: 마을 등록부 trialSet 'forest'(js/villages/base.js)가 가리키는 초보자 마을 숲길 15길 전체
+  ['forest', Object.freeze({ village: 'base', at: 'forest', sets: Object.freeze(Object.keys(PATHS).filter((id) => id !== 'common')),
+    n: Object.entries(PATHS).reduce((a, [id, l]) => a + (id === 'common' ? 0 : l.length), 0) })],
 ]));
 export const setsOf = (village) => Object.keys(TRIAL_SETS).filter((id) => TRIAL_SETS[id].village === village);
 
