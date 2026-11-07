@@ -135,7 +135,8 @@ export function initShop(K) {
       salveUntil = performance.now() + 180000;
       const n = (guides?.() || []).length;
       showVerse('good-salve', { cooldown: 0, title: '눈에 안약을 발랐어요' });
-      toast(n ? `눈이 밝아졌어요! 할 일이 남은 사람 ${n}명의 머리 위에 3분 동안 빛기둥이 서요` : '눈이 밝아졌지만, 지금은 할 일이 남은 사람이 없어요', 4.5);
+      const pn = K.pieceLeft?.() | 0; // 마을 안이면 못 찾은 두루마리 조각 수
+      toast(pn ? '눈이 밝아졌어요! 못 찾은 두루마리 조각 가운데 가까운 셋 위에 3분 동안 빛기둥이 서요' : n ? `눈이 밝아졌어요! 할 일이 남은 사람 ${n}명의 머리 위에 3분 동안 빛기둥이 서요` : '눈이 밝아졌지만, 지금은 할 일이 남은 사람이 없어요', 4.5);
       save(); onChange?.();
       return;
     }
@@ -216,6 +217,7 @@ export function initShop(K) {
 
   return {
     open, openGoods, close, use, shekel, lydia,
+    salveOn: () => performance.now() < salveUntil, // 안약 효과가 켜져 있는가 (마을의 두루마리 조각 빛기둥이 읽음)
     available: () => (near() && me.state !== 'walk' && !busy?.() ? [['shop', 'shop']] : []),
     actions: { shop: open },
     active: () => !box.hidden || !trip.hidden,

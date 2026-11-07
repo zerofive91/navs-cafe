@@ -1670,6 +1670,7 @@ region = initRegion({
   townKit: {
     scene, me, makeChar, npcs, profile, save: () => saveProfile(profile), toast, sfx, burst, fxSprite, walkTo, standUp, shot,
     busy: () => busyOf('john')(), onChange: () => character?.showChip(), openLog: (k) => questLog?.open(k), lights: { hemi, sun },
+    salve: () => shop?.salveOn?.(), // 마을의 두루마리 조각 빛기둥 (안약)
   },
   camBehind: () => { view.az = me.face + Math.PI; view.tx = me.x; view.tz = me.z; view.ty = me.y + 0.62; view.shot = null; view.lift = 0; },
   onSwitch: (id) => {
@@ -1776,6 +1777,7 @@ shop = initShop({
     ...(guides?.list || []).filter((g) => profile.trails?.[g.id] !== 'done' && dungeon?.open(g.id) !== false).map((g) => g.n),
   ],
   busy: busyOf('shop'),
+  pieceLeft: () => region?.engineHere?.()?.pieces?.left() || 0, // 지금 마을에서 못 찾은 두루마리 조각 수 (안약 알림)
   onChange: () => character.showChip(),
 });
 Object.assign(ACTIONS, shop.actions);

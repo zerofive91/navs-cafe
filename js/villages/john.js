@@ -56,7 +56,9 @@ export default {
   // 처음 들어갈 때: 모형(build)과 사건 모듈(engine·events·trials·modes)을 같은 주소 끝(q, 다시 시도할 때 ?retry=n)으로 불러 지음
   //   사건이 고장 나도 마을 오가기는 되도록 엔진은 따로 감쌈
   load({ q = '', scene, occluders, makeCart, makeSignpost, kit, here }) {
-    return Promise.all(['build', 'engine', 'events', 'trials', 'modes', 'daily'].map((n) => import(`../john/${n}.js${q}`).catch((e) => { if (n !== 'daily') throw e; console.warn('오늘의 마을 모듈을 불러오지 못했어요', e); return null; }))).then(([m, E, Ev, Tr, Md, Dy]) => {
+    // 두루마리 조각(E5)은 사건과 따로 불러옴: 조각이 고장 나도 사건·마을 오가기는 그대로
+    const extra = Promise.all([import(`../village/pieces.js${q}`), import(`../john/pieces.js${q}`)]).catch((e) => { console.warn('두루마리 조각을 불러오지 못했어요', e); return null; });
+    return Promise.all([...['build', 'engine', 'events', 'trials', 'modes', 'daily'].map((n) => import(`../john/${n}.js${q}`).catch((e) => { if (n !== 'daily') throw e; console.warn('오늘의 마을 모듈을 불러오지 못했어요', e); return null; })), extra]).then(([m, E, Ev, Tr, Md, Dy, Pc]) => {
       const r = m.buildJohn({ scene, occluders, makeCart, makeSignpost });
       let engine = null;
       try {
@@ -68,6 +70,15 @@ export default {
           if (link) { try { engine = link.attach(engine, r, Ev); } catch (e) { console.warn('오늘의 마을을 사건 엔진에 잇지 못했어요', e); } }
         }
       } catch (e) { console.warn('요한복음 마을 사건을 준비하지 못했어요', e); }
+      // 두루마리 조각: 오늘의 마을 이음(link.attach) 뒤에, 엔진 step 뒤에 한 걸음씩 (engine.pieces로 시험·안약에서 읽음)
+      if (engine && Pc) {
+        try {
+          const pieces = Pc[0].initPieces({ ...kit, DATA: Pc[1].PIECES, root: r.root, store: () => kit.profile.john.pc, here: () => here(), ui: engine.ui });
+          const step0 = engine.step;
+          engine.step = (dt) => { step0(dt); pieces.step(dt); };
+          engine.pieces = pieces;
+        } catch (e) { console.warn('두루마리 조각을 준비하지 못했어요', e); }
+      }
       return { root: r.root, cart: r.cart, engine };
     });
   },
@@ -118,7 +129,7 @@ export default {
   transit: [],           // 마을 안 이동 노선 [{ id, from, to, route, open(profile) }] (밤바다 배는 사건 전용 galilee.js)
   shopGoods: ['chariot', 'donkey', 'oil'], // 수레꾼 두기고의 수레 짐 (profile.js GOODS id, 루디아와 같은 값). 안약은 초보자 마을 사람 기준이라 뺌 (두기고 부탁 cart-wedge는 안약을 쓰지 않음. 안약은 E5 조각 빛기둥과 함께 다시)
   quietZones: ['passion'], // 부탁·오늘의 일을 두지 않는 구역 (수난과 동산 Z11)
-  errands: null, daily: 'js/john/daily.js', pieces: null, // 공용 장치 자료 모듈 경로 (요한 채우기 E1·E3·E5). daily는 load가 같은 이름으로 불러옴 (등록부는 값만 둠)
+  errands: null, daily: 'js/john/daily.js', pieces: 'js/john/pieces.js', // 공용 장치 자료 모듈 경로 (요한 채우기 E1·E3·E5). daily·pieces는 load가 같은 이름으로 불러옴 (등록부는 값만 둠)
   folk: null,            // (profile) → 지금 보여 줄 주민 목록 (자라는 마을)
   companions: [],        // 데리고 다닐 수 있는 동행
   next: 'acts',          // 졸업 뒤 다음 마을 (사도행전 마을이 열리면 안내에 씀)
