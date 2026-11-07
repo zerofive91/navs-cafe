@@ -1,6 +1,7 @@
 // 나의 캐릭터: 닉네임, 성장 단계, 받은 물품, 안내(튜토리얼)를 마쳤는지
 // 이 기기 안(localStorage)에 저장하고, 계정으로 들어와 있으면 서버에도 올림(account.js). 모습(옷·머리 색)은 예전처럼 navs-cafe-look3d에 따로 둠
 import { fillMet } from './met.js';
+import { fillTownExtras, mergeTownExtras } from './village/town-save.js'; // 마을 공용 칸 er·day·pc (부탁·오늘의 마을·조각)
 const KEY = 'navs-cafe-profile';
 
 // 성장 단계 (디모데후서 2:2의 배가 흐름). need: 그 단계에 이르는 걸음 수
@@ -83,6 +84,7 @@ export function fillJohn(j) {
     last: j.last ? 1 : 0, // 마지막에 요한 마을에 있었으면 1 → 다시 들어오면 빛의 광장에서 시작
     mark: MARKS.includes(j.mark) ? j.mark : '', // '증인' | '졸업' 표지
     seen: Number.isFinite(j.seen) ? j.seen : 0, // 처음 가 본 때 (지도 "마을" 탭에 보임)
+    ...fillTownExtras(j), // er 부탁 · day 오늘의 마을 · pc 두루마리 조각 (js/village/town-save.js)
   };
 }
 // 두 기기 기록 합치기: ev 합집합(같은 사건이면 m 글자 합침, 마친 때는 먼저 것), lamps 합집합, open은 더 뒤의 사건, signs 큰 쪽
@@ -105,6 +107,7 @@ export function mergeJohn(a, b) {
     last: b.last,
     mark: MARKS[Math.max(MARKS.indexOf(a.mark), MARKS.indexOf(b.mark))],
     seen: [a.seen, b.seen].filter((x) => x > 0).sort((x, y) => x - y)[0] || 0,
+    ...mergeTownExtras(a, b), // er 합집합(done 먼저·last 늦은 날) · day 늦은 날 · pc 합집합
   };
 }
 

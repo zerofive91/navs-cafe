@@ -805,6 +805,11 @@ body.region-john #storyChip, body.region-john #questChip { display: none; } /* �
 .npcb.jn .row { flex-wrap: wrap; }
 .npcb.jn .row .speak { color: #6a8a5a; }
 .npcb.jn .row .help { color: #8f6744; }
+.npcb.jn .row .er { color: #4f8a46; } /* 증인의 작은 부탁 단추 */
+#questLog .er h3 { color: #4f7a42; }
+#questLog .erl ul { margin: 4px 0 0; padding-left: 18px; }
+#questLog .erl li { margin: 2px 0; }
+#questLog .erl li span { color: #8a7a5a; font-size: 13px; }
 .npcb.jn .note { margin: 6px 0 0; font: 500 13px/1.5 "Noto Serif KR", serif; color: #9a7c5c; word-break: keep-all; }
 .npcb.jn.trial .note { color: #c8b8e0; }
 .npcb.jn .why { margin: 8px 0 0; padding: 6px 10px; border-radius: 10px; background: rgba(255, 214, 120, 0.18); font: 500 14px/1.5 "Noto Serif KR", serif; color: #8a5a2a; word-break: keep-all; }

@@ -33,6 +33,10 @@ export const ICONS = {
   jn_spice: svg('<path d="M8 14h16l-2 10H10z"/><path d="M7 14h18"/><path d="M12 10c0-2 1-3 1-5M16 10c0-2 1-3 1-5M20 10c0-2 1-3 1-5" opacity=".6"/><path d="M5 27h22"/>'),
   jn_net: svg('<path d="M6 6l20 0-3 18H9z"/><path d="M8 12h16M9 18h14"/><path d="M12 6l1 18M20 6l-1 18"/><path d="M3 28c3-1.5 5-1.5 8 0s5 1.5 8 0 5-1.5 8 0"/>'),
   jn_pull: svg('<path d="M6 10h14l-2 12H8z"/><path d="M7 16h12M11 10v12M15 10v12" opacity=".6"/><path d="M20 12l8-6"/><path d="M24 4l4 2-2 4"/><path d="M4 27h24"/>'),
+  jn_oil: svg('<path d="M9 12c-3 2-3 9 4 12 7-3 7-10 4-12z"/><path d="M11 12V8h4v4"/><path d="M15 9l6-3"/><path d="M22 9c-1 2-1 3 0 4 1-1 1-2 0-4z"/><path d="M6 27h20"/>'),
+  jn_reap: svg('<path d="M10 26V12M14 26V10M18 26V12"/><path d="M10 12c-2-2-2-4 0-6 2 2 2 4 0 6zM14 10c-2-2-2-4 0-6 2 2 2 4 0 6zM18 12c-2-2-2-4 0-6 2 2 2 4 0 6z"/><path d="M22 8c4 2 5 6 3 10l-3-2"/><path d="M8 20h12"/>'),
+  jn_dry: svg('<path d="M5 8v18M27 8v18"/><path d="M5 10h22"/><path d="M7 10l2 12h14l2-12"/><path d="M8 15h16M9 19h14M12 10l1 12M20 10l-1 12" opacity=".6"/>'),
+  jn_pick: svg('<path d="M8 22l8-6 8 6z"/><path d="M5 27h22"/><path d="M16 3v8M13 8l3 3 3-3"/>'),
   jn_feed: svg('<ellipse cx="13" cy="19" rx="7" ry="4.5"/><circle cx="22" cy="16" r="3"/><path d="M9 23v3M17 23v3"/><path d="M24 20c1 2 2 3 4 3" /><path d="M23 26h5"/>'),
   towns: svg('<path d="M3 26h26"/><path d="M5 26V15l5-4 5 4v11M17 26V12l5-5 5 5v14"/><path d="M9 26v-4h2v4M21 26v-4h2v4"/>'),
   map: svg('<path d="M4 8l7-3 10 3 7-3v19l-7 3-10-3-7 3z"/><path d="M11 5v19M21 8v19"/><circle cx="16" cy="14" r="1.6"/>'),
@@ -160,4 +164,5 @@ export const ICON_LABELS = {
   jn_put: '내려놓기', jn_boat: '배 타기', jn_row: '노 젓기', jn_call: '무리를 앉히기',
   jn_clear: '장사판 치우기', jn_lift: '자리 들기', jn_push: '돌 옮기기', jn_untie: '베 풀어 주기', jn_pour: '향유 붓기', jn_plant: '밀 심기',
   jn_towel: '수건과 대야 들기', jn_feet: '발 씻기기', jn_sheathe: '검을 칼집에 꽂기', jn_spice: '향품 놓기', jn_net: '그물 던지기', jn_pull: '그물 끌어 올리기', jn_feed: '어린 양 먹이기',
+  jn_oil: '기름 붓기', jn_reap: '이삭 거두기', jn_dry: '그물 널기', jn_pick: '줍기',
 };
