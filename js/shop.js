@@ -41,9 +41,19 @@ export function initShop(K) {
   box.id = 'shop'; box.hidden = true;
   document.body.appendChild(box);
   let tab = 'buy';
+  let only = null; // 고른 물품만 여는 창이면 { ids, who(안내인 NPC) }: 사기만, 값·지갑은 루디아와 같은 길
   function render(msg = '') {
     const bag = profile.bag || {};
     const sellable = profile.items.filter((id) => SELL(id) > 0);
+    if (only) {
+      box.innerHTML = `<div class="pad"><button class="close" aria-label="닫기">×</button>
+      <h3>수레 짐</h3>
+      <p class="sub">루디아의 가게에서 받아 온 짐이에요. 값도 같고 지갑도 하나예요. 팔기와 꾸미기는 정원 동쪽 루디아에게서만 해요.</p>
+      <p class="purse">지갑 <b>${fmtMoney(profile.coins)}</b></p>
+      <div class="list">${only.ids.filter((id) => GOODS[id]).map((id) => { const g = GOODS[id]; return `<div class="it"><div><b>${g.name}</b> <span class="have">${bag[id] ? `가진 것 ${bag[id]}` : ''}</span><small>${g.use}</small></div><button data-buy="${id}" ${profile.coins < g.price ? 'disabled' : ''}>${g.price} 데나리온</button></div>`; }).join('')}</div>
+      <p class="msg">${msg}</p></div>`;
+      return;
+    }
     box.innerHTML = `<div class="pad"><button class="close" aria-label="닫기">×</button>
       <h3>루디아의 가게</h3>
       <p class="sub">두아디라에서 온 자주 장사 루디아예요. 주께서 제 마음을 열어 주셨지요. 필요한 것을 골라 보세요.</p>
@@ -67,6 +77,7 @@ export function initShop(K) {
     const b = e.target.closest('[data-buy]');
     if (b && !b.disabled) {
       const id = b.dataset.buy, g = GOODS[id];
+      if (only && !only.ids.includes(id)) return;
       if (!spend(profile, g.price)) return render('돈이 모자라요.');
       addGood(profile, id); sfx('cup', 0.2, 1.3); save(); onChange?.();
       return render(`${g.name}을(를) 샀어요. ${g.use}.`);
@@ -89,11 +100,15 @@ export function initShop(K) {
   });
   addEventListener('keydown', (e) => { if (!box.hidden && e.code === 'Escape') { e.stopPropagation(); close(); } }, true);
   function open() {
-    tab = 'buy'; render(); box.hidden = false;
+    only = null; tab = 'buy'; render(); box.hidden = false;
     lydia.face = Math.atan2(me.x - lydia.x, me.z - lydia.z);
     showVerse('shop-lydia', { cooldown: 120, delay: 0.4 });
   }
-  function close() { box.hidden = true; }
+  // 고른 물품만 여는 창 (수레꾼 두기고의 수레 짐 등): ids는 GOODS의 id, who는 곁에 서 있는 안내인(멀어지면 닫힘)
+  function openGoods(ids, who) {
+    only = { ids: ids || [], who }; render(); box.hidden = false;
+  }
+  function close() { box.hidden = true; only = null; }
 
   // ---------- 소모품 쓰기 (내 카드에서) ----------
   function use(id) {
@@ -200,10 +215,10 @@ export function initShop(K) {
   }
 
   return {
-    open, close, use, shekel, lydia,
+    open, openGoods, close, use, shekel, lydia,
     available: () => (near() && me.state !== 'walk' && !busy?.() ? [['shop', 'shop']] : []),
     actions: { shop: open },
     active: () => !box.hidden || !trip.hidden,
-    step(dt, t) { stepSalve(t || 0); if (!box.hidden && !near(5)) close(); if (box.hidden && near(6) && me.state !== 'walk') lydia.face = Math.atan2(me.x - lydia.x, me.z - lydia.z); },
+    step(dt, t) { stepSalve(t || 0); if (!box.hidden && (only ? Math.hypot(me.x - only.who.x, me.z - only.who.z) > 5 : !near(5))) close(); if (box.hidden && near(6) && me.state !== 'walk') lydia.face = Math.atan2(me.x - lydia.x, me.z - lydia.z); },
   };
 }

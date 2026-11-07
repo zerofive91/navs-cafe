@@ -1674,7 +1674,7 @@ region = initRegion({
   },
 });
 Object.assign(ACTIONS, region.actions);
-cartGuide = initCartGuide({ me, makeChar, npcs, profile, toast, busy: () => busyOf('cart')(), region: () => region });
+cartGuide = initCartGuide({ me, makeChar, npcs, profile, toast, busy: () => busyOf('cart')(), region: () => region, shop: () => shop });
 // 열려 있는 창 등록부 (2026-11): 말풍선·안내·훈련 등 창이 하나라도 열려 있으면 다른 말풍선은 열리지 않음
 //   새 모듈이 생기면 여기 한 줄만 보태면 됨. busyOf(자기 이름, ...보지 않을 이름)은 자기 자신을 뺀 나머지를 살핌
 //   story(누가) 말풍선이 열려 있으면 훈련·시험·부탁·가게도 열리지 않음 (2026-11 단위 6에서 정리, 예전엔 예외였음)

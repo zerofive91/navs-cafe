@@ -15,7 +15,7 @@ export const eventsDone = (j) => JOHN.progress({ john: j }).done;
 export const EVENTS_TOTAL = JOHN.events.length;
 
 export function initCartGuide(K) {
-  const { me, makeChar, npcs, profile, busy, region, toast } = K;
+  const { me, makeChar, npcs, profile, busy, region, toast } = K; // K.shop: () => 가게 (루디아 가게와 같은 길로 수레 짐을 파는 창)
   const canEnter = () => JOHN.entry(profile) === true; // region.js와 같은 조건 (등록부 entry): 정원 안내를 마쳤거나 '안내 끝내기'로 넘긴 사람
 
   const put = (name, look, p, look0) => {
@@ -66,19 +66,29 @@ export function initCartGuide(K) {
     const g = john, j = profile.john, d = done();
     let say;
     if (info) say = '초보자 마을은 카페와 정원, 사방으로 뻗은 숲길이 있는 마을이에요. 걷던 숲길이나 정원 훈련장이 있으면 수레를 타고 돌아가 다시 걸어요. 이 마을의 기록은 그대로 남아요.';
-    else if (j?.mark === '졸업') say = `${EVENTS_TOTAL}개 사건을 모두 걸었군요. 졸업 표지를 받은 사람이에요! 수레는 언제든 초보자 마을로 모셔 가요.`;
+    else if (j?.mark === '졸업') say = `${EVENTS_TOTAL}개 사건을 모두 걸었군요. 졸업 표지를 받은 사람이에요! 수레 짐은 루디아에게서 받아 온 거예요. 필요하면 둘러봐요. 수레는 언제든 초보자 마을로 모셔 가요.`;
     else if (!d) say = `어서 와요. 저는 이 수레로 편지와 소식을 나르는 두기고예요. 아직 걸은 사건이 없어요(0/${EVENTS_TOTAL}). 광장의 사도 요한을 먼저 만나 보세요. 금빛 기둥이 선 곳이 다음 사건 자리예요.`;
-    else say = `마친 사건은 ${d}/${EVENTS_TOTAL}이에요. 금빛 기둥이 선 곳이 다음 사건 자리예요. 쉬다 가도 좋고, 돌아가려면 말해 줘요.`;
+    else say = `마친 사건은 ${d}/${EVENTS_TOTAL}이에요. 금빛 기둥이 선 곳이 다음 사건 자리예요. 수레 짐은 루디아에게서 받아 온 거예요. 쉬다 가도 좋고, 돌아가려면 말해 줘요.`;
     cur = g;
     dlg.open({
       who: g.name, n: g.n, say,
       guide: [info ? { label: '돌아가기', on: () => talkJohn(false) } : { label: '초보자 마을은 어떤 곳이에요?', on: () => talkJohn(true) }],
       choices: [
         { label: '다음에요', cls: 'later', on: hide },
+        { label: '수레 짐', hidden: !goods.length, on: () => openGoods(g) },
         { label: '초보자 마을로 돌아가요', cls: 'go', main: true, on: () => board() },
       ],
       esc: hide,
     });
+  }
+  // 수레 짐: 등록부 shopGoods의 물품을 루디아와 같은 값·같은 지갑으로 (shop.js openGoods)
+  const goods = village('john').shopGoods || [];
+  function openGoods(g) {
+    const sh = K.shop?.();
+    if (!sh) return;
+    dlg.close(); cur = null;
+    toast?.('루디아에게서 받아 온 짐이에요', 2.5);
+    sh.openGoods(goods, g.n0);
   }
   // 초보자 마을 수레가 갈 마을이 여럿일 때 (사도행전 마을을 연 뒤): 마을마다 '…로 가요' 단추
   //   g: 말하는 안내인(기본은 초보자 마을 수레꾼), outs: 갈 수 있는 마을 (기본은 초보자 마을 수레의 목적지)
