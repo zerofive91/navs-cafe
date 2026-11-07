@@ -90,8 +90,8 @@ const PATHS = {
     { id: 'mg4', cat: 'lie', big: true, kind: 'fill', lie: '고작 초라한 집의 아기야. 엎드려 절할 만한 분은 아니잖아.',
       win: '그 아기의 이름은 기묘자, 전능하신 하나님이에요. 박사들은 엎드려 경배했어요.',
       about: '한 아기로 오실 메시아의 이름을 미리 알린 예언이에요.',
-      fill: { k: ['하나님', '선지자', '선생'], m: ['하나님', '선지자', '선생'],
-        why: ['선지자는 하나님의 말씀을 전하는 사람이에요. 이사야는 이 아기를 그보다 훨씬 크신 분으로 불렀어요.', '예수님은 좋은 선생 그 이상이세요. 이 이름들은 아기로 오신 분이 누구신지를 말해요.'] } },
+      fill: { k: ['하나님', '스승', '선생'], m: ['하나님', '스승', '선생'],
+        why: ['예수님은 지혜로운 스승 그 이상이세요. 이사야는 이 아기를 전능하신 하나님이라 불렀어요.', '예수님은 좋은 선생 그 이상이세요. 이 이름들은 아기로 오신 분이 누구신지를 말해요.'] } },
     // 2026-11 확충
     { id: 'mg5', cat: 'fear', lie: '헤롯 왕이 무섭지 않아? 왕이 시킨 대로 그 궁으로 다시 가.', no: ['mg7', 'lv7'],
       win: '박사들은 꿈에 지시를 받고 헤롯에게 돌아가지 않고 다른 길로 갔어요. 사람보다 하나님께 순종해요.',
@@ -747,6 +747,19 @@ const recent = (key) => (Array.isArray(seen[key]) ? seen[key] : []);
 export function markSeen(key, id) {
   for (const [k, n] of [[key, 12], ['_all', 16]]) seen[k] = [id, ...recent(k).filter((x) => x !== id)].slice(0, n);
   try { localStorage.setItem(SEEN_KEY, JSON.stringify(seen)); } catch (e) { /* 이번만 */ }
+}
+// 같은 길을 다시 이긴 보상 상한: 길마다 하루(이 기기 날짜) 첫 번째만 true. 이 기기에만 { d: 'YYYY-MM-DD', p: [길 id…] } (계정에 올리지 않음)
+const REDO_KEY = 'navs-cafe-dg-redo';
+export function firstRedoToday(path, now = new Date()) {
+  const pad = (n) => String(n).padStart(2, '0');
+  const d = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  let r = null;
+  try { r = JSON.parse(localStorage.getItem(REDO_KEY) || 'null'); } catch (e) { r = null; }
+  if (!r || r.d !== d || !Array.isArray(r.p)) r = { d, p: [] };
+  if (r.p.includes(path)) return false;
+  r.p.push(path);
+  try { localStorage.setItem(REDO_KEY, JSON.stringify(r)); } catch (e) { /* 이번만 */ }
+  return true;
 }
 // 목록에서 n개 고르기: avoid(이번 걸음에 이미 나온 id) → 그 자리에서 안 본 것 먼저, 본 것은 오래전 것부터 → 어디서든 최근 본 것 뒤로 → 나머지는 무작위
 export function draw(list, key, { n = 1, avoid = [], rnd = Math.random } = {}) {

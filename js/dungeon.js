@@ -12,7 +12,7 @@ import * as THREE from 'three';
 import { TRAILS, R_PARK, floorY } from './layout.js';
 import { showVerse } from './verses.js';
 import { STAGES, stageOf, addSteps, addStat, earn, useGood, GOODS } from './profile.js';
-import { BY, pool, draw, markSeen, vkey, verseOf } from './trials.js';
+import { BY, pool, draw, markSeen, vkey, verseOf, firstRedoToday } from './trials.js';
 import { bibleMode } from './bible.js';
 
 // 채우기는 지금 고른 번역(개역한글 / AI 현대어)으로 빈칸을 냄. 현대어 짝은 처음 한 번 불러 둠 (bible.js와 같은 모듈)
@@ -109,7 +109,7 @@ export function initDungeon(K) {
   // 다시 걷기: 길을 다 이긴 뒤 입구 가까이 오면 속삭임이 새로 생김 (문항은 다시 고름, 최근 본 것은 뒤로)
   function revive(id) {
     for (const S of byCourse[id]) {
-      Object.assign(S, { beaten: false, fade: -1, lie: null, sz: null, wait: false });
+      Object.assign(S, { beaten: false, fade: -1, lie: null, sz: null, wait: false, belt: false });
       S.g.scale.setScalar(S.big ? 1.9 : 1);
       S.parts.forEach((m) => { m.material.opacity = m.isSprite ? 0.45 : 0.55; });
     }
@@ -342,7 +342,11 @@ export function initDungeon(K) {
     shieldUsed.delete(id); swordUsed.delete(id);
     const bigS = list.find((S) => S.big); if (bigS) victory(bigS);
     profile.dungeon = profile.dungeon || {};
-    if (profile.dungeon[id]) { addSteps(profile, 5); earn(profile, 1); save(); onChange?.(); toast(`${courseName(id)}의 시험을 다시 이겼어요 (걸음 +5, 1 데나리온)`, 4); return; }
+    if (profile.dungeon[id]) { // 다시 이김: 길마다 하루 첫 번째만 걸음 +5·1 데나리온, 그 뒤 같은 날은 걸음 +1
+      const first = firstRedoToday(id);
+      addSteps(profile, first ? 5 : 1); if (first) earn(profile, 1); save(); onChange?.();
+      toast(`${courseName(id)}의 시험을 다시 이겼어요 (걸음 +${first ? '5, 1 데나리온' : '1 · 데나리온은 하루 한 번'})`, 4); return;
+    }
     profile.dungeon[id] = 'clear';
     const n = REWARD[TIER[id]] * (K.gear?.()?.full() ? 2 : 1); // 전신갑주를 다 갖추면 두 배
     addStat(profile, 'word', 5); addStat(profile, 'obey', 5);
