@@ -938,3 +938,22 @@ html.land #still { bottom: calc(8px + env(safe-area-inset-bottom)); width: min(4
 html.land #still .breath { width: 72px; height: 72px; }
 html.land #still .lines, html.land #still .lines p { font-size: 16px; }
 html.land #still .lines { height: 6.2em; }
+
+/* 마을 두루마리 조각 (E5): 모은 수 칩과 목록 창. 마을 안에서만 보임, 정원 두루마리 표시(#scrollChip) 자리를 대신함 */
+body.region-john #scrollChip { display: none; }
+.pieceChip { position: fixed; left: calc(12px + env(safe-area-inset-left)); top: calc(110px + env(safe-area-inset-top)); height: 32px; padding: 0 10px 0 8px; border: 0; border-radius: 16px; display: flex; align-items: center; gap: 4px; background: rgba(255, 250, 240, 0.7); color: #8a6a50; font: 600 13px/1 system-ui, sans-serif; box-shadow: 0 2px 10px rgba(60, 40, 20, 0.12); z-index: 5; cursor: pointer; }
+.pieceChip[hidden], .pieceBox[hidden] { display: none; }
+.pieceChip.done { background: rgba(255, 236, 170, 0.9); color: #8a5a10; }
+#enter:not(.gone) ~ .pieceChip { display: none; }
+@media (min-width: 761px) and (min-height: 501px) { .pieceChip { top: calc(134px + env(safe-area-inset-top)); } }
+.pieceBox { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; background: rgba(40, 30, 15, 0.4); font-family: "Noto Serif KR", serif; }
+.pieceBox .pad { position: relative; width: min(400px, calc(var(--vw) - 32px)); max-height: calc(var(--vh) - 24px); overflow: auto; padding: 18px 16px 14px; border-radius: 20px; background: rgba(255, 250, 238, 0.98); color: #5a4030; box-shadow: 0 10px 40px rgba(40, 30, 15, 0.35); touch-action: pan-y; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+.pieceBox h3 { margin: 0 0 4px; font-size: 18px; text-align: center; }
+.pieceBox .sub { margin: 0 0 10px; font-size: 13px; text-align: center; color: #8f7458; word-break: keep-all; }
+.pieceBox .list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.pieceBox .list button { display: flex; align-items: baseline; gap: 6px; border: 0; border-radius: 12px; padding: 8px 9px; background: #fff; color: #6b4c32; font: 600 12.5px/1.35 "Noto Serif KR", serif; text-align: left; box-shadow: 0 1px 4px rgba(60, 40, 20, 0.15); cursor: pointer; word-break: keep-all; }
+.pieceBox .list button b { flex: none; min-width: 1.4em; color: #b8863a; }
+.pieceBox .list button.no { background: rgba(255, 255, 255, 0.5); color: #b9a58a; cursor: default; box-shadow: none; }
+.pieceBox .done { margin: 12px 4px 2px; font-size: 13px; line-height: 1.6; color: #6b4c32; word-break: keep-all; }
+.pieceBox .close { position: absolute; top: 10px; right: 12px; border: 0; background: none; font-size: 22px; color: #a08868; cursor: pointer; }
+html.land .pieceBox .list { grid-template-columns: repeat(3, 1fr); }
