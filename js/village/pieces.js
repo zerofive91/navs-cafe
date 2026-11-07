@@ -15,11 +15,15 @@ import { addSteps, addStat, addGood, earn, STATS } from '../profile.js';
 export const PICK_R = 1.6;   // 줍는 거리
 export const SPARKLE_R = 25; // 이 안에 들면 반짝임
 export const EACH = { steps: 1 }; // 조각 하나마다
+export const DONE = 99; // pc에 이 숫자가 있으면 다 모은 보상을 이미 받음 (town-save.js fillPc의 1~99 범위 안이라 합집합으로 두 기기에 퍼짐)
 const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
 export function initPieces({ DATA, root, store, profile, me, here, busy, ui, toast, sfx, burst, fxSprite, save, onChange, salve }) {
   const total = DATA.total || DATA.spots.length;
-  const have = () => new Set(store());
+  const nums = new Set(DATA.spots.map((s) => s.n));
+  // 저장 칸(pc)에는 장 번호 외에 보상 받음 표시(DONE=99)가 같이 들어 있음. 칩·목록·남은 수는 자리 번호만 셈 (손상된 기록의 엉뚱한 번호는 무시)
+  const have = () => new Set(store().filter((n) => nums.has(n)));
+  const rewarded = () => store().includes(DONE);
   const inTown = () => here() === DATA.id;
 
   // ---------- 조각 모형 (정원 두루마리와 같은 모양) ----------
@@ -59,7 +63,7 @@ export function initPieces({ DATA, root, store, profile, me, here, busy, ui, toa
   document.body.appendChild(box);
   let shown = -1;
   function paintChip() {
-    const n = store().length;
+    const n = have().size;
     if (n === shown) return; shown = n;
     chip.innerHTML = `<span aria-hidden="true">📜</span><span>${n}/${total}</span>`;
     chip.classList.toggle('done', n >= total);
@@ -99,13 +103,14 @@ export function initPieces({ DATA, root, store, profile, me, here, busy, ui, toa
     addSteps(profile, EACH.steps); // saveProfile까지
     save?.(); onChange?.(); paintChip();
     burst(it.p.x, it.y, it.p.z); sfx('share', 0.3);
-    const n = list.length;
+    const n = have().size;
     showVerse(it.s.verse, { cooldown: 0, title: cardTitle(it.s, n) });
-    if (n >= total) finish();
+    if (n >= total && !rewarded()) finish();
   }
   // 다 모음: 한눈에 카드와 작은 보상 (마지막 조각을 줍는 기기에서 한 번)
   function finish() {
     const R = DATA.reward || {};
+    const list = store(); if (!list.includes(DONE)) { list.push(DONE); list.sort((a, b) => a - b); } // 표시를 먼저 남겨 두 번 받지 않게
     if (R.steps) addSteps(profile, R.steps);
     if (R.stat) addStat(profile, R.stat, R.statN || 1);
     for (const [id, k] of Object.entries(R.goods || {})) addGood(profile, id, k);
@@ -137,6 +142,7 @@ export function initPieces({ DATA, root, store, profile, me, here, busy, ui, toa
       syncT = 0.5; const got = have();
       for (const it of items) { it.got = got.has(it.n); it.g.visible = !it.got; }
       paintChip();
+      if (got.size >= total && !rewarded()) finish(); // 두 기기에서 나눠 모은 기록이 합쳐져 21개가 된 경우에도 보상·카드 (표시를 바로 남기므로 한 번만)
     }
     const free = box.hidden && !busy() && !ui.isOpen();
     for (const it of items) {
@@ -160,7 +166,7 @@ export function initPieces({ DATA, root, store, profile, me, here, busy, ui, toa
   paintChip();
   return {
     step, open: openBox, close: closeBox,
-    left: () => total - store().length, count: () => store().length, total,
+    left: () => Math.max(0, total - have().size), count: () => have().size, total,
     debug: { items, beams, pick: (n) => { const it = items.find((x) => x.n === n); if (it) pick(it); return !!it; }, spots: () => items.map((it) => ({ n: it.n, x: it.p.x, z: it.p.z, got: it.got })), chip, box },
   };
 }
