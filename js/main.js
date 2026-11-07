@@ -39,7 +39,7 @@ import { initQuestLog, walkToward } from './questlog.js';
 import { talkOffer, pressTalk } from './talkgate.js';
 import { escDialog } from './dialog.js';
 import { initRegion } from './region.js';
-import { VILLAGES, visitedTowns, lastTown } from './villages/registry.js';
+import { VILLAGES, village, visitedTowns, lastTown } from './villages/registry.js';
 import { initCartGuide } from './cartguide.js';
 
 const canvas = document.getElementById('cafe');
@@ -589,7 +589,7 @@ function availableActions() {
   if (me.item === 'cup') list.push('sip');
   if (me.food) list.push('eat');
   if (signs.nearBread()) place('loaves');
-  if (inBoat && !netting && signs.canFish()) place('fish');
+  if ((inBoat || signs.atShore()) && !netting && signs.canFish()) place('fish');
   place(...park.available());
   if (outdoors(me) && nearTree(me.x, me.z, 1.8, 3.6)) list.push('climb');
   for (const v of leisure.available()) { if (Array.isArray(v)) place(v[1]); else list.push(v); } // 연·꽃·물수제비·별·씨앗
@@ -1634,11 +1634,14 @@ window.__enterReady = true;
 const signs = initSigns({ scene, me, npcs, interactive, act, sfx, fxSprite, burst, sun, walkTo, faceTo, onShekel: () => shop?.shekel() });
 const park = initPark({ scene, me, interactive, act, sfx, fxSprite, burst, walkTo, faceTo, standUp, shot });
 Object.assign(ACTIONS, park.actions);
-const leisure = initLeisure({ scene, me, camera, renderer, view, lights: [hemi, sun, warm], act, sfx, burst, walkTo, faceTo, standUp, nearestPerson, toast, ICONS, LIEABLE });
+// rest: 마을에서는 등록부 rest[] 쉼 구역 (초보자 마을은 null = 정원 판정 그대로)
+const leisure = initLeisure({ scene, me, camera, renderer, view, lights: [hemi, sun, warm], act, sfx, burst, walkTo, faceTo, standUp, nearestPerson, toast, ICONS, LIEABLE, rest: () => { const id = region?.here?.(); return id && id !== 'base' ? village(id)?.rest || [] : null; } });
+signs.setShore(leisure.fishSpot);
 Object.assign(ACTIONS, leisure.actions);
 // 머무름 묵상 (2026-11, js/stillness.js): 쉬는 자리에서 1~2분 숨 고르기 + 말씀 한 구절
 //   내 카드(#meCard)는 등록부에 없어(열려 있어도 단축키·Esc가 카드를 다뤄야 함) 여기서만 따로 봄: 카드를 열면 묵상이 조용히 끝남
-stillness = initStillness({ me, profile, save: () => saveProfile(profile), busy: () => busyOf('stillness')() || !!document.getElementById('meCard'), rest: () => restK, music, sfx });
+stillness = initStillness({ me, profile, save: () => saveProfile(profile), busy: () => busyOf('stillness')() || !!document.getElementById('meCard'), rest: () => restK, music, sfx,
+  seatVerse: (seat) => { const id = region?.here?.(); return id && id !== 'base' ? village(id)?.seatVerse?.(seat) || null : null; } });
 Object.assign(ACTIONS, stillness.actions);
 // 오늘 만난 말씀 (2026-11, js/met.js): 화면에 떠오른 말씀을 하루치 모아 내 카드 '오늘 말씀' 탭에
 onVerseShown((key) => { if (recordMet(profile.met, key)) saveProfile(profile); });
