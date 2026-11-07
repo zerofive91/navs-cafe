@@ -170,7 +170,7 @@ export function initTrials({ ui, me, toast, sfx, burst, whisper, sky, showVerse,
         if (c.k >= c.rounds.length) { const f = c.then; end(); won.add('voices'); f?.(); } else drawVoices();
       } else if (c.told !== at) {
         c.told = at; c.no.add(at); sfx('impact/impactSoft_medium_000', 0.16, 0.8);
-        toast(o.why || '타인의 음성이에요. 말씀과 맞지 않아요 (10:5)', 5); drawVoices();
+        toast(o.why || '모르는 사람의 목소리예요. 말씀과 맞지 않아요', 5); drawVoices();
       }
       return;
     }
