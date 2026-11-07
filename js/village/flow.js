@@ -52,6 +52,7 @@ const NEED_GUIDE = ['key', 'ev', 'who', 'zone', 'bookSub', 'waitToast', 'end', '
 function checkCfg(cfg) {
   const miss = NEED.filter((k) => cfg[k] == null);
   if (cfg.guide) miss.push(...NEED_GUIDE.filter((k) => cfg.guide[k] == null).map((k) => 'guide.' + k));
+  if (cfg.guide?.intro && !cfg.introKey) miss.push('introKey (guide.intro가 있으면 봤는지 저장할 키가 필요해요)');
   if (cfg.EV && cfg.ORDER) miss.push(...cfg.ORDER.filter((id) => !cfg.EV[id]).map((id) => `EV.${id}`));
   if (miss.length) console.warn(`마을 사건 엔진(${cfg.name || '?'}) 설정이 빠졌어요: ${miss.join(', ')}`);
   return miss;

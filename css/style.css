@@ -848,6 +848,8 @@ html.land .npcb.jn .board li { padding: 4px 8px; font-size: 13px; }
 .npcb.jn.trial .why { color: #ffe2a8; background: rgba(255, 214, 120, 0.12); }
 .npcb.jn .why[hidden] { display: none; }
 /* 밝은 말풍선의 보기 (공부) */
+/* 가벼운 시험(spec.soft, 기쁜 장면): 어둡지 않은 말풍선에 금빛 테두리로 "고르는 중"임을 표시 */
+.npcb.jn.soft { box-shadow: 0 0 0 2px #f0d890, 0 6px 24px rgba(40, 30, 15, 0.25); }
 .npcb.jn:not(.trial) .opts { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
 .npcb.jn:not(.trial) .opt { display: flex; gap: 8px; align-items: flex-start; text-align: left; border: 1px solid #e4d4b4; border-radius: 12px; padding: 8px 10px; background: #fffaf0; color: #5a4030; font: 500 15px/1.5 "Noto Serif KR", serif; word-break: keep-all; cursor: pointer; }
 .npcb.jn:not(.trial) .opt kbd { flex: none; min-width: 22px; padding: 1px 5px; border-radius: 6px; background: #f1e6d2; font: 700 13px system-ui, sans-serif; text-align: center; box-shadow: none; border: 0; }
