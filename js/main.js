@@ -1658,7 +1658,7 @@ function setEnv(env) {
 }
 region = initRegion({
   scene, me, profile, save: () => saveProfile(profile), toast, sfx, standUp, walkTo, interactive, occluders, setEnv,
-  blocked: () => !!cartGuide?.active(), // 수레 안내인 말풍선이 열려 있는 동안은 수레 단추가 쉼
+  blocked: () => !!cartGuide?.active() || !!shop?.active(), // 수레 안내인 말풍선·수레 짐 창이 열려 있는 동안은 수레 단추가 쉼
   chooseTown: (ids) => cartGuide?.choose(ids), // 초보자 마을 수레가 갈 마을이 여럿이면 수레꾼이 고르기 말풍선을 엶 (사도행전 마을을 연 뒤)
   // 마을 사건 엔진(요한복음 마을: js/john/engine.js)이 쓰는 것: 마을을 처음 지을 때 넘겨받음 (등록부 load의 kit)
   townKit: {
@@ -1674,7 +1674,7 @@ region = initRegion({
   },
 });
 Object.assign(ACTIONS, region.actions);
-cartGuide = initCartGuide({ me, makeChar, npcs, profile, toast, busy: () => busyOf('cart')(), region: () => region });
+cartGuide = initCartGuide({ me, makeChar, npcs, profile, toast, busy: () => busyOf('cart')(), region: () => region, shop: () => shop });
 // 열려 있는 창 등록부 (2026-11): 말풍선·안내·훈련 등 창이 하나라도 열려 있으면 다른 말풍선은 열리지 않음
 //   새 모듈이 생기면 여기 한 줄만 보태면 됨. busyOf(자기 이름, ...보지 않을 이름)은 자기 자신을 뺀 나머지를 살핌
 //   story(누가) 말풍선이 열려 있으면 훈련·시험·부탁·가게도 열리지 않음 (2026-11 단위 6에서 정리, 예전엔 예외였음)
