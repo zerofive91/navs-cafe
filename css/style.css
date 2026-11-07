@@ -786,6 +786,10 @@ body.at-door #enter { z-index: 100; }
 /* 다른 마을에서는 카페 바로가기·정원 단추를 감춤 (지도와 수레로 다님) */
 body.region-john #places .place.cafe, body.region-john #places .place.fold, body.region-john #places .place.gardenBtn { display: none; }
 body.region-john #map .guideMe { display: none; }
+body.region-acts #places .place.cafe, body.region-acts #places .place.fold, body.region-acts #places .place.gardenBtn { display: none; } /* 사도행전 마을 (2026-11 0-나): 요한 마을과 같게 */
+body.region-acts #map .guideMe { display: none; }
+body.region-acts #map .towns { top: max(12px, env(safe-area-inset-top)); }
+body.region-acts #storyChip, body.region-acts #questChip { display: none; }
 /* 지도 위쪽 "마을" 탭: 가 본 마을만 */
 #map .towns { position: absolute; top: calc(max(12px, env(safe-area-inset-top)) + 54px); left: 14px; right: 70px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 #map .towns span { color: #ffe2a8; font: 700 13px system-ui, sans-serif; margin-right: 2px; }
@@ -796,13 +800,14 @@ body.region-john #map .towns { top: max(12px, env(safe-area-inset-top)); }
 
 /* ---------- 요한복음 마을 사건 (2026-11 1차 MVP): 진행 표시·말풍선·속삭임·암송·묵상·흐린 화면 ---------- */
 body.region-john #storyChip, body.region-john #questChip { display: none; } /* 이 마을에서는 요한 마을 진행 표시만 */
-#johnChip { position: fixed; left: calc(12px + env(safe-area-inset-left)); top: calc(54px + env(safe-area-inset-top)); z-index: 6; max-width: min(380px, calc(var(--vw) * 0.6)); padding: 7px 12px; border-radius: 14px; background: rgba(255, 240, 200, 0.92); color: #7a5a20; box-shadow: 0 2px 10px rgba(60, 40, 20, 0.14); font: 600 13px/1.45 "Noto Serif KR", serif; word-break: keep-all; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: auto; cursor: pointer; }
-#johnChip::before { content: "✦ "; color: #d8a020; }
-#johnChip::after { content: " ›"; opacity: 0.6; }
-#johnChip[hidden] { display: none; }
-@media (max-width: 760px), (max-height: 500px) { #johnChip { top: calc(150px + env(safe-area-inset-top)); max-width: calc(var(--vw) - 150px); } } /* 좁은 폰에서 두 줄이 된 단추 줄(왼쪽 끝 vw-130px)과 겹치지 않게 */
+/* 마을 진행 칩·속삭임 (js/village/talk.js): 요한 마을 id 그대로 두고 다른 마을은 class(.vchip·.vwhisper)로 같은 모양. :is()라 id와 같은 우선순위 */
+:is(#johnChip, .vchip) { position: fixed; left: calc(12px + env(safe-area-inset-left)); top: calc(54px + env(safe-area-inset-top)); z-index: 6; max-width: min(380px, calc(var(--vw) * 0.6)); padding: 7px 12px; border-radius: 14px; background: rgba(255, 240, 200, 0.92); color: #7a5a20; box-shadow: 0 2px 10px rgba(60, 40, 20, 0.14); font: 600 13px/1.45 "Noto Serif KR", serif; word-break: keep-all; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: auto; cursor: pointer; }
+:is(#johnChip, .vchip)::before { content: "✦ "; color: #d8a020; }
+:is(#johnChip, .vchip)::after { content: " ›"; opacity: 0.6; }
+:is(#johnChip, .vchip)[hidden] { display: none; }
+@media (max-width: 760px), (max-height: 500px) { :is(#johnChip, .vchip) { top: calc(150px + env(safe-area-inset-top)); max-width: calc(var(--vw) - 150px); } } /* 좁은 폰에서 두 줄이 된 단추 줄(왼쪽 끝 vw-130px)과 겹치지 않게 */
 /* 폰 가로: 왼쪽 아래 이름표(#meChip)와 겹치지 않게 맨 위 왼쪽 (가운데 단추 줄 왼편) */
-@media (max-height: 500px) { #johnChip { top: calc(12px + env(safe-area-inset-top)); max-width: calc(var(--vw) * 0.5 - 112px); } }
+@media (max-height: 500px) { :is(#johnChip, .vchip) { top: calc(12px + env(safe-area-inset-top)); max-width: calc(var(--vw) * 0.5 - 112px); } }
 .npcb.jn .row { flex-wrap: wrap; }
 .npcb.jn .row .speak { color: #6a8a5a; }
 .npcb.jn .row .help { color: #8f6744; }
@@ -811,6 +816,23 @@ body.region-john #storyChip, body.region-john #questChip { display: none; } /* �
 #questLog .erl ul { margin: 4px 0 0; padding-left: 18px; }
 #questLog .erl li { margin: 2px 0; }
 #questLog .erl li span { color: #8a7a5a; font-size: 13px; }
+/* 오늘의 마을 (js/village/daily.js): 부탁 창 목록과 소식판 말풍선 */
+#questLog .dl h3 { color: #4f7a46; }
+#questLog .dlist { list-style: none; margin: 4px 0 6px; padding: 0; }
+#questLog .dlist li { margin: 5px 0; line-height: 1.5; }
+#questLog .dlist li b { display: block; color: #6b4c32; }
+#questLog .dlist li span { color: #8a7a5a; font-size: 13px; }
+#questLog .dlist li.done b { color: #4f8a46; }
+#questLog .dlist li.done span, #questLog .dlist li.off { opacity: 0.65; }
+#questLog .dlist .go.sm { border: 0; border-radius: 10px; padding: 3px 10px; margin-left: 4px; font: 600 12px "Noto Serif KR", serif; background: #e8b860; color: #4a3010; cursor: pointer; vertical-align: 1px; }
+.npcb.jn .board { list-style: none; margin: 8px 0 2px; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.npcb.jn .board li { padding: 6px 10px; border-radius: 12px; background: #fffaf0; border: 1px solid #e4d4b4; color: #5a4030; font: 500 14px/1.45 "Noto Serif KR", serif; word-break: keep-all; }
+.npcb.jn .board li b { display: block; color: #8a5a2a; font-weight: 700; }
+.npcb.jn .board li span { color: #7a6a52; font-size: 13px; }
+.npcb.jn .board li.done { background: #eef6e2; border-color: #c4dba0; }
+.npcb.jn .board li.done b { color: #4f8a46; }
+.npcb.jn .board li.off { opacity: 0.6; }
+html.land .npcb.jn .board li { padding: 4px 8px; font-size: 13px; }
 .npcb.jn .note { margin: 6px 0 0; font: 500 13px/1.5 "Noto Serif KR", serif; color: #9a7c5c; word-break: keep-all; }
 .npcb.jn.trial .note { color: #c8b8e0; }
 .npcb.jn .why { margin: 8px 0 0; padding: 6px 10px; border-radius: 10px; background: rgba(255, 214, 120, 0.18); font: 500 14px/1.5 "Noto Serif KR", serif; color: #8a5a2a; word-break: keep-all; }
@@ -844,13 +866,13 @@ html.land .npcb.jn .why { margin-top: 5px; padding: 4px 9px; font-size: 13px; }
 /* 묵상: 마음 한 줄 */
 .jnote textarea { box-sizing: border-box; width: 100%; margin-top: 8px; padding: 8px 10px; border: 1px solid #e0c890; border-radius: 10px; background: #fffdf6; color: #5a4030; font: 500 15px/1.5 "Noto Serif KR", serif; resize: none; }
 /* 걸으며 하는 시험의 속삭임 (화면 위쪽 가운데) */
-#jwhisper { position: fixed; left: 50%; top: calc(14px + env(safe-area-inset-top)); transform: translateX(-50%); z-index: 7; max-width: min(460px, calc(var(--vw) - 200px)); padding: 8px 16px; border-radius: 18px; background: rgba(30, 22, 44, 0.82); color: #e8dcf4; font: italic 500 15px/1.5 "Noto Serif KR", serif; text-align: center; word-break: keep-all; pointer-events: none; }
-#jwhisper[hidden] { display: none; }
-#jwhisper.on { animation: jwh 0.9s ease-out; }
+:is(#jwhisper, .vwhisper) { position: fixed; left: 50%; top: calc(14px + env(safe-area-inset-top)); transform: translateX(-50%); z-index: 7; max-width: min(460px, calc(var(--vw) - 200px)); padding: 8px 16px; border-radius: 18px; background: rgba(30, 22, 44, 0.82); color: #e8dcf4; font: italic 500 15px/1.5 "Noto Serif KR", serif; text-align: center; word-break: keep-all; pointer-events: none; }
+:is(#jwhisper, .vwhisper)[hidden] { display: none; }
+:is(#jwhisper, .vwhisper).on { animation: jwh 0.9s ease-out; }
 @keyframes jwh { from { opacity: 0; transform: translate(-50%, -6px); } to { opacity: 1; transform: translate(-50%, 0); } }
 /* 폰 세로: 이름표 위 아래쪽 (가운데 말씀 카드·위쪽 진행 표시와 겹치지 않게), 오른쪽 단추 줄을 피해서. 폰 가로: 가운데 단추 줄 바로 아래 */
-@media (max-width: 760px) { #jwhisper { top: auto; bottom: calc(196px + env(safe-area-inset-bottom)); max-width: calc(var(--vw) - 150px); } }
-@media (max-height: 500px) { #jwhisper { top: calc(62px + env(safe-area-inset-top)); bottom: auto; max-width: calc(var(--vw) - 240px); } }
+@media (max-width: 760px) { :is(#jwhisper, .vwhisper) { top: auto; bottom: calc(196px + env(safe-area-inset-bottom)); max-width: calc(var(--vw) - 150px); } }
+@media (max-height: 500px) { :is(#jwhisper, .vwhisper) { top: calc(62px + env(safe-area-inset-top)); bottom: auto; max-width: calc(var(--vw) - 240px); } }
 /* 실로암: 흐린 화면 (조작은 그대로). "흐림 없이 하기"면 색만 옅어짐 */
 body.jn-blind canvas#cafe { filter: blur(calc(var(--jblind, 0) * 7px)) saturate(calc(1 - var(--jblind, 0) * 0.85)) brightness(calc(1 - var(--jblind, 0) * 0.12)); }
 body.jn-blind.jn-noblur canvas#cafe { filter: saturate(calc(1 - var(--jblind, 0) * 0.6)); }
@@ -859,7 +881,7 @@ body.jn-blind.jn-noblur canvas#cafe { filter: saturate(calc(1 - var(--jblind, 0)
 /* 오른쪽 단추 줄을 가리지 않게 언제나 왼쪽 진행 표시 바로 아래 */
 @media (max-width: 760px) { #jnBlurBtn { top: calc(192px + env(safe-area-inset-top)); } }
 @media (max-height: 500px) { #jnBlurBtn { top: calc(54px + env(safe-area-inset-top)); } }
-@media (prefers-reduced-motion: reduce) { #jwhisper.on, .jmemo .pcs button.shake { animation: none; } }
+@media (prefers-reduced-motion: reduce) { :is(#jwhisper, .vwhisper).on, .jmemo .pcs button.shake { animation: none; } }
 /* 요한복음 마을 2차 나: 선한 목자의 음성 가리기 (세 소리 패널). 줄을 누르면 그 번호 자리로 걸어감.
    컴퓨터: 아래 가운데 · 폰 세로: 속삭임 자리(이름표 위, 오른쪽 단추 줄 피해서) · 폰 가로: 조이스틱과 오른쪽 단추 줄 사이 아래 */
 #jvoices { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 7; box-sizing: border-box; width: min(540px, calc(var(--vw) - 32px)); padding: 8px 10px 6px; border-radius: 16px; background: rgba(30, 22, 44, 0.96); color: #f2e8ff; box-shadow: 0 4px 18px rgba(10, 6, 20, 0.35); }

@@ -24,9 +24,9 @@ export function initGalilee({ root, me, parts, N, person, GREET, toast, sfx, bur
   person('boy', '아이', { hoodie: 0xc8a060, hair: 0x2b211c }, SP.boy, SP.andrew5);
   N.boy.av.scale.setScalar(0.72);
   Object.assign(GREET, {
-    vil0: '야곱의 우물 물은 깊고 시원해요(4:11). 한낮엔 아무도 길으러 오지 않지요.',
-    vil1: '그리심 산이 보이지요? 우리 조상들은 이 산에서 예배했어요(4:20).',
-    vil2: '밭이 누렇게 익어 가요. 추수까지는 넉 달은 더 걸릴 거래요(4:35).',
+    vil0: '야곱의 우물 물은 깊고 시원해요. 한낮엔 아무도 길으러 오지 않지요.',
+    vil1: '그리심 산이 보이지요? 우리 조상들은 이 산에서 예배했어요.',
+    vil2: '밭이 누렇게 익어 가요. 추수까지는 넉 달은 더 걸릴 거래요.',
     son: '어제 칠 시에 열이 떨어졌어요! 이제 다 나았어요.',
     serv0: '주인님이 기다리세요.', serv1: '어서 집으로 가요.',
     andrew5: '저는 시몬 베드로의 형제 안드레예요. 저 아이 곁에 있어요.', boy: '엄마가 싸 준 보리떡이에요.',

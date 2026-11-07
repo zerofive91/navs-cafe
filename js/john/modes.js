@@ -82,7 +82,7 @@ export function initModes({ ui, me, toast, sfx, burst, showVerse, walkTo, neares
       quote: M.v,
       buttons: [
         { t: '그만두기', cls: 'later', fn: () => { med = null; ui.close(); } },
-        { t: '그 자리로', cls: 'next', fn: () => { ui.close(); const q = nearestFree(at) || at; walkTo(me, q, () => toast(M.lie ? '누워서(K) 잠시 머물러요' : '앉아서(J) 잠시 머물러요', 3)); } },
+        { t: '그 자리로', cls: 'next', fn: () => { ui.close(); const q = nearestFree(at) || at; walkTo(me, q, () => toast(M.lie ? '눕기 단추(K)로 잠시 머물러요' : '앉기 단추(J)로 잠시 머물러요', 3)); } },
       ],
     });
   }

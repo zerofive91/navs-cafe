@@ -10,9 +10,9 @@ import { VERSES } from '../verses.js';
 export const FIRST = { steps: 5, stat: 1, coin: 1 };
 export const AGAIN = { steps: 2 };
 const pad = (n) => String(n).padStart(2, '0');
-// 오늘 (기기 날짜). 주소에 ?day=YYYY-MM-DD가 있으면 그날로 (시험용)
+// 오늘 (기기 날짜). 주소에 ?day=YYYY-MM-DD가 있으면 그날로 (시험용, 내 컴퓨터 localhost·127.0.0.1에서만: 공개 주소에서는 가짜 날짜로 보상을 못 받게)
 export function today() {
-  try { const q = new URLSearchParams(location.search).get('day'); if (q && /^\d{4}-\d{2}-\d{2}$/.test(q)) return q; } catch (e) { /* 주소를 못 읽는 환경 */ }
+  try { const q = new URLSearchParams(location.search).get('day'); if (q && /^\d{4}-\d{2}-\d{2}$/.test(q) && /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)) return q; } catch (e) { /* 주소를 못 읽는 환경 */ }
   const d = new Date();
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
@@ -93,7 +93,7 @@ export function initErrands({ ER, store, X, ui, me, profile, opened, giverAt, sa
     else { addSteps(profile, AGAIN.steps); note = `다시 도와주었어요 · 걸음 +${AGAIN.steps}`; }
     save(); onChange?.();
     sfx('orb', 0.28, 1.15); burst(me.x, me.y + 1.4, me.z);
-    const again = er.again === 'day' ? '내일 또 부탁해도 될까요?' : '';
+    const again = er.again === 'day' && !idsOf(er.who).some(startable) ? '내일 또 부탁해도 될까요?' : ''; // 같은 사람에게 오늘 받을 부탁이 더 남았으면 빼 (둘째 부탁이 바로 열림)
     const show = () => {
       if (!canShow()) { setTimeout(show, 800); return; }
       ui.open({

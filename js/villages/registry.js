@@ -18,6 +18,7 @@
 //   map                      { fit(W,H) → { k, cx, cz }, draw(D), title, picks() → [[id, 이름, 색]], pick(id) → 점 } | null(초보자 마을 본래 그림)
 //   bodyClass                이 마을에 있는 동안 body class
 //   trialSet                 시험 자료집 세트 id (지금은 참조만)
+//   travel.veil              흐린 막에 보일 말씀 [본문, 장절] (없으면 요 14:6)
 //   선택 필드 (사도행전 기획서 9장, 지금 엔진은 읽지 않음 · 자리만): center, half, zones, seats, rest[], seatVerse(seat), transit[], shopGoods[],
 //     quietZones[], errands·daily·pieces(공용 장치 자료 모듈 경로), folk(profile), companions[], next(졸업 뒤 다음 마을)
 import base from './base.js';
@@ -28,19 +29,20 @@ export const VILLAGES = [base, john, acts]; // 지도 마을 탭 순서
 const BY_ID = new Map(VILLAGES.map((v) => [v.id, v]));
 export const village = (id) => BY_ID.get(id) || null;
 export const openVillages = () => VILLAGES.filter((v) => v.status === 'open');
-// 이 마을 수레가 가는 곳: cart.to가 있으면 그 목록(열린 마을만), 없으면 초보자 마을에서는 열린 다른 마을 모두, 다른 마을에서는 초보자 마을로
+// 이 마을 수레가 가는 곳: cart.to가 있으면 그 목록(열린 마을만), 없으면 열린 다른 마을 모두 (등록부 순서: 초보자 마을이 먼저)
+//   2026-11 사도행전 0-나: 마을이 셋이 되어 요한·사도행전 마을 수레도 세 마을 중 고름 (기획서 8장). 예전엔 다른 마을에서는 초보자 마을로만
 export function destinations(from) {
   const to = village(from)?.cart?.to;
   if (to) return to.map(village).filter((v) => v && v.status === 'open' && v.id !== from);
-  return from === 'base' ? openVillages().filter((v) => v.id !== 'base') : [base];
+  return openVillages().filter((v) => v.id !== from);
 }
 // 저장 칸이 있는 마을
 const saved = () => VILLAGES.filter((v) => v.save);
 // 지도 "마을" 탭: 초보자 마을 + 가 본 열린 마을
 export const visitedTowns = (profile) => openVillages().filter((v) => v.id === 'base' || profile[v.save?.key]?.seen).map((v) => v.id);
 // 마지막에 있던 마을 (다시 들어오면 그 마을 도착 자리에서 시작). 열리지 않은 마을이면 초보자 마을
-//   지금은 마을 칸의 last를 읽음. 공통 칸 profile.town(기획서 9장)은 아직 쓰지 않음: profile.js fill이 이 칸을 남기지 않고,
-//   예전 기기와 섞이면 town과 last가 어긋날 수 있어서. 사도행전 0-나 단위에서 profile.js fill·합치기에 town을 넣을 때 여기와 markTown만 바꾸면 됨
+//   마을 칸의 last를 읽음 (마을이 셋이어도 markTown이 한 칸만 1로 둠). 공통 칸 profile.town(기획서 9장)은 쓰지 않기로 함 (2026-11 0-나):
+//   옛 판 기기는 town을 모르니 last만 바꾸고, 그러면 town과 last가 어긋남. last가 둘 이상 1이면(서버에 사도행전 칸이 아직 없을 때 등) 등록부 순서 앞 마을
 export const lastTown = (profile) => saved().find((v) => v.status === 'open' && profile[v.save.key]?.last)?.id || 'base';
 // 마을에 들어감: 그 마을 칸만 last 1, 나머지 0. 처음 가 본 마을이면 seen을 적고 true
 export function markTown(profile, id) {
