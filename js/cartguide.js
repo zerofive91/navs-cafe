@@ -70,12 +70,16 @@ export function initCartGuide(K) {
     else if (!d) say = `어서 와요. 저는 이 수레로 편지와 소식을 나르는 두기고예요. 아직 걸은 사건이 없어요(0/${EVENTS_TOTAL}). 광장의 사도 요한을 먼저 만나 보세요. 금빛 기둥이 선 곳이 다음 사건 자리예요.`;
     else say = `마친 사건은 ${d}/${EVENTS_TOTAL}이에요. 금빛 기둥이 선 곳이 다음 사건 자리예요. 수레 짐은 루디아에게서 받아 온 거예요. 쉬다 가도 좋고, 돌아가려면 말해 줘요.`;
     cur = g;
+    const er = region?.().engine?.errands; // 두기고의 작은 부탁 (수레 쐐기, js/john/errands.js cart-wedge): 엔진 밖 사람이라 알려 줌
+    er?.register('tychicus', g.n0);
+    const erBtn = (er?.buttons('tychicus') || [])[0];
     dlg.open({
       who: g.name, n: g.n, say,
       guide: [info ? { label: '돌아가기', on: () => talkJohn(false) } : { label: '초보자 마을은 어떤 곳이에요?', on: () => talkJohn(true) }],
       choices: [
         { label: '다음에요', cls: 'later', on: hide },
         { label: '수레 짐', hidden: !goods.length, on: () => openGoods(g) },
+        { label: erBtn?.t || '', hidden: !erBtn, on: () => { hide(); erBtn.fn(); } },
         { label: '초보자 마을로 돌아가요', cls: 'go', main: true, on: () => board() },
       ],
       esc: hide,

@@ -240,6 +240,7 @@ export function initPassion({ root, me, parts, N, person, GREET, toast, sfx, bur
       clothShow: () => { clothSeen = true; }, maryCry,
       // 디베랴 바다의 아침
       casts: () => NET.casts, castNet, pullNet, fishN: () => NET.fish,
+      lambsReset: () => { for (const l of lambs) { l.fed = false; l.t = 0; } }, // 부탁(어린 양 다시 먹이기)이 처음·끝에 부름
       lambsLeft: () => lambs.filter((l) => !l.fed).length, nextLamb: () => (nextLambL() || lambs[0] || { p: SP.fireSeat }).p, feedLamb,
     },
   };
