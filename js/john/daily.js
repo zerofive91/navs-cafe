@@ -65,7 +65,7 @@ export function linkDaily(kit) {
       };
       daily = initDaily({
         T, getDay: () => J().day, setDay: (v) => { J().day = v; },
-        profile: kit.profile, save: kit.save, onChange: kit.onChange, toast: kit.toast, sfx: kit.sfx, burst: kit.burst, me: kit.me,
+        profile: kit.profile, save: kit.save, onChange: kit.onChange, toast: engine.notice || kit.toast, sfx: kit.sfx, burst: kit.burst, me: kit.me,
         ui: engine.ui, inTown: () => kit.here() === 'john', openLog: kit.openLog,
       });
       // 엔진을 한 겹 감쌈 (읽기는 engine 그대로 물려받고, 아래만 덮음)

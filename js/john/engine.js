@@ -25,6 +25,7 @@ import { initFlow, townTools } from '../village/flow.js'; // 사건 진행·마�
 // events·trials·modes는 region.js가 불러와 넘김 (불러오기에 실패해 다시 시도할 때 주소 끝을 바꿀 수 있게)
 
 const NOBLUR = 'navs-cafe-noblur';
+const INTRO_SEEN = 'navs-cafe-john-intro'; // 사도 요한의 마을 안내(세 장면)를 봤는지 (이 기기에만)
 const END_SEEN = 'navs-cafe-john-end'; // 지금 있는 사건을 다 마친 뒤 사도 요한의 "이야기는 이어져요"를 들었는지 (이 기기에만, 금빛 기둥 표시용). 값은 그때의 사건 수 → 사건이 늘면 다시 안내
 const lsGet = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* 이번만 */ } };
@@ -86,10 +87,10 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
   crowd.forEach((n) => { n.hide = true; });
   N.nathan.action = 'read'; // 무화과나무 아래에서 율법을 묵상하던 나다나엘
   const GREET = {
-    baptist: '나는 광야에 외치는 자의 소리예요. 저 강가의 따뜻한 빛을 보세요.', andrew: '저는 시몬 베드로의 형제 안드레예요. 그날 그분과 함께 머물렀지요.',
+    baptist: '나는 광야에 외치는 자의 소리예요. 저 강가의 따뜻한 빛을 보세요.', andrew: '저는 시몬 베드로의 형제 안드레예요. 그날 예수님과 함께 머물렀지요.',
     nathan: '무화과나무 그늘은 말씀을 묵상하기 좋은 자리예요.', master: '잔치를 맡은 사람이에요. 오늘 잔치가 무사히 끝나야 할 텐데요.',
     guest0: '혼인 잔치에 와 주어 반가워요!', guest1: '신랑이에요. 함께 기뻐해 줘서 고마워요.',
-    ph0: '안식일을 지키지 않는 사람은 하나님께로서 온 자가 아니라고 해요(9:16).', ph1: '우리는 모세의 제자요(9:28).',
+    ph0: '안식일을 지키지 않는 사람은 하나님께로서 온 자가 아니라고 해요.', ph1: '우리는 모세의 제자요.',
   };
   // 2차 가: 사마리아 여인·수가 사람·왕의 신하·빌립·안드레·아이·베드로·무리와 배·안개 도구 (js/john/galilee.js)
   const noBlur = () => lsGet(NOBLUR) === '1';
@@ -323,24 +324,30 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
   flow = initFlow({
     me, profile, save, onChange, toast, sfx, burst, busy, standUp, inTown,
     ui, chip, whisper, sky, beacon, people, X, EV, ORDER, openOrder: JOHN_EVENTS, store: J, trials, modes, er, ER, SP, ZONES,
-    name: '요한복음 마을', book: '요한복음', talkKey: 'jn:', endKey: END_SEEN, acts: JN_ACTS,
+    name: '요한복음 마을', book: '요한복음', talkKey: 'jn:', endKey: END_SEEN, introKey: INTRO_SEEN, acts: JN_ACTS,
     greet: GREET, errandTitle: '증인의 작은 부탁', quietAgain: '다시 걸어 주었군요. 그 밤과 그 아침을 다시 기억했어요',
     seatOf: (e) => (e.med.at === 'feast' ? SP.feast[1] : SP[e.med.at]),
     resetKeys: { come: ['andrew', 'nathan'], nico: ['nico'], cana: [], siloam: [] },
     // 사도 요한: 와 보라의 증인이자 마을 안내자. 마을 기록장(요한의 두루마리)과 다음 이야기
     guide: {
       key: 'john', ev: 'come', who: '사도 요한', zone: 'light', bookSub: '마을 기록장 · 요한의 두루마리',
+      // 처음 온 아이에게 세 장면 (D3). 낯선 말(그분·빛·기둥·두루마리·마음의 소리)을 먼저 풀어 줌. 건너뛰기 가능
+      intro: [
+        { sub: '나는 누구', text: '안녕, 저는 요한이에요. 예수님을 가장 가까이에서 따라다닌 제자예요. 이 마을에서 제가 본 이야기를 하나씩 같이 걸어 봐요.' },
+        { sub: '마을 길잡이', text: '이 마을에서 예수님은 따뜻한 빛으로 계세요. 금빛 기둥은 다음에 갈 곳을 알려 줘요. 머리 위에 두루마리가 떠 있는 사람은 이야기를 들려줄 사람이에요.' },
+        { sub: '마음의 소리', text: '이야기 중에 마음속에서 "그만둬", "귀찮아" 하는 소리가 들릴 때가 있어요. 그럴 땐 말씀을 붙들면 돼요. 틀려도 괜찮아요. 다시 고르면 돼요. 왼쪽 위 카드에는 지금 할 일이 늘 적혀 있어요.' },
+      ],
       waitToast: '사도 요한이 빛의 광장에서 기다려요. 이야기는 이어져요 (금빛 기둥)',
       end: () => ({
         sub: J().mark === '졸업' ? '요한복음 마을 졸업' : '이야기는 이어져요', quote: 'jn-21-25',
-        text: `${ORDER.length} 이야기를 다 따라왔군요! 빛이 어둠에 비치고, 물이 포도주가 되고, 우물가의 여인이 동네로 달려갔어요. 떡 다섯 개가 무리를 먹이고, 소경이 눈을 뜨고, 나사로가 무덤에서 나왔어요. 다락방에서 그분이 발을 씻기셨고, 숯불 곁의 밤과 "다 이루었다" 하신 십자가를 지나, 동산에서 "마리아야" 이름을 부르셨어요. 닫힌 문 안에 평강을 주셨고, 바닷가 숯불 곁에서 "너는 나를 따르라" 하셨어요. 표적 ${signsN()}개를 보았고, "나는…" 등불 ${J().lamps.length}개가 켜졌어요. 이 외에도 많아서 낱낱이 기록하면 이 세상이라도 그 책을 두기에 부족하대요. 이제 당신의 이야기로 이어져요.`,
+        text: `${ORDER.length} 이야기를 다 따라왔군요! 빛이 어둠에 비치고, 물이 포도주가 되고, 우물가의 여인이 동네로 달려갔어요. 떡 다섯 개가 무리를 먹이고, 앞을 못 보던 사람이 눈을 뜨고, 나사로가 무덤에서 나왔어요. 다락방에서 그분이 발을 씻기셨고, 숯불 곁의 밤과 "다 이루었다" 하신 십자가를 지나, 동산에서 "마리아야" 이름을 부르셨어요. 닫힌 문 안에 평강을 주셨고, 바닷가 숯불 곁에서 "너는 나를 따르라" 하셨어요. 표적 ${signsN()}개를 보았고, "나는…" 등불 ${J().lamps.length}개가 켜졌어요. 이 외에도 많아서 낱낱이 기록하면 이 세상이라도 그 책을 두기에 부족하대요. 이제 당신의 이야기로 이어져요.`,
       }),
       // 요한복음 마을 졸업 (21장 카드): 내 닉네임과 "너는 나를 따르라". 카드를 넘기면 21:22·21:25가 오늘 만난 말씀에 남음
       graduation: () => {
         const c = callName(profile.name), j = J();
         return {
           who: '사도 요한', sub: '요한복음 마을 졸업', quote: 'jn-21-22',
-          text: `${c ? c.voc : '친구여'}, 요한복음 마을의 이야기를 처음부터 끝까지 다 따라왔어요! 그분이 베드로에게 마지막으로 하신 말씀은 "너는 나를 따르라"였어요. 이제 그 말씀을 들고 초보자 마을, 당신의 자리로 돌아가요.`,
+          text: `${c ? c.voc : '친구여'}, 요한복음 마을의 이야기를 처음부터 끝까지 다 따라왔어요! 예수님이 베드로에게 마지막으로 하신 말씀은 "너는 나를 따르라"였어요. 이제 그 말씀을 들고 초보자 마을, 당신의 자리로 돌아가요.`,
           note: `졸업 표지를 받았어요 · 표적 ${signsN()}개 · "나는…" 등불 ${j.lamps.length}개 · 이야기 ${ORDER.length}개`,
           buttons: [{ t: '"나를 따르라"', cls: 'next', fn: () => X.verse(['jn-21-22', 'jn-21-25'], '요한복음 마을 졸업') }],
         };
@@ -357,11 +364,11 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
       },
       quit: (e, done) => { if (e.id === 'cana' && !done) jarsReset(); },
       // 처음 마침: 표적 수, "나는…" 등잔 (일곱 등불이 다 켜지면 마침 카드를 닫을 때 1:5·8:12)
-      first: (e, j) => {
+      first: (e, j, notice) => {
         j.signs = Math.max(j.signs | 0, signsN());
         let all7 = false;
         const lit = [].concat(e.lamp || []).filter((l) => !j.lamps.includes(l)); // 선한 목자는 문과 목자 둘
-        if (lit.length) { j.lamps.push(...lit); setTimeout(() => toast(`빛의 광장 등잔 ${lit.length > 1 ? `${lit.length}개` : '하나'}에 불이 켜졌어요 (${e.lampName || lit.join('·')})`, 5), 5200); all7 = LAMP_IDS.every((l) => j.lamps.includes(l)); }
+        if (lit.length) { j.lamps.push(...lit); notice(`빛의 광장 등잔 ${lit.length > 1 ? `${lit.length}개` : '하나'}에 불이 켜졌어요 (${e.lampName || lit.join('·')})`, 5); all7 = LAMP_IDS.every((l) => j.lamps.includes(l)); }
         return all7 ? () => X.verse(['jn-1-5', 'jn-8-12'], '일곱 등불이 다 켜졌어요') : null; // 광장 가운데 빛이 커짐 (passion.js)
       },
       // 마을을 떠날 때 (수레): 손에 든 것·앞치마를 감춤. 돌아오면 다시 보임
