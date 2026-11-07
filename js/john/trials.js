@@ -22,8 +22,8 @@ export function initTrials({ ui, me, toast, sfx, burst, whisper, sky, showVerse,
   const won = new Set(); // 이번 사건 진행에서 이긴 시험 종류
 
   // 고르는 시험 (D 대답 · F 내려놓기 · A 말씀 고르기): 말풍선에 속삭임과 보기
-  //   A의 보기는 { v: 'jn-6-6', ok } 처럼 말씀 키로 (본문과 장절을 보여 줌)
-  const optText = (o) => { const v = o.v && VERSES[o.v]; return v ? `${v[0]} (${v[1]})` : o.t; };
+  //   A의 보기는 { v: 'jn-6-6', ok } 처럼 말씀 키로 (본문만 보여 줌)
+  const optText = (o) => { const v = o.v && VERSES[o.v]; return v ? v[0] : o.t; }; // 장절은 보기에 붙이지 않음 (붙이면 모양으로 정답이 보임). 이긴 뒤 말씀 카드에서 보여 줌
   function choose(kind, { who, lie, q, opts, win, then, drop, sub }) {
     const g = gen; choosing = true;
     ui.open({
