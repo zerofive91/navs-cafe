@@ -36,6 +36,7 @@ export const ICONS = {
   jn_oil: svg('<path d="M9 12c-3 2-3 9 4 12 7-3 7-10 4-12z"/><path d="M11 12V8h4v4"/><path d="M15 9l6-3"/><path d="M22 9c-1 2-1 3 0 4 1-1 1-2 0-4z"/><path d="M6 27h20"/>'),
   jn_dry: svg('<path d="M5 8v18M27 8v18"/><path d="M5 10h22"/><path d="M7 10l2 12h14l2-12"/><path d="M8 15h16M9 19h14M12 10l1 12M20 10l-1 12" opacity=".6"/>'),
   jn_pick: svg('<path d="M8 22l8-6 8 6z"/><path d="M5 27h22"/><path d="M16 3v8M13 8l3 3 3-3"/>'),
+  jn_board: svg('<path d="M5 6h22v14H5z"/><path d="M9 11h8M9 15h12"/><path d="M10 20v8M22 20v8"/><path d="M22 9l1 1 2-2" opacity=".7"/>'), // 소식판 (오늘의 마을)
   jn_feed: svg('<ellipse cx="13" cy="19" rx="7" ry="4.5"/><circle cx="22" cy="16" r="3"/><path d="M9 23v3M17 23v3"/><path d="M24 20c1 2 2 3 4 3" /><path d="M23 26h5"/>'),
   towns: svg('<path d="M3 26h26"/><path d="M5 26V15l5-4 5 4v11M17 26V12l5-5 5 5v14"/><path d="M9 26v-4h2v4M21 26v-4h2v4"/>'),
   map: svg('<path d="M4 8l7-3 10 3 7-3v19l-7 3-10-3-7 3z"/><path d="M11 5v19M21 8v19"/><circle cx="16" cy="14" r="1.6"/>'),
@@ -163,5 +164,5 @@ export const ICON_LABELS = {
   jn_put: '내려놓기', jn_boat: '배 타기', jn_row: '노 젓기', jn_call: '무리를 앉히기',
   jn_clear: '장사판 치우기', jn_lift: '자리 들기', jn_push: '돌 옮기기', jn_untie: '베 풀어 주기', jn_pour: '향유 붓기', jn_plant: '밀 심기',
   jn_towel: '수건과 대야 들기', jn_feet: '발 씻기기', jn_sheathe: '검을 칼집에 꽂기', jn_spice: '향품 놓기', jn_net: '그물 던지기', jn_pull: '그물 끌어 올리기', jn_feed: '어린 양 먹이기',
-  jn_oil: '기름 붓기', jn_dry: '그물 널기', jn_pick: '줍기',
+  jn_oil: '기름 붓기', jn_dry: '그물 널기', jn_pick: '줍기', jn_board: '소식판 보기',
 };

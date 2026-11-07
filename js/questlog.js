@@ -37,6 +37,12 @@ export function initQuestLog({ me, quests, story, walkTo, toast, john = () => nu
         <div class="row">${j.running ? '<button class="quit" data-q="j">그만두기</button>' : ''}<button class="go" data-go="j">그곳으로 가기</button></div>
         ${j.errands?.length ? `<details class="erl"><summary>🤝 오늘 받을 수 있는 부탁 ${j.errands.length}</summary><ul>${j.errands.map((e) => `<li><b>${esc(e.who)}</b> · ${esc(e.title)} <span>${esc(e.where)}${e.again ? ' · 다시' : ''}</span></li>`).join('')}</ul></details>` : ''}</section>`;
     }
+    if (j && j.daily) { // 오늘의 마을 (js/village/daily.js): 하루 몫 셋
+      const d = j.daily;
+      h += `<section class="st jn dl"><h3>📅 오늘의 마을 · ${esc(d.day)}${d.full ? ' ✦ 오늘의 표지' : ''}</h3>
+        <ul class="dlist">${d.tasks.map((t) => `<li class="${t.off ? 'off' : t.done ? 'done' : ''}"><b>${t.off ? '–' : t.done ? '✓' : '○'} ${t.icon} ${esc(t.title)}</b> <span>${t.off ? '오늘은 받을 부탁이 없어 건너뛰어요' : `${esc(t.text)}${!t.done && t.where ? ` · ${esc(t.where)}` : ''}`}</span>${!t.done && !t.off && t.target ? ` <button class="go sm" data-go="d:${t.k}">가기</button>` : ''}</li>`).join('')}</ul>
+        <p class="where">${d.locked ? '이 기기의 날짜가 마지막으로 한 날보다 앞서 있어서 오늘 몫은 쉬어요' : `${d.run ? `${d.run}일 이어서 했어요` : '오늘 하루를 시작해요'}${d.best > 1 ? ` · 가장 길게 ${d.best}일` : ''} · 셋을 다 하면 1 데나리온·걸음 +10, 7일 이어 하면 등잔 기름 하나`}</p></section>`;
+    }
     if (q) {
       h += `<section><h3>📜 ${esc(q.name)}의 부탁 · ${esc(q.title)}</h3>
         <p class="now"><b>지금 할 일 ${q.back ? '(마지막)' : `${q.step} / ${q.steps}`}</b>${esc(q.hint)}</p>
@@ -56,12 +62,12 @@ export function initQuestLog({ me, quests, story, walkTo, toast, john = () => nu
   function close() { box.hidden = true; last = ''; }
 
   function go(kind) {
-    const it = kind === 'q' ? quests.info() : kind === 'j' ? john()?.info() : story.info();
-    if (!it) return;
+    const it = kind.startsWith('d:') ? john()?.daily?.task(kind.slice(2)) : kind === 'q' ? quests.info() : kind === 'j' ? john()?.info() : story.info();
+    if (!it || !it.target) return;
     if (me.climb) { toast('먼저 나무에서 내려와요', 3); return; }
     if (!walkToward(me, walkTo, it.target)) { toast('그곳으로 가는 길을 찾지 못했어요. 지도에서 가까운 곳으로 가 보세요', 4); return; }
     close();
-    toast(`그곳으로 걸어가요 · ${kind === 'q' ? it.where || it.name + '에게' : kind === 'j' ? it.where || it.title : `큰 이야기 ${it.k}장 금빛 기둥`}`, 3);
+    toast(`그곳으로 걸어가요 · ${kind === 'q' ? it.where || it.name + '에게' : kind === 'j' || kind.startsWith('d:') ? it.where || it.title : `큰 이야기 ${it.k}장 금빛 기둥`}`, 3);
   }
 
   box.addEventListener('pointerdown', (e) => e.stopPropagation()); // 끌어서 내려 보기(스크롤)가 되도록, 고르기는 click에서
