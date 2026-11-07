@@ -29,7 +29,6 @@ const END_SEEN = 'navs-cafe-john-end'; // 지금 있는 사건을 다 마친 뒤
 const lsGet = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* 이번만 */ } };
 
-
 // ---------- 그 시각의 빛 (구역 안에서만) ----------
 // day는 마을 기본(REGION.env). bg: 하늘 바탕색, hemi·sun: 빛 세기 배율
 const SKY = {

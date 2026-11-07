@@ -21,7 +21,10 @@
 //     talkKey             말 걸기 단추 이름 앞머리 ('jn:') · endKey: "이야기는 이어져요"를 들었는지 (이 기기, localStorage 키)
 //     acts                그 자리 단추 이름 (등록부 acts) · seatOf(e): 묵상 자리 · resetKeys: 사건 id → 제자리로 돌릴 사람 (e.reset이 없을 때)
 //     errandTitle         부탁 목록 이름 ('증인의 작은 부탁') · quietAgain: 조용한 사건(quiet)을 다시 마쳤을 때 글
-//     hooks               { away(떠남?), pre(dt, town, now), frame(dt, town, now), cleanup(e), reset(e) (기본: placeShared), quit(e, 마쳤나), first(e, j) → 마침 카드를 닫을 때 부를 함수 | null }
+//     hooks               { away(떠남?), pre(dt, town, now), frame(dt, town, now), cleanup(e), reset(e) (없으면 placeShared), quit(e, 마쳤나),
+//                           first(e, j) → 마침 카드를 닫을 때 부를 함수 | null, done(e, first) 사건을 마칠 때마다 (처음·다시, 기록·저장 뒤) }
+//                         훅 하나에 함수 하나 또는 함수 목록. 공용 장치(오늘의 마을·조각 등)는 systems 목록이나 엔진.use(장치)로 같은 이름의 훅을 꽂음
+//     systems             [{ away, pre, frame, cleanup, reset, quit, first, done }] (모두 선택). 마을 훅 다음에 차례로 불림
 import { offerTalk } from '../talkgate.js';
 import { VERSES, showVerse } from '../verses.js';
 import { addSteps, addStat, earn, giveItem, STATS, ITEMS } from '../profile.js';
@@ -36,7 +39,20 @@ const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* 이
 const NO_ERRANDS = {
   running: () => false, stop() {}, quit() {}, buttons: () => [], open: () => [], available: () => [], act() {}, chip: () => '', info: () => null,
   step() {}, offerKeys: () => new Set(), goal: () => null, ringAt: () => null, talkWant: () => [], offers: () => false, openTalk() {}, talk() {},
+  register() {}, state: () => 'locked',
 };
+
+// 빠진 설정 알리기 (새 마을을 짤 때: 빠지면 사건을 마치거나 깊이 보기를 열 때에야 죽으므로 지을 때 한 번 경고)
+const NEED = ['me', 'profile', 'save', 'toast', 'sfx', 'burst', 'busy', 'standUp', 'inTown', 'ui', 'chip', 'whisper', 'sky', 'beacon', 'people', 'X',
+  'EV', 'ORDER', 'openOrder', 'store', 'trials', 'modes', 'SP', 'ZONES', 'name', 'book', 'guide', 'talkKey', 'endKey', 'seatOf'];
+const NEED_GUIDE = ['key', 'ev', 'who', 'zone', 'bookSub', 'waitToast', 'end', 'graduation'];
+function checkCfg(cfg) {
+  const miss = NEED.filter((k) => cfg[k] == null);
+  if (cfg.guide) miss.push(...NEED_GUIDE.filter((k) => cfg.guide[k] == null).map((k) => 'guide.' + k));
+  if (cfg.EV && cfg.ORDER) miss.push(...cfg.ORDER.filter((id) => !cfg.EV[id]).map((id) => `EV.${id}`));
+  if (miss.length) console.warn(`마을 사건 엔진(${cfg.name || '?'}) 설정이 빠졌어요: ${miss.join(', ')}`);
+  return miss;
+}
 
 // 사건 단계가 쓰는 공용 도구 (X에 펼쳐 넣음). run(): 지금 사건 진행 (flow.run)
 export function townTools({ me, toast, standUp, shot, people, beacon, run }) {
@@ -60,9 +76,18 @@ export function initFlow(cfg) {
     me, profile, save, onChange, toast, sfx, burst, busy, standUp, inTown,
     ui, chip, whisper, sky, beacon, people, X, EV, ORDER, openOrder, store, trials, modes, ER = {}, SP, ZONES,
     name, book, guide, greet = {}, talkKey, endKey, acts = [], seatOf, resetKeys = {}, errandTitle = '작은 부탁',
-    quietAgain = '다시 걸어 주었군요. 그 이야기를 다시 기억했어요', hooks = {},
+    quietAgain = '다시 걸어 주었군요. 그 이야기를 다시 기억했어요', hooks = {}, systems = [],
   } = cfg;
+  checkCfg(cfg);
   const er = cfg.er || NO_ERRANDS;
+  // 훅 부르기: 마을 훅(함수 또는 목록) → 꽂힌 장치 차례로. 돌려준 값 목록
+  const plugged = [...systems];
+  const fire = (name, ...a) => {
+    const out = [];
+    for (const f of [].concat(hooks[name] || [])) if (typeof f === 'function') out.push(f(...a));
+    for (const sy of plugged) if (typeof sy[name] === 'function') out.push(sy[name](...a));
+    return out;
+  };
   const N = people.N;
   const dist = (a, b = me) => Math.hypot(a.x - b.x, a.z - b.z);
 
@@ -121,14 +146,15 @@ export function initFlow(cfg) {
   }
   function cleanup(e) {
     trials.end(); beacon.rings(null);
-    hooks.cleanup?.(e);
+    fire('cleanup', e);
     for (const k of Object.keys(N)) { const n = N[k]; if (n.follow) n.follow = false; }
     e.end?.(X);
   }
   function resetNpcs(e) {
     const keys = e.reset || resetKeys[e.id] || [];
     for (const k of keys) people.home(N[k]);
-    if (hooks.reset) hooks.reset(e); else placeShared();
+    if (!hooks.reset) placeShared(); // 마을 reset 훅이 있으면 그 안에서 placeShared를 부를 때를 정함
+    fire('reset', e);
   }
   // 두 사건이 함께 쓰는 증인(요한 마을 베드로)은 지금 따라갈 사건의 자리(e.stand)에 섬
   const evsOf = (k) => ORDER.map((id) => EV[id]).filter((e) => e.npc === k);
@@ -147,7 +173,7 @@ export function initFlow(cfg) {
     const e = run.ev; run = null;
     if (ui.isOpen()) ui.close(); // 사건 자리의 짧은 대화 창이 떠 있었으면 함께 닫음
     cleanup(e); resetNpcs(e);
-    hooks.quit?.(e, isDone(e));
+    fire('quit', e, isDone(e));
     updateChip();
     if (!silent) toast(`"${e.title}"을(를) 그만두었어요. ${e.who}에게 다시 말을 걸면 처음부터 할 수 있어요`, 4);
   }
@@ -168,13 +194,15 @@ export function initFlow(cfg) {
       addSteps(profile, R.steps); addStat(profile, e.stat, R.stat); earn(profile, R.coin);
       for (const it of R.items) giveItem(profile, it);
       openNext(e, j);
-      after = hooks.first?.(e, j) || null;
+      const fs = fire('first', e, j).filter((f) => typeof f === 'function');
+      if (fs.length) after = () => fs.forEach((f) => f());
       msg = `${e.done} (걸음 +${R.steps}, ${statName(e.stat)} +${R.stat}, ${R.coin} 데나리온, ${R.items.map((x) => ITEMS[x]?.name || x).join('·')})`;
     } else if (e.quiet) msg = quietAgain;
     else { addSteps(profile, 2); msg = `다시 걸어 주었군요. 말씀은 할 때마다 새로워요 (걸음 +2)`; }
     const grad = first && allDone() && j.mark !== '졸업'; // ORDER를 다 마침 → 마을 졸업 표지
     if (grad) j.mark = '졸업';
     save(); onChange?.();
+    fire('done', e, first); // 처음이든 다시든 사건을 마침 (오늘의 마을 등)
     sfx('orb', 0.3, 1.05); burst(me.x, me.y + 1.4, me.z);
     resetNpcs(e);
     updateChip();
@@ -361,11 +389,11 @@ export function initFlow(cfg) {
       wasTown = town;
       if (!town) { ui.close(); whisper(''); sky.darkness(0); }
       trials.away(!town);
-      hooks.away?.(!town);
+      fire('away', !town);
     }
-    hooks.pre?.(dt, town, now);
+    fire('pre', dt, town, now);
     people.step(town);
-    hooks.frame?.(dt, town, now);
+    fire('frame', dt, town, now);
     if (!town) { chip.hide(); beacon.hide(); return; }
     trials.step(); modes.step();
     if (!run) er.step(dt);
@@ -409,7 +437,9 @@ export function initFlow(cfg) {
   updateChip();
   return {
     step, available, actions, wants, info, quit: () => (run ? quit() : er.quit()),
-    errands: cfg.er || null, // 작은 부탁 (마을 밖 사람은 errands.register(key, npc) 뒤 errands.talk(key))
+    errands: er, // 작은 부탁 (마을 밖 사람은 errands.register(key, npc) 뒤 errands.talk(key)). 부탁 자료가 없는 마을은 빈 부탁 (null 아님)
+    // 공용 장치 꽂기 (엔진을 지은 뒤): sys = { away, pre, frame, cleanup, reset, quit, first, done } 가운데 쓰는 것만. 돌려준 함수를 부르면 뺌
+    use(sys) { plugged.push(sys); return () => { const i = plugged.indexOf(sys); if (i >= 0) plugged.splice(i, 1); }; },
     active: () => ui.isOpen(),
     get run() { return run; }, N, EV, ui, X, modes, trials,
     debug: { begin: (id) => begin(EV[id]), advance, complete: () => run && complete() },
