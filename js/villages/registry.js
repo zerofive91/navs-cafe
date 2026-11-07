@@ -5,7 +5,8 @@
 //   id, name, short, book    마을 id·이름·짧은 이름·성경 권
 //   status                   'open'(지도·수레에 보임) | 'soon'(자리만, 어디에도 안 보임)
 //   region                   layout.addRegion으로 등록한 땅 { floorY, isFree, pathCost, nav, env, arrive, look }. 초보자 마을은 null
-//   cart                     이 마을 수레 { x, z, rot, stand(오르는 자리), arrive(왔을 때 서는 자리), look(왔을 때 보는 쪽), to?(갈 수 있는 마을 id 목록) }
+//   cart                     이 마을 수레 { x, z, rot, stand(오르는 자리), arrive(왔을 때 서는 자리), look(왔을 때 보는 쪽), to?(갈 수 있는 마을 id 목록),
+//                              sign?·signRot?(이정표 자리·방향: 초보자 마을 길목만, 다른 마을 이정표는 load가 지음) }
 //   entry(profile)           true면 들어갈 수 있음, 글이면 못 들어가는 까닭(알림으로 보임)
 //   guide                    수레 안내인 { name, look(옷 색), at() → 서는 자리 } (말 문구는 cartguide.js 마을 id별)
 //   travel                   { going(흐린 막 글), arrive, first(처음 왔을 때 알림), firstVerse }

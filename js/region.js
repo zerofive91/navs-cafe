@@ -1,7 +1,7 @@
 // 마을 사이 다니기 (2026-11 요한복음 마을 0단계 → 2026-11 마을 등록부)
 //   마을마다 수레가 있음 (초보자 마을은 정원 바깥 둘레길의 "마을 길목", 요한복음 마을은 빛의 광장 남쪽 끝). 수레에 오르면(E 또는 반짝이는 단추)
 //   화면이 흐려졌다 밝아지며 다른 마을 도착 자리에 섬. 어느 마을이 있고 어디에 무엇이 있는지는 등록부(js/villages/registry.js)가 정함
-//   입장 조건은 마을 항목의 enter (요한복음 마을: 정원 안내를 마친 사람, 기획서 9장 결정 3). 걸음·단계 잠금 없음
+//   입장 조건은 마을 항목의 entry (요한복음 마을: 정원 안내를 마친 사람, 기획서 9장 결정 3). 걸음·단계 잠금 없음
 //   마을 모형은 처음 들어갈 때만 불러와 지음 (마을 항목의 load, dynamic import) → 첫 접속은 지금과 같음
 import * as THREE from 'three';
 import { floorY, regionIdAt } from './layout.js';
@@ -102,7 +102,8 @@ export function initRegion(K) {
     const list = destinations(state.id);
     let V = to ? village(to) : list.length === 1 ? list[0] : null;
     if (!V) { if (chooseTown) chooseTown(list.map((v) => v.id)); else toast('어느 마을로 갈지 수레꾼에게 물어봐요', 3); return; }
-    const ok = V.status === 'open' ? V.entry(profile) : V.entry?.(profile) || '아직 갈 수 없는 마을이에요';
+    // 열린 마을에 entry가 없으면 누구나 들어감. 닫힌 마을은 entry 문구 또는 기본 문구
+    const ok = V.status === 'open' ? (V.entry ? V.entry(profile) : true) : V.entry?.(profile) || '아직 갈 수 없는 마을이에요';
     if (ok !== true) { toast(ok, 4); sfx?.('impact/impactSoft_medium_000', 0.2, 0.8); return; }
     go(V.id);
   }

@@ -15,7 +15,7 @@ export const eventsDone = (j) => JOHN.progress({ john: j }).done;
 export const EVENTS_TOTAL = JOHN.events.length;
 
 export function initCartGuide(K) {
-  const { me, makeChar, npcs, profile, busy, region } = K;
+  const { me, makeChar, npcs, profile, busy, region, toast } = K;
   const canEnter = () => JOHN.entry(profile) === true; // region.js와 같은 조건 (등록부 entry): 정원 안내를 마쳤거나 '안내 끝내기'로 넘긴 사람
 
   const put = (name, look, p, look0) => {
@@ -81,15 +81,16 @@ export function initCartGuide(K) {
     });
   }
   // 초보자 마을 수레가 갈 마을이 여럿일 때 (사도행전 마을을 연 뒤): 마을마다 '…로 가요' 단추
-  function talkPick(info = false) {
-    const g = base, outs = destinations('base');
+  //   g: 말하는 안내인(기본은 초보자 마을 수레꾼), outs: 갈 수 있는 마을 (기본은 초보자 마을 수레의 목적지)
+  function talkPick(info = false, g = base, outs = destinations(g.id)) {
     const say = info
       ? outs.map((v) => `${v.name}${v.progress ? `(${v.progress(profile).done}/${v.progress(profile).total})` : ''}`).join(', ') + '로 수레가 다녀요. 마을마다 그 권의 이야기를 직접 걸어 봐요.'
-      : '어서 와요. 저는 마을과 마을 사이를 수레로 오가며 소식을 전하는 에바브라예요. 어느 마을로 갈까요? 마을 이름을 눌러요.';
+      : g === base ? '어서 와요. 저는 마을과 마을 사이를 수레로 오가며 소식을 전하는 에바브라예요. 어느 마을로 갈까요? 마을 이름을 눌러요.'
+        : '어느 마을로 갈까요? 마을 이름을 눌러요.';
     cur = g;
     dlg.open({
       who: g.name, n: g.n, say,
-      guide: [info ? { label: '돌아가기', on: () => talkPick(false) } : { label: '마을들은 어떤 곳이에요?', on: () => talkPick(true) }],
+      guide: [info ? { label: '돌아가기', on: () => talkPick(false, g, outs) } : { label: '마을들은 어떤 곳이에요?', on: () => talkPick(true, g, outs) }],
       choices: [
         { label: '다음에요', cls: 'later', on: hide },
         ...outs.map((v, i) => ({ label: v.short || v.name, cls: 'go', main: i === 0, on: () => board(v.id) })), // 폰 세로 한 줄에 맞게 짧은 이름
@@ -124,7 +125,13 @@ export function initCartGuide(K) {
     for (const g of list) if (Math.hypot(me.x - g.n0.x, me.z - g.n0.z) < 3.2) offerTalk('cart:' + g.id, g.n0, () => talk(g));
   }
   function pin() { for (const g of list) if (g.n0.state !== 'walk') { g.n0.x = g.n0.home.x; g.n0.z = g.n0.home.z; } }
-  // 수레에 올랐는데 갈 마을이 여럿이면 (region.js chooseTown): 초보자 마을 수레꾼이 고르기 말풍선을 엶
-  const choose = () => { if (!busy() && base) talkPick(false); };
+  // 수레에 올랐는데 갈 마을이 여럿이면 (region.js chooseTown(ids)): 지금 마을 수레꾼이 그 마을들로 고르기 말풍선을 엶
+  const choose = (ids) => {
+    const g = byId(region().here()) || base;
+    const outs = (ids || []).map(village).filter(Boolean);
+    if (!g || !outs.length) return;
+    if (busy()) { toast?.('지금 하던 일을 마친 뒤에 수레를 타요', 3); return; } // 다른 창이 열려 있으면 알리고 끝
+    talkPick(false, g, outs);
+  };
   return { step, pin, active: () => !!cur, list, choose };
 }

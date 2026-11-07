@@ -131,7 +131,7 @@ export function initShop(K) {
   // 병거는 같은 마을 안에서만 (2026-11 요한복음 마을): 목적지 목록과 자리는 마을 등록부의 trips (js/villages/<id>.js)
   const tripsHere = () => (village(regionIdAt(me.x, me.z)) || village('base')).trips;
   const placesHere = () => tripsHere()?.list() || [];
-  const placeOf = (id) => tripsHere().at(id);
+  const placeOf = (id) => tripsHere()?.at(id) || null; // trips가 없는 마을이면 null
   const trip = document.createElement('div');
   trip.id = 'trip'; trip.hidden = true;
   document.body.appendChild(trip);
@@ -141,6 +141,7 @@ export function initShop(K) {
   function openTrip() {
     if (!(profile.bag?.chariot > 0)) { toast('병거 삯이 없어요. 루디아의 가게에서 살 수 있어요', 3.5); return; }
     if (busy?.() || me.climb) { toast('지금 하던 일을 마친 뒤에 병거를 타요', 3); return; }
+    if (!placesHere().length) { toast('이 마을에서는 병거를 쓸 수 없어요', 3); return; } // trips가 없는 마을
     trip.innerHTML = `<div class="pad"><button class="close" aria-label="닫기">×</button><h3>병거 타기</h3><p class="sub">어디로 갈까요? (병거 삯 ${profile.bag.chariot}개)</p><div class="list">${placesHere().map(([id, n]) => `<button data-to="${id}">${n}</button>`).join('')}</div></div>`;
     trip.hidden = false;
   }
@@ -153,8 +154,9 @@ export function initShop(K) {
     go(b.dataset.to, b.textContent);
   });
   function go(id, name) {
+    const at = placeOf(id); if (!at) return; // 삯을 쓰기 전에 확인
     if (!useGood(profile, 'chariot')) return;
-    const { p, look } = placeOf(id);
+    const { p, look } = at;
     const to = nearestFree(p) || p;
     if (me.seat) K.standUp?.(me);
     me.path = []; me.task = null; me.action = null; me.state = 'idle';
