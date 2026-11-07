@@ -2,22 +2,21 @@
 //   초보자 마을 길목(정원 둘레길 246°) 수레꾼 에바브라 · 요한복음 마을 광장 남쪽 수레꾼 두기고 (둘 다 먼 길에 소식을 전하던 사람)
 //   수레를 타는 일은 그대로 region.js의 board()가 함 (E나 반짝이는 단추로 바로 타도 됨). 안내인은 말로 안내하고 같은 board()를 부름
 //   말풍선은 dialog.js. 곁에 가면 '말 걸기' 단추가 뜨고(talkgate), 말풍선이 열려 있는 동안은 수레 단추가 쉼 (region.js blocked)
+//   안내인 이름·모습·서는 자리는 마을 등록부(js/villages/<id>.js guide), 말 문구는 여기 마을 id별 (talkBase·talkJohn, 다른 마을은 talkTown)
+//   초보자 마을 수레가 갈 마을이 여럿이면 말풍선에 마을마다 '…로 가요' 단추 (chooseTown)
 import { offerTalk } from './talkgate.js';
 import { createDialog } from './dialog.js';
-import { VILLAGE_GATE, isFree } from './layout.js';
-import { CART as JOHN_CART } from './john/layout.js';
-import { JOHN_EVENTS } from './profile.js';
 import { nameTag } from './tutorial.js';
-import { nearestFree } from './nav.js';
+import { VILLAGES, village, destinations } from './villages/registry.js';
 
-// 마친 사건 수 (사건 'word'는 '와 보라'에 합쳐져 있어 22개)
-const EVENTS = JOHN_EVENTS.filter((id) => id !== 'word');
-export const eventsDone = (j) => EVENTS.filter((id) => j?.ev?.[id]?.done).length;
-export const EVENTS_TOTAL = EVENTS.length;
+// 마친 사건 수 (요한복음 마을: 사건 'word'는 '와 보라'에 합쳐져 있어 22개). 등록부 progress
+const JOHN = village('john');
+export const eventsDone = (j) => JOHN.progress({ john: j }).done;
+export const EVENTS_TOTAL = JOHN.events.length;
 
 export function initCartGuide(K) {
-  const { me, makeChar, npcs, profile, busy, region } = K;
-  const canEnter = () => !!profile.tut?.garden; // region.js와 같은 조건: 정원 안내를 마쳤거나 '안내 끝내기'로 넘긴 사람
+  const { me, makeChar, npcs, profile, busy, region, toast } = K;
+  const canEnter = () => JOHN.entry(profile) === true; // region.js와 같은 조건 (등록부 entry): 정원 안내를 마쳤거나 '안내 끝내기'로 넘긴 사람
 
   const put = (name, look, p, look0) => {
     const n = makeChar({ hair: 0x3b2a22, style: 0, pants: 0x5a5048, ...look, bag: look.hoodie }, p.x, p.z);
@@ -28,22 +27,20 @@ export function initCartGuide(K) {
     npcs.push(n);
     return n;
   };
-  // 초보자 마을: 이정표와 수레 사이, 수레에 오르는 자리(stand)를 바라봄
-  const G = VILLAGE_GATE, gp0 = G.at(-1.0, 4.7);
-  const gp = isFree(gp0.x, gp0.z) ? gp0 : (nearestFree(gp0) || gp0);
-  // 요한복음 마을: 수레 곁 서쪽. 마을 길 격자는 처음 들어갈 때 생기므로 여기서는 계산한 자리를 그대로 씀
-  const jp = { x: JOHN_CART.stand.x - 2.6, z: JOHN_CART.stand.z - 0.6 };
-  const base = { id: 'base', name: '수레꾼 에바브라', n: '초보자 마을', n0: put('수레꾼 에바브라', { hoodie: 0xb08a58, hair: 0x4a3324, style: 1 }, gp, G.stand) };
-  const john = { id: 'john', name: '수레꾼 두기고', n: '요한복음 마을', n0: put('수레꾼 두기고', { hoodie: 0x7a6a52, hair: 0x2b211c, style: 0 }, jp, JOHN_CART.stand) };
-  const list = [base, john];
+  // 열린 마을마다 수레 곁에 한 사람: 수레에 오르는 자리(stand)를 바라봄 (초보자 마을은 이정표와 수레 사이, 요한복음 마을은 수레 곁 서쪽)
+  const list = VILLAGES.filter((v) => v.status === 'open' && v.guide && v.cart).map((v) => ({ id: v.id, name: v.guide.name, n: v.name, n0: put(v.guide.name, v.guide.look, v.guide.at(), v.cart.stand) }));
+  const byId = (id) => list.find((g) => g.id === id);
+  const base = byId('base'), john = byId('john');
 
   const dlg = createDialog({ id: 'ctalk' });
   let cur = null;
   const hide = () => { dlg.close(); cur = null; };
   const done = () => eventsDone(profile.john);
-  const board = () => { hide(); region().board(); };
+  const board = (to) => { hide(); region().board(to); };
 
   function talkBase(info = false) {
+    const outs = destinations('base');
+    if (outs.length !== 1 || outs[0].id !== 'john') return talkPick(info);
     const g = base, j = profile.john, ok = canEnter();
     const seen = !!j?.seen;
     let say;
@@ -60,7 +57,7 @@ export function initCartGuide(K) {
       guide: [info ? { label: '돌아가기', on: () => talkBase(false) } : { label: '마을은 어떤 곳이에요?', on: () => talkBase(true) }],
       choices: [
         { label: '다음에요', cls: 'later', on: hide },
-        { label: '요한복음 마을로 가요', cls: 'go', hidden: !ok, main: ok, on: board },
+        { label: '요한복음 마을로 가요', cls: 'go', hidden: !ok, main: ok, on: () => board() },
       ],
       esc: hide,
     });
@@ -78,12 +75,44 @@ export function initCartGuide(K) {
       guide: [info ? { label: '돌아가기', on: () => talkJohn(false) } : { label: '초보자 마을은 어떤 곳이에요?', on: () => talkJohn(true) }],
       choices: [
         { label: '다음에요', cls: 'later', on: hide },
-        { label: '초보자 마을로 돌아가요', cls: 'go', main: true, on: board },
+        { label: '초보자 마을로 돌아가요', cls: 'go', main: true, on: () => board() },
       ],
       esc: hide,
     });
   }
-  const talk = (g) => { if (busy()) return; g.id === 'base' ? talkBase() : talkJohn(); }; // 말 걸기 단추를 누른 때 다른 창이 열려 있으면 열지 않음
+  // 초보자 마을 수레가 갈 마을이 여럿일 때 (사도행전 마을을 연 뒤): 마을마다 '…로 가요' 단추
+  //   g: 말하는 안내인(기본은 초보자 마을 수레꾼), outs: 갈 수 있는 마을 (기본은 초보자 마을 수레의 목적지)
+  function talkPick(info = false, g = base, outs = destinations(g.id)) {
+    const say = info
+      ? outs.map((v) => `${v.name}${v.progress ? `(${v.progress(profile).done}/${v.progress(profile).total})` : ''}`).join(', ') + '로 수레가 다녀요. 마을마다 그 권의 이야기를 직접 걸어 봐요.'
+      : g === base ? '어서 와요. 저는 마을과 마을 사이를 수레로 오가며 소식을 전하는 에바브라예요. 어느 마을로 갈까요? 마을 이름을 눌러요.'
+        : '어느 마을로 갈까요? 마을 이름을 눌러요.';
+    cur = g;
+    dlg.open({
+      who: g.name, n: g.n, say,
+      guide: [info ? { label: '돌아가기', on: () => talkPick(false, g, outs) } : { label: '마을들은 어떤 곳이에요?', on: () => talkPick(true, g, outs) }],
+      choices: [
+        { label: '다음에요', cls: 'later', on: hide },
+        ...outs.map((v, i) => ({ label: v.short || v.name, cls: 'go', main: i === 0, on: () => board(v.id) })), // 폰 세로 한 줄에 맞게 짧은 이름
+      ],
+      esc: hide,
+    });
+  }
+  // 그 밖의 마을 (사도행전 마을 등): 돌아가는 수레만
+  function talkTown(g) {
+    const V = village(g.id), P = V.progress?.(profile);
+    cur = g;
+    dlg.open({
+      who: g.name, n: g.n,
+      say: P ? `마친 사건은 ${P.done}/${P.total}이에요. 쉬다 가도 좋고, 돌아가려면 말해 줘요.` : '쉬다 가도 좋고, 돌아가려면 말해 줘요.',
+      choices: [
+        { label: '다음에요', cls: 'later', on: hide },
+        { label: '초보자 마을로 돌아가요', cls: 'go', main: true, on: () => board('base') },
+      ],
+      esc: hide,
+    });
+  }
+  const talk = (g) => { if (busy()) return; g.id === 'base' ? talkBase() : g.id === 'john' ? talkJohn() : talkTown(g); }; // 말 걸기 단추를 누른 때 다른 창이 열려 있으면 열지 않음
 
   function step() {
     for (const g of list) {
@@ -96,5 +125,13 @@ export function initCartGuide(K) {
     for (const g of list) if (Math.hypot(me.x - g.n0.x, me.z - g.n0.z) < 3.2) offerTalk('cart:' + g.id, g.n0, () => talk(g));
   }
   function pin() { for (const g of list) if (g.n0.state !== 'walk') { g.n0.x = g.n0.home.x; g.n0.z = g.n0.home.z; } }
-  return { step, pin, active: () => !!cur, list };
+  // 수레에 올랐는데 갈 마을이 여럿이면 (region.js chooseTown(ids)): 지금 마을 수레꾼이 그 마을들로 고르기 말풍선을 엶
+  const choose = (ids) => {
+    const g = byId(region().here()) || base;
+    const outs = (ids || []).map(village).filter(Boolean);
+    if (!g || !outs.length) return;
+    if (busy()) { toast?.('지금 하던 일을 마친 뒤에 수레를 타요', 3); return; } // 다른 창이 열려 있으면 알리고 끝
+    talkPick(false, g, outs);
+  };
+  return { step, pin, active: () => !!cur, list, choose };
 }

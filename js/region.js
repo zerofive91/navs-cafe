@@ -1,18 +1,15 @@
-// 마을 사이 다니기 (2026-11 요한복음 마을 0단계)
-//   초보자 마을(카페·정원·숲길) 정원 바깥 둘레길의 "마을 길목"에 이정표와 수레가 있음. 수레에 오르면(E 또는 반짝이는 단추)
-//   화면이 흐려졌다 밝아지며 요한복음 마을 빛의 광장(Z1)에 도착. 광장 남쪽 끝의 수레로 돌아옴
-//   입장 조건: 정원 안내(아담)를 마친 사람 (기획서 9장 결정 3). 걸음·단계 잠금 없음
-//   마을 모형은 처음 들어갈 때만 불러와 지음 (dynamic import) → 첫 접속은 지금과 같음
+// 마을 사이 다니기 (2026-11 요한복음 마을 0단계 → 2026-11 마을 등록부)
+//   마을마다 수레가 있음 (초보자 마을은 정원 바깥 둘레길의 "마을 길목", 요한복음 마을은 빛의 광장 남쪽 끝). 수레에 오르면(E 또는 반짝이는 단추)
+//   화면이 흐려졌다 밝아지며 다른 마을 도착 자리에 섬. 어느 마을이 있고 어디에 무엇이 있는지는 등록부(js/villages/registry.js)가 정함
+//   입장 조건은 마을 항목의 entry (요한복음 마을: 정원 안내를 마친 사람, 기획서 9장 결정 3). 걸음·단계 잠금 없음
+//   마을 모형은 처음 들어갈 때만 불러와 지음 (마을 항목의 load, dynamic import) → 첫 접속은 지금과 같음
 import * as THREE from 'three';
-import { VILLAGE_GATE, floorY, REGIONS, regionIdAt } from './layout.js';
+import { floorY, regionIdAt } from './layout.js';
 import { ensureNav, nearestFree } from './nav.js';
-import { REGION as JOHN, CART as JOHN_CART, JN_ACTS } from './john/layout.js';
+import { VILLAGES, village, destinations, markTown } from './villages/registry.js';
 import { VERSES, showVerse } from './verses.js';
 
-export const TOWNS = [
-  { id: 'base', name: '초보자 마을' },
-  { id: 'john', name: '요한복음 마을' },
-];
+export const TOWNS = VILLAGES.filter((v) => v.status === 'open').map((v) => ({ id: v.id, name: v.name }));
 const state = { id: 'base' };
 export const currentRegion = () => state.id;
 
@@ -60,19 +57,22 @@ export function makeSignpost(title, sub, h = 2.1) {
 }
 
 export function initRegion(K) {
-  const { scene, me, profile, save, toast, sfx, standUp, camBehind, setEnv, onSwitch, interactive, occluders, walkTo, johnKit, blocked } = K;
-  let eng = null; // 요한복음 마을 사건 진행 (js/john/engine.js, 마을을 처음 지을 때 함께 불러옴)
-  const john = () => profile.john;
+  const { scene, me, profile, save, toast, sfx, standUp, camBehind, setEnv, onSwitch, interactive, occluders, walkTo, townKit, blocked, chooseTown } = K;
+  const built = new Map(); // 마을 id → Promise<{ root, cart, engine }> (처음 들어갈 때 지음)
+  const engines = new Map(); // 마을 id → 사건 엔진
+  const roots = new Map(); // 마을 id → 모형 root (그 마을에 있을 때만 보임)
+  const tries = new Map();
 
-  // ---------- 초보자 마을 길목: 이정표 "요한복음 마을" + 수레 ----------
-  const G = VILLAGE_GATE;
-  const sign = makeSignpost('요한복음 마을', '수레를 타고 가요');
-  sign.position.set(G.sign.x, floorY(G.sign.x, G.sign.z), G.sign.z);
-  sign.rotation.y = Math.atan2(-G.n.x, -G.n.z); // 둘레길(정원 안쪽)을 바라봄
+  // ---------- 초보자 마을 길목: 이정표 + 수레 (갈 마을이 하나면 그 이름, 여럿이면 "마을 수레") ----------
+  const B = village('base').cart;
+  const outs = destinations('base');
+  const sign = makeSignpost(outs.length === 1 ? outs[0].name : '마을 수레', '수레를 타고 가요');
+  sign.position.set(B.sign.x, floorY(B.sign.x, B.sign.z), B.sign.z);
+  sign.rotation.y = B.signRot; // 둘레길(정원 안쪽)을 바라봄
   scene.add(sign);
   const cart = makeCart();
-  cart.position.set(G.cart.x, floorY(G.cart.x, G.cart.z), G.cart.z);
-  cart.rotation.y = G.rot - Math.PI / 2;
+  cart.position.set(B.x, floorY(B.x, B.z), B.z);
+  cart.rotation.y = B.rot;
   scene.add(cart);
   // 수레를 누르면 곁으로 걸어가 오름
   const tapCart = (c, stand) => {
@@ -81,7 +81,7 @@ export function initRegion(K) {
     hit.userData.onTap = () => walkTo(me, stand, () => board());
     interactive.push(hit);
   };
-  tapCart(cart, G.stand);
+  tapCart(cart, B.stand);
 
   // ---------- 흐려졌다 밝아지는 막 (불러오는 동안 말씀 한 구절: 요 14:6) ----------
   const veil = document.createElement('div');
@@ -91,69 +91,66 @@ export function initRegion(K) {
   veil.addEventListener('pointerdown', (e) => { e.stopPropagation(); e.preventDefault(); });
   document.body.appendChild(veil);
 
-  let busy = false, johnBuilt = null;
+  let busy = false;
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-  const nearCart = () => {
-    const c = state.id === 'john' ? JOHN_CART : G.cart;
-    return Math.hypot(me.x - c.x, me.z - c.z) < 3.4;
-  };
-  const canEnter = () => !!profile.tut?.garden; // 정원 안내를 마쳤거나 '안내 끝내기'로 넘긴 사람
+  const here = () => village(state.id) || village('base');
+  const nearCart = () => { const c = here().cart; return !!c && Math.hypot(me.x - c.x, me.z - c.z) < 3.4; };
 
-  function board() {
+  // 수레에 오름: 갈 마을이 하나면 바로, 여럿이면 고르기 (안내인 말풍선). to를 주면 그 마을로
+  function board(to) {
     if (busy) return;
-    if (state.id === 'base') {
-      if (!canEnter()) { toast('정원지기 아담에게 정원 안내를 받으면 수레를 탈 수 있어요', 4); sfx?.('impact/impactSoft_medium_000', 0.2, 0.8); return; }
-      go('john');
-    } else go('base');
+    const list = destinations(state.id);
+    let V = to ? village(to) : list.length === 1 ? list[0] : null;
+    if (!V) { if (chooseTown) chooseTown(list.map((v) => v.id)); else toast('어느 마을로 갈지 수레꾼에게 물어봐요', 3); return; }
+    // 열린 마을에 entry가 없으면 누구나 들어감. 닫힌 마을은 entry 문구 또는 기본 문구
+    const ok = V.status === 'open' ? (V.entry ? V.entry(profile) : true) : V.entry?.(profile) || '아직 갈 수 없는 마을이에요';
+    if (ok !== true) { toast(ok, 4); sfx?.('impact/impactSoft_medium_000', 0.2, 0.8); return; }
+    go(V.id);
   }
-  let johnRoot = null, tries = 0;
-  async function buildJohn() {
-    if (!johnBuilt) {
+  async function buildTown(V) {
+    if (!V.load) return null;
+    if (!built.has(V.id)) {
       // 브라우저는 한 번 실패한 모듈 주소를 기억해 같은 주소로는 다시 받지 않음 → 다시 시도할 때는 주소 끝을 바꿈
-      // 사건 모듈(engine·events·trials·modes)도 같은 주소 끝을 붙여 따로 불러 engine에 넘김
-      const q = tries++ ? `?retry=${tries}` : '';
-      johnBuilt = Promise.all(['build', 'engine', 'events', 'trials', 'modes'].map((n) => import(`./john/${n}.js${q}`))).then(([m, E, Ev, Tr, Md]) => {
-        const r = m.buildJohn({ scene, occluders, makeCart, makeSignpost }); tapCart(r.cart, JOHN_CART.stand); johnRoot = r.root;
-        // 1차 MVP 사건 (와 보라·가나·니고데모·실로암). 사건이 고장 나도 마을 오가기는 되도록 따로 감쌈
-        try { if (johnKit) eng = E.initJohn({ ...johnKit, here: currentRegion }, r, { EV: Ev.EV, ORDER: Ev.ORDER, initTrials: Tr.initTrials, initModes: Md.initModes }); } catch (e) { console.warn('요한복음 마을 사건을 준비하지 못했어요', e); }
+      const n = tries.get(V.id) || 0; tries.set(V.id, n + 1);
+      const q = n ? `?retry=${n}` : '';
+      const p = V.load({ q, scene, occluders, makeCart, makeSignpost, kit: townKit, here: currentRegion }).then((r) => {
+        tapCart(r.cart, V.cart.stand); roots.set(V.id, r.root);
+        if (r.engine) engines.set(V.id, r.engine);
         return r;
       });
-      johnBuilt.catch(() => { johnBuilt = null; }); // 불러오기에 실패하면 다음에 수레를 탈 때 다시 시도
+      built.set(V.id, p);
+      p.catch(() => { built.delete(V.id); }); // 불러오기에 실패하면 다음에 수레를 탈 때 다시 시도
     }
-    return johnBuilt;
+    return built.get(V.id);
   }
   // 마을 모형은 그 마을에 있을 때만 그림 (빛의 광장 등불이 초보자 마을 조명 수를 늘리지 않게)
-  const showTown = (id) => { if (johnRoot) johnRoot.visible = id === 'john'; };
+  const showTown = (id) => { for (const [k, r] of roots) r.visible = k === id; };
+  const envOf = (id) => village(id)?.region?.env || null;
   async function go(to, { fromDoor = false } = {}) {
-    if (busy || (to === state.id && !fromDoor)) return false;
+    const V = village(to);
+    if (busy || !V || V.status !== 'open' || (to === state.id && !fromDoor)) return false;
     busy = true;
     let done = false, first = false;
     try {
       if (me.climb) me.climb = null;
-      if (eng?.X?.inBoat?.()) eng.quit(); // 밤바다 배 위에서 떠나면 사건을 그만두고 배에서 내림 (자리 jboat가 따라가지 않게)
+      for (const e of engines.values()) if (e?.X?.inBoat?.()) e.quit(); // 밤바다 배 위에서 떠나면 사건을 그만두고 배에서 내림 (자리 jboat가 따라가지 않게)
       if (me.seat) standUp(me);
       me.path = []; me.task = null; me.action = null; me.state = 'idle'; me.jumps = 0; me.vy = 0; me.hop = 0;
       const T0 = performance.now();
-      veil.querySelector('small').textContent = to === 'john' ? '요한복음 마을로 가는 중' : '초보자 마을로 돌아가는 중';
+      veil.querySelector('small').textContent = V.travel?.going || `${V.name}(으)로 가는 중`;
       veil.classList.add('on');
       if (!fromDoor) sfx?.('impact/impactSoft_medium_000', 0.2, 0.9);
       await wait(650); // 다 흐려질 때까지
-      if (to === 'john') { await buildJohn(); ensureNav('john'); }
-      const R = REGIONS.find((g) => g.id === to);
-      let at, look;
-      if (to === 'john') { at = R.arrive; look = R.look; }
-      else { at = G.stand; look = { x: 0, z: 0 }; }
+      if (V.region) { await buildTown(V); ensureNav(to); }
+      const at = V.region ? V.region.arrive : V.cart.arrive, look = V.region ? V.region.look : V.cart.look;
       const p = nearestFree(at) || at;
       me.x = p.x; me.z = p.z; me.y = floorY(p.x, p.z);
       me.face = Math.atan2(look.x - p.x, look.z - p.z);
       state.id = to;
       showTown(to);
       camBehind?.();
-      setEnv?.(to === 'base' ? null : R.env);
-      const J = john();
-      J.last = to === 'john' ? 1 : 0;
-      first = to === 'john' && !J.seen;
-      if (first) J.seen = Date.now();
+      setEnv?.(envOf(to));
+      first = markTown(profile, to); // 이 마을만 last 1, 처음 가 본 마을이면 seen
       save();
       onSwitch?.(to);
       done = true;
@@ -167,31 +164,36 @@ export function initRegion(K) {
     }
     if (!done) return false;
     setTimeout(() => {
-      if (to === 'john') {
-        toast(first ? '요한복음 마을에 왔어요. 마을은 지금 짓는 중이에요. 둘러보며 쉬어 가세요' : '요한복음 마을에 왔어요', first ? 5 : 3);
-        if (first) showVerse('jn-20-31', { cooldown: 0, delay: 1.2, title: '요한복음 마을' });
-      } else toast('초보자 마을로 돌아왔어요', 3);
+      const T = V.travel || {};
+      toast(first && T.first ? T.first : T.arrive || `${V.name}에 왔어요`, first ? 5 : 3);
+      if (first && T.firstVerse) showVerse(T.firstVerse, { cooldown: 0, delay: 1.2, title: V.name });
     }, 500);
     return true;
   }
 
-  // 사건 쪽 그 자리 단추 (요한 마을 사건): 이름은 미리 등록해 두고 엔진이 생기면 넘김
-  const jnAct = (k) => () => eng?.actions[k]?.();
+  // 사건 쪽 그 자리 단추: 이름은 미리 등록해 두고 그 마을 엔진이 생기면 넘김
+  const actions = { jcart: () => board() };
+  for (const V of VILLAGES) for (const k of V.acts || []) actions[k] = () => engines.get(V.id)?.actions[k]?.();
+  const engineHere = () => engines.get(state.id) || null;
   return {
     go, board, here: currentRegion,
     active: () => busy,
     locked: () => busy,
-    available: () => (busy || blocked?.() ? [] : [...(nearCart() && me.state !== 'walk' ? [['place', 'jcart']] : []), ...(eng?.available() || [])]),
-    actions: { jcart: board, ...Object.fromEntries(JN_ACTS.map((k) => [k, jnAct(k)])) },
-    get engine() { return eng; },
-    wants: () => (eng && state.id === 'john' ? eng.wants() : []),
+    available: () => (busy || blocked?.() ? [] : [...(nearCart() && me.state !== 'walk' ? [['place', 'jcart']] : []), ...[...engines.values()].flatMap((e) => e?.available() || [])]),
+    actions,
+    get engine() { return engines.get('john') || null; }, // 요한복음 마을 엔진 (main.js·시험 스크립트가 씀)
+    engineOf: (id) => engines.get(id) || null,
+    engineHere,
+    anyActive: () => [...engines.values()].some((e) => e?.active()),
+    destinations: () => destinations(state.id).map((v) => v.id),
+    wants: () => engineHere()?.wants() || [],
     // 지도에서 다른 마을을 고르면: 이 마을의 수레 곁으로 걸어감
     toCart() {
-      const at = state.id === 'john' ? JOHN_CART.stand : G.stand;
-      walkTo(me, at, () => toast('수레에 오르면(E 또는 반짝이는 단추) 다른 마을로 가요', 4));
+      const c = here().cart;
+      walkTo(me, c.stand, () => toast('수레에 오르면(E 또는 반짝이는 단추) 다른 마을로 가요', 4));
     },
     // 혹시 다른 마을 자리에 있으면(병거·시험 등) 상태를 맞춤
-    step(dt) { eng?.step(dt); if (!busy) { const r = regionIdAt(me.x, me.z); if (r !== 'none' && r !== state.id) { state.id = r; showTown(r); setEnv?.(r === 'base' ? null : REGIONS.find((g) => g.id === r)?.env); onSwitch?.(r); } } },
-    john: JOHN,
+    step(dt) { for (const e of engines.values()) e?.step(dt); if (!busy) { const r = regionIdAt(me.x, me.z); if (r !== 'none' && r !== state.id) { state.id = r; showTown(r); setEnv?.(envOf(r)); onSwitch?.(r); } } },
+    john: village('john').region,
   };
 }

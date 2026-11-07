@@ -6,7 +6,7 @@
 // 한 계정은 한 번에 한 기기에서만: 카페에 들어갈 때 계정 채널(Realtime Presence)에 이름을 올리고,
 //   나중에 들어온 기기가 있으면 먼저 있던 기기는 멈춤(저장도 멈춤). '여기서 이어 하기'를 누르면 다시 가져옴
 import { loadLib } from './together.js';
-import { mergeJohn } from './profile.js';
+import { TOWN_SAVES } from './villages/saves.js';
 import { mergeMet } from './met.js';
 const SUPABASE_URL = 'https://esbhbhjnpupcrjwbnwet.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_BJB1Jth8sAEJllf9nnvA3A_iHQB5-Sz'; // 공개용(publishable) 키
@@ -61,7 +61,7 @@ function mergeProfile(a, b) {
     warfare: Object.fromEntries([...new Set([...Object.keys(a.warfare || {}), ...Object.keys(b.warfare || {})])].map((k) => [k, Math.max(a.warfare?.[k] | 0, b.warfare?.[k] | 0)])),
     garden: Object.fromEntries([...new Set([...Object.keys(a.garden || {}), ...Object.keys(b.garden || {})])].map((k) => [k, 1])),
     since: [a.since, b.since].filter(Boolean).sort()[0] || null,
-    john: mergeJohn(a.john, b.john), // 요한복음 마을: 사건·등불 합집합, 큰 줄기는 더 뒤의 사건 (profile.js)
+    ...Object.fromEntries(TOWN_SAVES.map((t) => [t.key, t.merge(a[t.key], b[t.key])])), // 마을 칸 (js/villages/saves.js). 요한복음 마을: 사건·등불 합집합, 큰 줄기는 더 뒤의 사건
     met: mergeMet(a.met, b.met), // 오늘 만난 말씀: 같은 날은 합집합, 다른 날이면 늦은 날이 오늘·다른 쪽은 prev (met.js). 서버에 없으면 이 기기 것
     // 지갑과 소모품은 더하거나 큰 쪽을 고르면 쓴 돈이 되살아나므로, 마지막으로 바뀐 쪽을 그대로 씀
     ...((b.walletAt | 0) >= (a.walletAt | 0) ? { coins: b.coins ?? a.coins ?? null, bag: b.bag || {}, sold: b.sold || [], walletAt: b.walletAt | 0 } : { coins: a.coins ?? null, bag: a.bag || {}, sold: a.sold || [], walletAt: a.walletAt | 0 }),
