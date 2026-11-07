@@ -71,12 +71,45 @@ export const JOHN_EVENTS = [
 const MODES = 'lrasmd'; // 사건에서 채운 모드: l 듣기 r 읽기 a 적용 s 공부 m 암송 d 묵상
 const MARKS = ['', '증인', '졸업'];
 const isObj = (x) => !!x && typeof x === 'object' && !Array.isArray(x);
+// 모르는 칸 그대로 넘기기 (2026-11, PR #62 데이터 리뷰 C): 새 판 기기가 더한 칸(예: er·day·pc, acts)을 옛 판 기기가 채우기·합치기에서 지우지 않게
+//   이 판이 아는 칸(known)은 빼고 나머지를 그대로 둠. 이 판이 아는 칸은 뒤에서 검사한 값으로 덮어씀
+//   상한: 칸 64개, 이름 40자 (손상된 기록이 계정 저장 크기를 넘기지 않게). __proto__는 넘기지 않음
+const PASS_MAX = 64, PASS_KEY = 40;
+export function passUnknown(o, known) {
+  const out = {};
+  if (!isObj(o)) return out;
+  let n = 0;
+  for (const k of Object.keys(o)) {
+    if (known.has(k) || k === '__proto__' || k.length > PASS_KEY || o[k] === undefined) continue;
+    if (n++ >= PASS_MAX) break;
+    out[k] = o[k];
+  }
+  return out;
+}
+// 두 기기의 모르는 칸: 둘 다 있으면 나중 기록(b, 서버 쪽)
+const mergeUnknown = (a, b, known) => ({ ...passUnknown(a, known), ...passUnknown(b, known) });
 const modes = (m) => [...new Set(String(m || '').split(''))].filter((c) => MODES.includes(c)).sort((a, b) => MODES.indexOf(a) - MODES.indexOf(b)).join('');
+const fillEv = (e) => {
+  const ev = {};
+  if (isObj(e)) for (const [k, v] of Object.entries(e)) if (isObj(v) && k !== '__proto__') ev[k] = { done: Number.isFinite(v.done) ? v.done : 0, m: modes(v.m) };
+  return ev;
+};
+const mergeEv = (a, b) => {
+  const ev = { ...a };
+  for (const [k, v] of Object.entries(b)) {
+    const o = ev[k];
+    ev[k] = o ? { done: [o.done, v.done].filter((x) => x > 0).sort((x, y) => x - y)[0] || 0, m: modes(o.m + v.m) } : { ...v };
+  }
+  return ev;
+};
+const strList = (x) => (Array.isArray(x) ? [...new Set(x.filter((s) => typeof s === 'string' && s && s.length <= 40))].slice(0, 99) : []);
+const firstTime = (...xs) => xs.filter((x) => x > 0).sort((x, y) => x - y)[0] || 0;
+const JOHN_KEYS = new Set(['ev', 'open', 'lamps', 'signs', 'last', 'mark', 'seen', 'er', 'day', 'pc']);
 export function fillJohn(j) {
   j = isObj(j) ? j : {};
-  const ev = {};
-  if (isObj(j.ev)) for (const [k, v] of Object.entries(j.ev)) if (isObj(v)) ev[k] = { done: Number.isFinite(v.done) ? v.done : 0, m: modes(v.m) };
+  const ev = fillEv(j.ev);
   return {
+    ...passUnknown(j, JOHN_KEYS), // 이 판이 모르는 칸 (더 새 판 기기가 더한 것)
     ev, // 마친 사건과 채운 모드 { come: { done: 1730900000000, m: 'lra' }, ... }
     open: typeof j.open === 'string' && j.open ? j.open : JOHN_EVENTS[1], // 지금 열린 큰 줄기 사건 (금빛 기둥). 처음은 '와 보라'
     lamps: Array.isArray(j.lamps) ? [...new Set(j.lamps.filter((x) => typeof x === 'string'))] : [], // 켠 "나는…" 등불
@@ -93,26 +126,83 @@ export function mergeJohn(a, b) {
   if (!isObj(b)) return fillJohn(a); // 서버(b)에 아직 요한 마을 기록이 없으면 이 기기 것을 그대로 (last를 잃지 않게)
   if (!isObj(a)) return fillJohn(b);
   a = fillJohn(a); b = fillJohn(b);
-  const ev = { ...a.ev };
-  for (const [k, v] of Object.entries(b.ev)) {
-    const o = ev[k];
-    ev[k] = o ? { done: [o.done, v.done].filter((x) => x > 0).sort((x, y) => x - y)[0] || 0, m: modes(o.m + v.m) } : { ...v };
-  }
+  const ev = mergeEv(a.ev, b.ev);
   const idx = (id) => JOHN_EVENTS.indexOf(id);
   return {
+    ...mergeUnknown(a, b, JOHN_KEYS), // 모르는 칸은 나중 기록(b)
     ev,
     open: idx(b.open) >= idx(a.open) ? b.open : a.open,
     lamps: [...new Set([...a.lamps, ...b.lamps])],
     signs: Math.max(a.signs, b.signs),
     last: b.last,
     mark: MARKS[Math.max(MARKS.indexOf(a.mark), MARKS.indexOf(b.mark))],
-    seen: [a.seen, b.seen].filter((x) => x > 0).sort((x, y) => x - y)[0] || 0,
+    seen: firstTime(a.seen, b.seen),
     ...mergeTownExtras(a, b), // er 합집합(done 먼저·last 늦은 날) · day 늦은 날 · pc 합집합
   };
 }
 
-function fill(p = {}) {
+// ---------- 사도행전 마을 기록 (2026-11 0-나, 기획서 acts-village-plan.md 6장) ----------
+// 사건 24개의 id와 장 순서 (큰 줄기 'open'은 이 순서에서 더 뒤의 것이 앞섬). 사건은 1차부터 (js/acts/events.js가 이 id를 씀)
+//   ① 기다리라 ② 오순절 ③ 날마다 모이는 집 ④ 미문 ⑤ 담대히 ⑥ 일곱 일꾼과 스데반 · ⑦ 사마리아 ⑧ 광야 길의 병거 ⑨ 다메섹 ⑩ 욥바 ⑪ 고넬료
+//   ⑫ 안디옥 ⑬ 옥문과 마가의 집 ⑭ 구브로와 루스드라 ⑮ 예루살렘 회의 · ⑯ 드로아 ⑰ 빌립보 ⑱ 베뢰아 ⑲ 아덴 ⑳ 고린도 · ㉑ 에베소 ㉒ 밀레도 ㉓ 풍랑과 멜리데 ㉔ 로마
+export const ACTS_EVENTS = [
+  'wait', 'pentecost', 'daily', 'gate', 'bold', 'seven', 'samaria', 'chariot', 'damascus', 'joppa', 'cornelius',
+  'antioch', 'prison', 'cyprus', 'council', 'troas', 'philippi', 'berea', 'athens', 'corinth', 'ephesus', 'miletus', 'storm', 'rome',
+];
+// 마을 기록 한 칸 (사도행전 마을의 모양, 기획서 6장): 요한과 같은 규칙을 마을 이름 없이 한 벌로
+//   { ev, open, lit, grow, ships, comp, last, mark, seen, er, day, pc } + 이 판이 모르는 칸
+//   ev 마친 사건과 채운 모드 · open 열린 큰 줄기 사건 · lit 켠 교회 등불(도시 id) · grow 본 자라남 수 · ships 연 배 노선 id
+//   comp 데리고 다니는 동역자 id('' 없음) · last 마지막에 이 마을에 있었으면 1 · mark '증인'|'졸업' · seen 처음 가 본 때
+//   요한 마을은 예전 칸 이름(lamps·signs)이 달라 fillJohn·mergeJohn을 그대로 씀 (요한 기록 회귀 위험 없게)
+const TOWN_KEYS = new Set(['ev', 'open', 'lit', 'grow', 'ships', 'comp', 'last', 'mark', 'seen', 'er', 'day', 'pc']);
+export function fillTown(j, order) {
+  j = isObj(j) ? j : {};
   return {
+    ...passUnknown(j, TOWN_KEYS),
+    ev: fillEv(j.ev),
+    open: typeof j.open === 'string' && order.includes(j.open) ? j.open : order[0], // 처음은 첫 사건
+    lit: strList(j.lit),
+    grow: Math.min(99, Math.max(0, j.grow | 0)),
+    ships: strList(j.ships),
+    comp: typeof j.comp === 'string' && j.comp.length <= 40 ? j.comp : '',
+    last: j.last ? 1 : 0,
+    mark: MARKS.includes(j.mark) ? j.mark : '',
+    seen: Number.isFinite(j.seen) && j.seen > 0 ? j.seen : 0,
+    ...fillTownExtras(j), // er 부탁 · day 오늘의 마을 · pc 두루마리 조각 (js/village/town-save.js)
+  };
+}
+// 두 기기 합치기 (요한과 같은 규칙): ev 합집합(m 글자 합침, done 먼저 것) · lit·ships 합집합 · open 더 뒤 · grow 큰 쪽
+//   comp·last는 나중 기록(b, 서버 쪽) · mark 높은 쪽 · seen 먼저 것 · er·day·pc는 town-save.js · 모르는 칸은 b
+export function mergeTown(a, b, order) {
+  if (!isObj(b)) return fillTown(a, order); // 서버에 아직 이 마을 기록이 없으면 이 기기 것을 그대로 (last를 잃지 않게)
+  if (!isObj(a)) return fillTown(b, order);
+  a = fillTown(a, order); b = fillTown(b, order);
+  const idx = (id) => order.indexOf(id);
+  return {
+    ...mergeUnknown(a, b, TOWN_KEYS),
+    ev: mergeEv(a.ev, b.ev),
+    open: idx(b.open) >= idx(a.open) ? b.open : a.open,
+    lit: strList([...a.lit, ...b.lit]),
+    grow: Math.max(a.grow, b.grow),
+    ships: strList([...a.ships, ...b.ships]),
+    comp: b.comp,
+    last: b.last,
+    mark: MARKS[Math.max(MARKS.indexOf(a.mark), MARKS.indexOf(b.mark))],
+    seen: firstTime(a.seen, b.seen),
+    ...mergeTownExtras(a, b),
+  };
+}
+export const fillActs = (j) => fillTown(j, ACTS_EVENTS);
+export const mergeActs = (a, b) => mergeTown(a, b, ACTS_EVENTS);
+
+// 맨 위 칸: 이 판이 아는 칸 (fill이 검사함). 나머지는 그대로 넘김 (더 새 판이 더한 마을 칸 등)
+const PROFILE_KEYS = new Set(['v', 'name', 'steps', 'items', 'tut', 'stats', 'train', 'quests', 'dungeon', 'trails', 'warfare', 'garden', 'since', 'coins', 'bag',
+  'gear', 'cos', 'pets', 'pet', 'story', 'sold', 'fishDay', 'walletAt', 'john', 'acts', 'met']);
+
+function fill(p = {}) {
+  if (!isObj(p)) p = {};
+  return {
+    ...passUnknown(p, PROFILE_KEYS), // 이 판이 모르는 칸 (옛 판 기기가 새 칸을 지우지 않게)
     v: 1,
     name: typeof p.name === 'string' ? p.name : '',
     steps: p.steps | 0,
@@ -136,7 +226,8 @@ function fill(p = {}) {
     sold: Array.isArray(p.sold) ? p.sold : [], // 가게에 판 물품 (다른 기기 기록과 합칠 때 되살아나지 않게)
     fishDay: typeof p.fishDay === 'string' ? p.fishDay : '', // 물고기 입의 한 세겔은 하루 한 번
     walletAt: p.walletAt | 0, // 지갑·소모품이 마지막으로 바뀐 때 (두 기기 기록을 합칠 때 새것을 씀)
-    john: fillJohn(p.john), // 요한복음 마을 (2026-11): { ev, open, lamps, signs, last, mark, seen }
+    john: fillJohn(p.john), // 요한복음 마을 (2026-11): { ev, open, lamps, signs, last, mark, seen, er, day, pc }
+    acts: fillActs(p.acts), // 사도행전 마을 (2026-11 0-나): { ev, open, lit, grow, ships, comp, last, mark, seen, er, day, pc }
     met: fillMet(p.met), // 오늘 만난 말씀 (2026-11, met.js): { d, k: [[키, 본 때, 'm'?]], prev }
   };
 }

@@ -785,6 +785,10 @@ body.at-door #enter { z-index: 100; }
 /* 다른 마을에서는 카페 바로가기·정원 단추를 감춤 (지도와 수레로 다님) */
 body.region-john #places .place.cafe, body.region-john #places .place.fold, body.region-john #places .place.gardenBtn { display: none; }
 body.region-john #map .guideMe { display: none; }
+body.region-acts #places .place.cafe, body.region-acts #places .place.fold, body.region-acts #places .place.gardenBtn { display: none; } /* 사도행전 마을 (2026-11 0-나): 요한 마을과 같게 */
+body.region-acts #map .guideMe { display: none; }
+body.region-acts #map .towns { top: max(12px, env(safe-area-inset-top)); }
+body.region-acts #storyChip, body.region-acts #questChip { display: none; }
 /* 지도 위쪽 "마을" 탭: 가 본 마을만 */
 #map .towns { position: absolute; top: calc(max(12px, env(safe-area-inset-top)) + 54px); left: 14px; right: 70px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 #map .towns span { color: #ffe2a8; font: 700 13px system-ui, sans-serif; margin-right: 2px; }

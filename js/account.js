@@ -41,6 +41,7 @@ async function rpc(name, args, keepalive = false) {
 const snapshot = () => ({ v: 1, profile: read(KEYS.profile), look: read(KEYS.look), found: read(KEYS.found), seeds: read(KEYS.seeds) });
 
 // 두 기기의 기록을 합침: 걸음·능력치는 큰 쪽, 받은 것·마친 것은 모두
+//   이 판이 모르는 칸(더 새 판 기기가 더한 것)은 ...a, ...b로 그대로 남음 (나중 기록 b). 마을 칸 안의 모르는 칸도 profile.js가 넘김
 function mergeProfile(a, b) {
   if (!a) return b; if (!b) return a;
   const obj = (x, y) => ({ ...(x || {}), ...(y || {}) });
