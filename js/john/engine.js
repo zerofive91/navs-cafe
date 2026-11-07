@@ -246,10 +246,6 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
     } else if (kind === 'oil') { // 등잔 기름병 (부탁: 켜진 등잔에 기름 채우기)
       const b = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 10), M(0xa8744a)); b.scale.y = 1.15; g.add(b);
       const n = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.035, 0.09, 10), M(0xa8744a)); n.position.y = 0.11; g.add(n);
-    } else if (kind === 'sheaf') { // 이삭 한 단 (부탁: 희어진 밭, 4:35-36)
-      for (let k = 0; k < 7; k++) { const a = k * 0.9, st = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.5, 5), M(0xd8b860, 1)); st.position.set(Math.cos(a) * 0.04, 0.05, Math.sin(a) * 0.04); st.rotation.z = Math.cos(a) * 0.12; g.add(st); }
-      const head = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6), M(0xe8c870, 1)); head.scale.y = 1.6; head.position.y = 0.3; g.add(head);
-      const tie = new THREE.Mesh(new THREE.TorusGeometry(0.05, 0.012, 5, 12), M(0x9a7a48)); tie.rotation.x = Math.PI / 2; tie.position.y = 0.02; g.add(tie);
     } else if (kind === 'spice') { // 몰약과 침향 섞은 것 (19:39)
       const b = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.16, 0.18), M(0x8a6a48)); g.add(b);
       for (const s of [-1, 1]) { const j = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 0.1, 10), M(0xe8dcc0, 0.5)); j.position.set(s * 0.07, 0.12, 0); g.add(j); }
@@ -793,7 +789,7 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
     const nx = nextEv();
     if (nx) { const n = N[nx.npc]; return { title: nx.title, ch: nx.ch, hint: `${nx.who}에게 말을 걸면 시작해요`, where: `${ZONES[nx.start || nx.zone].name} · ${nx.who}`, target: { x: n.x, z: n.z }, running: false, verse: VERSES[nx.read[0]], errands }; }
     if (allDone() && !endSeen()) return { title: '이야기는 이어져요', hint: '사도 요한에게 말을 걸어요', where: '빛의 광장 · 사도 요한', target: { x: N.john.x, z: N.john.z }, running: false, errands };
-    if (errands.length) { const f = errands[0]; return { title: '증인의 작은 부탁', hint: `오늘 받을 수 있는 부탁이 ${errands.length}개 있어요. 머리 위 🤝 표시가 있는 사람에게 말을 걸어요`, where: `${f.where} · ${f.who}`, target: f.target, running: false, errands }; }
+    if (errands.length) { const f = errands[0]; return { list: true, title: '증인의 작은 부탁', hint: `오늘 받을 수 있는 부탁이 ${errands.length}개 있어요. 머리 위 🤝 표시가 있는 사람에게 말을 걸어요`, where: `${f.where} · ${f.who}`, target: f.target, running: false, errands }; }
     return null;
   }
 

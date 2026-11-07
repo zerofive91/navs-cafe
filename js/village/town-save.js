@@ -12,16 +12,27 @@ const int0 = (n) => (Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0);
 const letters = (s) => [...new Set(String(s || '').toLowerCase().split(''))].filter((c) => c >= 'a' && c <= 'z').sort().join('');
 const first = (...xs) => xs.filter((x) => x > 0).sort((a, b) => a - b)[0] || 0;
 const later = (a, b) => (a > b ? a : b); // 'YYYY-MM-DD'는 글자 순서가 곧 날짜 순서
+// 상한: 손상되거나 지어낸 기록이 계정 저장 크기(서버 200KB)를 넘겨 저장이 조용히 실패하지 않게
+export const ER_MAX_KEYS = 200, ER_MAX_KEY = 40;
+const MAX_TS = 4e12; // 시각(ms) 상한 (서기 2096년쯤). 넘으면 0
+const ts = (n) => (Number.isFinite(n) && n > 0 && n <= MAX_TS ? Math.floor(n) : 0);
+const small = (n) => Math.min(9999, int0(n)); // 이어 한 날 수
 
 export function fillEr(er) {
   const out = {};
-  if (isObj(er)) for (const [k, v] of Object.entries(er)) if (isObj(v)) out[k] = { done: int0(v.done), last: day(v.last) };
+  if (!isObj(er)) return out;
+  let n = 0;
+  for (const [k, v] of Object.entries(er)) {
+    if (n >= ER_MAX_KEYS) break;
+    if (!isObj(v) || !k || k.length > ER_MAX_KEY || k === '__proto__') continue;
+    out[k] = { done: ts(v.done), last: day(v.last) }; n++;
+  }
   return out;
 }
 export function fillDay(d) {
   if (!isObj(d)) return { d: '', got: '', run: 0, best: 0 };
-  const run = int0(d.run);
-  return { d: day(d.d), got: letters(d.got), run, best: Math.max(run, int0(d.best)) };
+  const run = small(d.run);
+  return { d: day(d.d), got: letters(d.got), run, best: Math.max(run, small(d.best)) };
 }
 export function fillPc(pc) {
   return Array.isArray(pc) ? [...new Set(pc.filter((n) => Number.isInteger(n) && n >= 1 && n <= 99))].sort((a, b) => a - b) : [];
@@ -37,7 +48,7 @@ export function mergeEr(a, b) {
   a = fillEr(a); b = fillEr(b);
   const out = { ...a };
   for (const [k, v] of Object.entries(b)) { const o = out[k]; out[k] = o ? { done: first(o.done, v.done), last: later(o.last, v.last) } : { ...v }; }
-  return out;
+  return fillEr(out); // 합친 뒤에도 개수 상한
 }
 export function mergeDay(a, b) {
   a = fillDay(a); b = fillDay(b);

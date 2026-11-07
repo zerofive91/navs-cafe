@@ -9,7 +9,7 @@ import { W, CART, JARS } from './layout.js';
 
 // 부탁 자리 (마을 좌표 u 동쪽, v 남쪽 → 세계 좌표)
 const NET21 = [W(40.6, -119.4), W(42.2, -116.8), W(38.6, -115.6)];   // 디베랴 바닷가 그물 말리는 자리
-const REAP6 = [W(-10, -47), W(-6.5, -41.5), W(-3, -46.5)];          // 수가 희어진 밭 (4:35)
+const EDGE6 = [W(-15.2, -47.5), W(-15.2, -44), W(-15.2, -40.5)];    // 수가 희어진 밭 서쪽 가 (동네에서 오는 길이 보이는 자리)
 const WALK4 = [W(17.5, -110.8), W(30.5, -110.8)];                    // 가버나움 신하의 집 앞 길
 const SEAT2 = W(136.6, 33.8);                                         // 무화과나무 그늘 (나다나엘 곁)
 const WEDGE1 = [W(98.4, 145.2), W(72.2, 155.4)];                     // 빛의 광장 둘레 (수레 쐐기)
@@ -23,7 +23,7 @@ export const ER = {
     who: 'john', name: '사도 요한', after: 'come', need: (j) => j.lamps.length > 0, title: '켜진 등잔에 기름 채우기', again: 'day', where: '빛의 광장',
     stat: 'obey', verse: 'jn-1-5',
     listen: '광장 둘레 등잔에 하나둘 불이 켜졌어요. 밤에도 꺼지지 않게 기름을 채워 두고 싶어요. 북서쪽 길 끝 등불 자리에서 기름병을 받아, 켜진 등잔에 기름을 부어 줄래요?',
-    done: '등잔마다 불이 환해요. "빛이 어두움에 비취되" 하신 말씀처럼, 광장이 밝아요.',
+    done: '등잔마다 불이 환해요. "빛이 어두움에 비취되"(1:5), 광장이 밝아요.',
     steps: (X) => {
       const filled = new Set();
       const lit = () => X.litLamps();
@@ -73,15 +73,15 @@ export const ER = {
 
   // ---------- Z2 요단 건너 베다니 · 나다나엘: 무화과나무 그늘에서 함께 읽기 (1:47) ----------
   'nathan-read': {
-    who: 'nathan', name: '나다나엘', after: 'come', title: '무화과나무 그늘에서 함께 읽기', again: 'day', where: '요단 건너 베다니 · 무화과나무 아래',
+    who: 'nathan', name: '나다나엘', after: 'come', title: '무화과나무 그늘에서 함께 묵상하기', again: 'day', where: '요단 건너 베다니 · 무화과나무 아래',
     stat: 'word', verse: 'jn-1-47',
-    listen: '빌립이 저를 부르기 전에, 저는 이 무화과나무 아래 있었어요(1:48). 오늘도 이 그늘에서 율법 두루마리를 읽으려 해요. 곁에 앉아 함께 읽을래요?',
-    done: '그분은 무화과나무 아래 있던 저를 보셨어요. 말씀 앞에 가만히 앉아 있는 이 시간이 좋아요. 함께해 주어 고마워요.',
+    listen: '빌립이 저를 부르기 전에, 저는 이 무화과나무 아래 있었어요(1:48). 오늘도 이 그늘에 조용히 앉아 말씀을 묵상하려 해요. 곁에 앉아 함께 묵상할래요?',
+    done: '그분은 무화과나무 아래 있던 저를 보셨어요(1:48). 이 그늘에 가만히 앉아 있는 시간이 좋아요. 함께해 주어 고마워요.',
     steps: (X) => [
       { hint: '무화과나무 그늘, 나다나엘 곁에 앉아요 (J 앉기)', go: SEAT2, where: '요단 건너 베다니 · 무화과나무 아래',
         until: (r, dt) => { r.t = X.sitting(SEAT2, 1.8) ? (r.t || 0) + dt : 0; return r.t > 1; },
         leave: () => X.verse(['jn-1-48'], '무화과나무 아래 있을 때에') },
-      { hint: (r) => `나다나엘과 함께 두루마리를 읽어요. 앉은 채로 · ${Math.max(0, Math.ceil(12 - (r.t || 0)))}초`, go: SEAT2, where: '무화과나무 아래',
+      { hint: (r) => `나다나엘과 함께 조용히 묵상해요. 앉은 채로 · ${Math.max(0, Math.ceil(12 - (r.t || 0)))}초`, go: SEAT2, where: '무화과나무 아래',
         until: (r, dt) => X.rested(r, dt, SEAT2, 2.4, 12) },
     ],
   },
@@ -90,7 +90,7 @@ export const ER = {
   'cana-wash': {
     who: 'servant', name: '하인', after: 'cana', title: '돌항아리 씻어 두기', again: 'day', where: '가나 잔치 집 마당',
     stat: 'obey', verse: 'jn-2-6',
-    listen: '잔치가 끝나 가요. 결례에 쓰는 돌항아리를 다시 씻어 두어야 해요. 우물에서 물을 길어 항아리 셋을 씻어 줄래요? 나머지 셋은 제가 맡을게요.',
+    listen: '잔치가 한창이에요. 결례에 쓰는 돌항아리를 깨끗이 씻어 두어야 해요. 우물에서 물을 길어 항아리 셋을 씻어 줄래요? 나머지 셋은 제가 맡을게요.',
     done: '항아리마다 깨끗해졌어요. 이 항아리에 물을 아구까지 채우던 그날이 생각나요(2:7). 고마워요.',
     begin: (X) => X.apron(true),
     end: (X) => X.apron(false),
@@ -114,7 +114,7 @@ export const ER = {
   'cana-cups': {
     who: 'master', name: '연회장', after: 'cana', title: '손님과 신랑에게 잔 돌리기', again: 'day', where: '가나 잔치 식탁',
     stat: 'fellow', verse: 'jn-2-10',
-    listen: '잔치는 아직 이어져요. 돌항아리의 좋은 포도주를 손님과 신랑에게 한 잔씩 돌려 줄래요? 다 돌리면 저에게 알려 주어요.',
+    listen: '잔치가 한창이에요. 돌항아리의 좋은 포도주를 손님과 신랑에게 한 잔씩 돌려 줄래요? 다 돌리면 저에게 알려 주어요.',
     done: '손님들 얼굴이 환해요. 그날 저는 좋은 포도주를 지금까지 두었다고 신랑에게 말했지요(2:10). 고마워요.',
     begin: (X) => X.apron(true),
     end: (X) => X.apron(false),
@@ -204,27 +204,26 @@ export const ER = {
     },
   },
 
-  // ---------- Z6 수가 · 수가 사람: 희어진 밭에서 이삭 한 단 (4:36) ----------
-  'sychar-reap': {
-    who: 'vil2', name: '수가 사람', after: 'well', title: '희어진 밭에서 이삭 한 단', again: 'day', where: '수가 · 우물 동쪽 희어진 밭',
+  // ---------- Z6 수가 · 수가 사람: 밭 가에서 눈을 들어 보기 (4:35-36). 희어진 밭은 비유라 낱알을 거두지 않음 ----------
+  'sychar-look': {
+    who: 'vil2', name: '수가 사람', after: 'well', title: '밭 가에서 눈을 들어 보기', again: 'day', where: '수가 · 우물 동쪽 밭 가',
     stat: 'witness', verse: 'jn-4-36',
-    listen: '그분이 "눈을 들어 밭을 보라 희어져 추수하게 되었도다" 하셨다지요(4:35). 우물 동쪽 밭에서 이삭을 거두려 해요. 세 곳에서 거두어 한 단으로 묶어 와 줄래요?',
-    done: '한 단이 되었어요! 거두는 사람도 뿌린 사람도 함께 즐거워한다고 하셨대요. 오늘 같이 거두니 기뻐요.',
+    listen: '그날 그분이 제자들에게 "눈을 들어 밭을 보라 희어져 추수하게 되었도다" 하셨다지요(4:35). 그때 저희 동네 사람들이 우물 쪽으로 나오고 있었어요(4:30). 우물 동쪽 밭 가 세 곳에 서서, 동네에서 오는 길을 함께 바라봐 줄래요?',
+    done: '그날 저희도 저 길로 그분께 나아갔어요. 밭 가에 서니 그분이 하신 말씀이 떠올라요(4:35). 함께 바라봐 주어 고마워요.',
     steps: (X) => {
-      const cut = new Set();
-      const next = () => nearest(X, REAP6, cut);
+      const seen = new Set();
+      const next = () => nearest(X, EDGE6, seen);
       return [
-        { hint: () => `희어진 밭에서 이삭을 거둬요 (E) · ${cut.size}/3`, go: () => next()?.[0], where: '우물 동쪽 희어진 밭', place: 'jn_reap', at: () => next()?.[0], r: 2.0,
-          enter: () => X.rings(REAP6),
+        { hint: () => `밭 가에 서서 동네에서 오는 길을 바라봐요 (E) · ${seen.size}/3`, go: () => next()?.[0], where: '우물 동쪽 밭 가', place: 'jn_look', at: () => next()?.[0], r: 1.9,
+          enter: () => X.rings(EDGE6),
           act: () => {
             const n = next(); if (!n) return true;
-            cut.add(n[1]); X.sfx('tap', 0.2, 1.0 + cut.size * 0.1); X.burst(n[0].x, 0.9, n[0].z);
-            X.rings(REAP6.filter((p, i) => !cut.has(i)));
-            if (cut.size >= 3) { X.carry('sheaf'); return true; }
-            return false;
+            seen.add(n[1]); X.look(X.P.well6); X.sfx('tap', 0.2, 1.0 + seen.size * 0.1);
+            X.rings(EDGE6.filter((p, i) => !seen.has(i)));
+            return seen.size >= 3;
           } },
-        { hint: '거둔 단을 수가 사람에게 갖다 주어요 (E)', go: () => X.npcAt('vil2'), where: '수가 동네 남쪽 집', place: 'jn_give', at: () => X.npcAt('vil2'), r: 2.4,
-          act: () => { X.carry(null); X.sfx('orb', 0.2, 1.1); } },
+        { hint: '수가 사람에게 말을 걸어요', go: () => X.npcAt('vil2'), where: '수가 동네 남쪽 집', talk: 'vil2',
+          open: (r, next) => X.ui.open({ who: '수가 사람', sub: '밭 가에서 눈을 들어 보기', text: '저 길로 사람들이 하나둘 우물로 갔어요. 그날이 눈에 선해요.', buttons: [{ t: '함께 보았어요', cls: 'next', fn: next }] }) },
       ];
     },
   },

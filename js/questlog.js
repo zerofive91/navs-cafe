@@ -32,7 +32,7 @@ export function initQuestLog({ me, quests, story, walkTo, toast, john = () => nu
         <div class="row"><button class="quit" data-q="j">그만두기</button><button class="go" data-go="j">그곳으로 가기</button></div></section>`;
     } else if (j) {
       h += `<section class="st jn"><h3>✦ ${esc(village(town())?.name || '')} · ${esc(j.title)}${j.ch ? ` (${esc(j.ch)})` : ''}</h3>
-        <p class="now"><b>${j.running ? `지금 할 일 ${j.step} / ${j.steps}` : '다음 이야기'}</b>${esc(j.hint)}</p>
+        <p class="now"><b>${j.running ? `지금 할 일 ${j.step} / ${j.steps}` : j.list ? '작은 부탁' : '다음 이야기'}</b>${esc(j.hint)}</p>
         ${j.where ? `<p class="where">어디서: ${esc(j.where)} (금빛 기둥)</p>` : ''}${verse(j.verse)}
         <div class="row">${j.running ? '<button class="quit" data-q="j">그만두기</button>' : ''}<button class="go" data-go="j">그곳으로 가기</button></div>
         ${j.errands?.length ? `<details class="erl"><summary>🤝 오늘 받을 수 있는 부탁 ${j.errands.length}</summary><ul>${j.errands.map((e) => `<li><b>${esc(e.who)}</b> · ${esc(e.title)} <span>${esc(e.where)}${e.again ? ' · 다시' : ''}</span></li>`).join('')}</ul></details>` : ''}</section>`;
