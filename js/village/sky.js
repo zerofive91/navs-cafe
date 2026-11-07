@@ -5,8 +5,11 @@
 //   hold(): true인 동안 빛을 건드리지 않음 (누워서 별 보기 leisure.js) · onStars(k): 별 밝기 0~1이 바뀔 때 (요한: 지붕 등잔)
 import * as THREE from 'three';
 
-export function initSky({ scene, lights, me, env, table, inTown, overlay = null, hold = () => false, onStars = () => {} }) {
-  const base = { bg: scene.background?.isColor ? scene.background.clone() : new THREE.Color(0xcfe3ee), hemi: lights.hemi.intensity, sun: lights.sun.intensity };
+//   base(선택): 마을 밖 기본 { bg(Color|hex), hemi, sun }. 없으면 이 마을에 처음 들어온 프레임(빛을 아직 쥐지 않았을 때)에 잡음
+//     (엔진을 짓는 때는 수레를 타는 중이라 다른 마을이 자기 시각의 빛을 걸어 둔 채일 수 있음 → 지을 때 잡지 않음)
+export function initSky({ scene, lights, me, env, table, inTown, overlay = null, hold = () => false, onStars = () => {}, base: base0 = null }) {
+  let base = base0 ? { bg: new THREE.Color(base0.bg ?? 0xcfe3ee), hemi: base0.hemi, sun: base0.sun } : null;
+  const takeBase = () => { base = { bg: scene.background?.isColor ? scene.background.clone() : new THREE.Color(0xcfe3ee), hemi: lights.hemi.intensity, sun: lights.sun.intensity }; };
   const tgt = (p) => {
     if (!p) return { bg: base.bg.getHex(), fogC: env.sky, fog: env.fog, hemiSky: env.hemiSky, hemiGround: env.hemiGround, hemi: 1, sun: 1, stars: 0 };
     return { stars: 0, ...p };
@@ -23,7 +26,9 @@ export function initSky({ scene, lights, me, env, table, inTown, overlay = null,
   })();
   // wantOf(): 지금 원하는 시각 이름 (없으면 null). 마을 안에서 빛을 쥘 때만 부름
   function step(dt, wantOf) {
+    if (!base && inTown() && !cur.applied && !hold()) takeBase();
     if (!inTown()) {
+      if (!base) return;
       if (cur.applied) { scene.background = base.bg.clone(); lights.hemi.intensity = base.hemi; lights.sun.intensity = base.sun; stars.visible = false; cur.applied = false; }
       return;
     }
