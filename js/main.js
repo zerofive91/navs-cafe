@@ -1658,7 +1658,7 @@ function setEnv(env) {
 }
 region = initRegion({
   scene, me, profile, save: () => saveProfile(profile), toast, sfx, standUp, walkTo, interactive, occluders, setEnv,
-  blocked: () => !!cartGuide?.active(), // 수레 안내인 말풍선이 열려 있는 동안은 수레 단추가 쉼
+  blocked: () => !!cartGuide?.active() || !!shop?.active(), // 수레 안내인 말풍선·수레 짐 창이 열려 있는 동안은 수레 단추가 쉼
   chooseTown: (ids) => cartGuide?.choose(ids), // 초보자 마을 수레가 갈 마을이 여럿이면 수레꾼이 고르기 말풍선을 엶 (사도행전 마을을 연 뒤)
   // 마을 사건 엔진(요한복음 마을: js/john/engine.js)이 쓰는 것: 마을을 처음 지을 때 넘겨받음 (등록부 load의 kit)
   townKit: {
