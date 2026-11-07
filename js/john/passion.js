@@ -51,11 +51,11 @@ export function initPassion({ root, me, parts, N, person, GREET, toast, sfx, bur
   // 횃불 (18:3 등과 홰): 손에 든 막대와 불빛 스프라이트 (빛은 더하지 않음)
   for (const n of torches) { const f = fxSprite('light_01', 0xffb050, 0.8); f.position.set(0.32, 1.55, 0.25); n.av.add(f); n.flame = f; }
   Object.assign(GREET, {
-    dis13_0: '그분이 우리 발을 씻기셨어요.', dis13_1: '서로 사랑하라 하셨어요.', dis13_2: '이 방에서 오래 말씀하셨지요.', dis13_3: '내 안에 거하라 하셨어요.',
+    dis13_0: '예수님이 우리 발을 씻기셨어요.', dis13_1: '서로 사랑하라 하셨어요.', dis13_2: '이 방에서 오래 말씀하셨지요.', dis13_3: '내 안에 거하라 하셨어요.',
     maid: '이 뜰 대문을 지키는 사람이에요.', servant18: '밤이 추워서 숯불을 피웠어요.',
-    pilate: '나는 그에게서 아무 죄도 찾지 못했다.', mother19: '그 제자가 저를 자기 집에 모셨어요.', nico19: '전에 밤에 그분을 찾아갔던 니고데모예요.',
+    pilate: '나는 그에게서 아무 죄도 찾지 못했다.', mother19: '그 제자가 저를 자기 집에 모셨어요.', nico19: '전에 밤에 예수님을 찾아갔던 니고데모예요.',
     torch0: '…', torch1: '…', torch2: '…', mob0: '…', mob1: '…', mob2: '…',
-    dis21_0: '밤새 아무것도 못 잡았어요.', dis21_1: '그분이 숯불에 생선과 떡을 차려 두셨어요.',
+    dis21_0: '밤새 아무것도 못 잡았어요.', dis21_1: '예수님이 숯불에 생선과 떡을 차려 두셨어요.',
   });
   // 다락방 북쪽 긴 의자의 제자들, 남쪽 의자의 도마 (모두 식탁을 봄)
   const seatUp = () => { dis13.forEach((n) => sitNpc(n, 'gbench', 0)); };

@@ -16,13 +16,16 @@
 //     trials, modes       시험·모드 (공부·암송·묵상) · er: js/village/errands.js (없으면 빈 부탁) · ER: 부탁 자료 (머리 위 표시)
 //     SP, ZONES           자리 이름 → 자리 (shared 증인의 stand), 구역 (이름·반지름)
 //     name, book          '요한복음 마을', '요한복음' (진행 칩·말풍선 머리)
-//     guide               마을 안내자 { key, ev(그가 증인인 사건 id), who, zone, bookSub, waitToast, end() → { sub, quote, text }, graduation() → 졸업 카드 spec }
+//     guide               마을 안내자 { key, ev(그가 증인인 사건 id), who, zone, bookSub, waitToast, end() → { sub, quote, text }, graduation() → 졸업 카드 spec,
+//                           intro?: [{ sub, text }] 처음 온 사람에게 하는 마을 안내 장면들 (건너뛰기 가능, 끝나면 첫 사건 이야기로) }
+//     introKey            마을 안내(처음 온 사람에게 안내자가 세 장면)를 이 기기에서 봤는지 (localStorage 키). guide.intro가 있을 때만
 //     greet               사건 증인이 아닌 사람의 인사 { key: 글 }
 //     talkKey             말 걸기 단추 이름 앞머리 ('jn:') · endKey: "이야기는 이어져요"를 들었는지 (이 기기, localStorage 키)
 //     acts                그 자리 단추 이름 (등록부 acts) · seatOf(e): 묵상 자리 · resetKeys: 사건 id → 제자리로 돌릴 사람 (e.reset이 없을 때)
 //     errandTitle         부탁 목록 이름 ('증인의 작은 부탁') · quietAgain: 조용한 사건(quiet)을 다시 마쳤을 때 글
 //     hooks               { away(떠남?), pre(dt, town, now), frame(dt, town, now), cleanup(e), reset(e) (없으면 placeShared), quit(e, 마쳤나),
 //                           first(e, j) → 마침 카드를 닫을 때 부를 함수 | null, done(e, first) 사건을 마칠 때마다 (처음·다시, 기록·저장 뒤) }
+//                         first는 (e, j, notice)로 불림: notice(글, 초)는 사건 마침 카드가 닫힌 뒤에 알림으로 (마침 카드보다 먼저 뜨지 않게)
 //                         훅 하나에 함수 하나 또는 함수 목록. 공용 장치(오늘의 마을·조각 등)는 systems 목록이나 엔진.use(장치)로 같은 이름의 훅을 꽂음
 //     systems             [{ away, pre, frame, cleanup, reset, quit, first, done }] (모두 선택). 마을 훅 다음에 차례로 불림
 import { offerTalk } from '../talkgate.js';
@@ -49,6 +52,7 @@ const NEED_GUIDE = ['key', 'ev', 'who', 'zone', 'bookSub', 'waitToast', 'end', '
 function checkCfg(cfg) {
   const miss = NEED.filter((k) => cfg[k] == null);
   if (cfg.guide) miss.push(...NEED_GUIDE.filter((k) => cfg.guide[k] == null).map((k) => 'guide.' + k));
+  if (cfg.guide?.intro && !cfg.introKey) miss.push('introKey (guide.intro가 있으면 봤는지 저장할 키가 필요해요)');
   if (cfg.EV && cfg.ORDER) miss.push(...cfg.ORDER.filter((id) => !cfg.EV[id]).map((id) => `EV.${id}`));
   if (miss.length) console.warn(`마을 사건 엔진(${cfg.name || '?'}) 설정이 빠졌어요: ${miss.join(', ')}`);
   return miss;
@@ -75,7 +79,7 @@ export function initFlow(cfg) {
   const {
     me, profile, save, onChange, toast, sfx, burst, busy, standUp, inTown,
     ui, chip, whisper, sky, beacon, people, X, EV, ORDER, openOrder, store, trials, modes, ER = {}, SP, ZONES,
-    name, book, guide, greet = {}, talkKey, endKey, acts = [], seatOf, resetKeys = {}, errandTitle = '작은 부탁',
+    name, book, guide, greet = {}, talkKey, endKey, introKey, acts = [], seatOf, resetKeys = {}, errandTitle = '작은 부탁',
     quietAgain = '다시 걸어 주었군요. 그 이야기를 다시 기억했어요', hooks = {}, systems = [],
   } = cfg;
   checkCfg(cfg);
@@ -115,6 +119,12 @@ export function initFlow(cfg) {
 
   // ---------- 사건 진행 ----------
   let run = null; // { ev, steps, i, r, sky }
+  // 알림 순서 (2026-11 흐름 고침): 사건을 마치고 "마침 카드"가 열려 닫힐 때까지 시스템 알림(등잔·오늘의 마을 등)은 미뤘다가 카드 뒤에 차례로
+  //   마침 카드 → (닫으면) 알림들 → 마을 졸업/기다림 안내
+  let holding = false;
+  const held = [];
+  const notice = (msg, sec = 4) => { if (holding) held.push([msg, sec]); else toast(msg, sec); };
+  const flushNotices = () => { for (const [m, s] of held.splice(0)) toast(m, s); };
   ui.onUnanswered = () => { if (run) run.r.closed = true; }; // 답하기 전에 닫힌 시험: 증인에게 다시 말을 걸면 다시 열림
   const curStep = () => (run && run.i < run.steps.length ? run.steps[run.i] : null);
   const hintOf = () => { const s = curStep(); if (!s) return ''; return typeof s.hint === 'function' ? s.hint(run.r) : s.hint; };
@@ -185,20 +195,22 @@ export function initFlow(cfg) {
     const j = store();
     if (first) j.ev[e.id].done = Date.now();
     const R = e.reward;
-    let msg;
+    let msg, got = ''; // msg: 마침 글(칭찬 → 배운 것 → 다음 길), got: 받은 것 (카드 아래 작은 글)
     let after = null; // 마침 카드를 닫을 때 마을이 더 할 일 (요한: 일곱 등불)
+    holding = true; // 아래 훅이 부르는 알림은 마침 카드가 닫힌 뒤로
     if (first && e.quiet) { // 조용한 사건 (요한 수난 구역): 보상 없이 기록만
       openNext(e, j);
-      msg = `${e.done} (기록에 남았어요)`;
+      msg = e.done; got = '기록에 남았어요';
     } else if (first) {
       addSteps(profile, R.steps); addStat(profile, e.stat, R.stat); earn(profile, R.coin);
       for (const it of R.items) giveItem(profile, it);
       openNext(e, j);
-      const fs = fire('first', e, j).filter((f) => typeof f === 'function');
+      const fs = fire('first', e, j, notice).filter((f) => typeof f === 'function');
       if (fs.length) after = () => fs.forEach((f) => f());
-      msg = `${e.done} (걸음 +${R.steps}, ${statName(e.stat)} +${R.stat}, ${R.coin} 데나리온, ${R.items.map((x) => ITEMS[x]?.name || x).join('·')})`;
+      msg = e.done;
+      got = `받은 것: 걸음 +${R.steps}, ${statName(e.stat)} +${R.stat}, ${R.coin} 데나리온, ${R.items.map((x) => ITEMS[x]?.name || x).join('·')}`;
     } else if (e.quiet) msg = quietAgain;
-    else { addSteps(profile, 2); msg = `다시 걸어 주었군요. 말씀은 할 때마다 새로워요 (걸음 +2)`; }
+    else { addSteps(profile, 2); msg = `다시 걸어 주었군요. 말씀은 할 때마다 새로워요`; got = '걸음 +2'; }
     const grad = first && allDone() && j.mark !== '졸업'; // ORDER를 다 마침 → 마을 졸업 표지
     if (grad) j.mark = '졸업';
     save(); onChange?.();
@@ -209,10 +221,12 @@ export function initFlow(cfg) {
     const showDone = () => {
       if (busy() || ui.isOpen() || !inTown()) { setTimeout(showDone, 800); return; } // 다른 창이 닫힐 때까지 (마을을 떠났으면 돌아올 때)
       ui.open({
-        who: e.who, sub: `${e.title} · 마침`, text: msg, note: '깊이 보기(공부·암송·묵상)는 언제든 이 증인에게 다시 말을 걸면 해요.',
+        who: e.who, sub: `${e.title} · 마침`, text: msg, note: [got, '깊이 보기(공부·암송·묵상)는 언제든 이 증인에게 다시 말을 걸면 해요.'].filter(Boolean).join(' · '),
         buttons: [{ t: '감사해요', cls: 'next' }],
         onClose: () => {
+          holding = false;
           after?.();
+          setTimeout(flushNotices, 600); // 말씀 카드(일곱 등불)가 뜨면 그 뒤로 알림이 차례로
           if (grad) setTimeout(graduate, 800);
           else if (first && allDone()) setTimeout(() => toast(guide.waitToast, 6), 800);
         },
@@ -271,7 +285,9 @@ export function initFlow(cfg) {
     }
     if (run) { ui.open({ who: e.who, sub: e.title, text: `지금은 "${run.ev.title}"을(를) 따라가고 있군요. 그 일을 마치고 다시 와 주세요.`, buttons: [{ t: '알겠어요', cls: 'next' }] }); return; }
     if (!isOpen(e)) {
-      ui.open({ who: e.who, sub: e.title, text: `반가워요. 이 이야기는 "${EV[e.after].title}"을(를) 마친 뒤에 들려줄게요. 그동안 이곳에서 쉬어 가요.`, buttons: [{ t: '알겠어요', cls: 'next' }] });
+      const nx = nextEv(); // 어디로 가야 하는지 알려 줌 (금빛 기둥이 그 자리를 비춰요)
+      const where = nx ? ` 지금은 ${ZONES[nx.start || nx.zone].name}의 ${nx.who}에게 가 봐요. 금빛 기둥이 길을 알려 줘요.` : '';
+      ui.open({ who: e.who, sub: e.title, text: `반가워요! 이 이야기는 "${EV[e.after].title}"을(를) 마친 뒤에 들려줄게요.${where}`, buttons: [{ t: '알겠어요', cls: 'next' }] });
       return;
     }
     if (isDone(e)) return deep(e);
@@ -282,8 +298,22 @@ export function initFlow(cfg) {
     n.face = Math.atan2(me.x - n.x, me.z - n.z);
   }
   // 마을 안내자: 첫 사건의 증인이자 마을 기록장과 다음 이야기
+  // 처음 온 사람에게 마을 안내 (안내자가 장면 몇 개로, 건너뛰기 가능). 끝나거나 건너뛰면 이 기기에서는 다시 하지 않음 (안내자에게 "마을 안내 다시 듣기")
+  const introSeen = () => !guide.intro || (introKey && lsGet(introKey) === '1');
+  function intro(i = 0, replay = false) {
+    const sc = guide.intro, e = EV[guide.ev];
+    const finish = () => { lsSet(introKey, '1'); if (!replay) talkWitness(e); };
+    if (!sc || i >= sc.length) return finish();
+    const last = i === sc.length - 1;
+    ui.open({
+      who: guide.who, sub: `마을 안내 ${i + 1}/${sc.length}${sc[i].sub ? ` · ${sc[i].sub}` : ''}`, text: sc[i].text,
+      buttons: [{ t: replay ? '그만 볼래요' : '건너뛰기', cls: 'later', fn: () => { lsSet(introKey, '1'); if (!replay) talkWitness(e); } }, { t: last ? (replay ? '고마워요' : '이야기 들으러 가요') : '다음 ▸', cls: 'next', fn: () => (last ? finish() : intro(i + 1, replay)) }],
+    });
+    ui.anchor(N[guide.key]);
+  }
   function talkGuide() {
     const e = EV[guide.ev];
+    if (!isDone(e) && !(run && run.ev === e) && !introSeen()) return intro(0);
     if (!isDone(e) || (run && run.ev === e)) return talkWitness(e);
     const bookLine = ORDER.map((id) => `${EV[id].title} ${isDone(EV[id]) ? (gold(id) ? '★' : '✓') : isOpen(EV[id]) ? '…' : '·'}`).join(' · ');
     if (allDone()) {
@@ -294,7 +324,7 @@ export function initFlow(cfg) {
       ui.open({
         who: guide.who, sub: c.sub, quote: c.quote, text: c.text,
         note: `마을 기록장: ${bookLine}`,
-        buttons: [...er.buttons(guide.key), { t: `${e.title} 깊이 보기`, fn: () => deep(e) }, { t: '감사해요', cls: 'next' }],
+        buttons: [...er.buttons(guide.key), { t: `${e.title} 깊이 보기`, fn: () => deep(e) }, ...(guide.intro ? [{ t: '마을 안내 다시 듣기', fn: () => intro(0, true) }] : []), { t: '감사해요', cls: 'next' }],
       });
       return;
     }
@@ -303,7 +333,7 @@ export function initFlow(cfg) {
       who: guide.who, sub: guide.bookSub,
       text: nx ? `다음 이야기는 "${nx.title}"예요. ${ZONES[nx.start || nx.zone].name}의 ${nx.who}에게 가 보세요. 금빛 기둥이 그 자리를 비춰요.` : '지금 따라갈 이야기가 없어요. 쉬어 가요.',
       note: `마을 기록장: ${bookLine}`,
-      buttons: [...er.buttons(guide.key), { t: `${e.title} 깊이 보기`, fn: () => deep(e) }, { t: '알겠어요', cls: 'next' }],
+      buttons: [...er.buttons(guide.key), { t: `${e.title} 깊이 보기`, fn: () => deep(e) }, ...(guide.intro ? [{ t: '마을 안내 다시 듣기', fn: () => intro(0, true) }] : []), { t: '알겠어요', cls: 'next' }],
     });
   }
 
@@ -341,18 +371,20 @@ export function initFlow(cfg) {
 
   // ---------- 진행 표시 ----------
   function updateChip() {
-    let t = '';
+    // 제목 · 할 일 · 어디 (카드 모양: 말줄임 없이 접혀 보임). 글 하나만 주면 그대로
+    let t = '', h, w;
     if (inTown()) {
-      if (run) t = `${run.ev.title} · ${hintOf()}`;
+      if (run) { const s = curStep(); t = `${run.ev.title} · ${run.i + 1}/${run.steps.length}`; h = hintOf(); w = s?.where ? `어디: ${s.where}` : ''; }
       else if (er.running()) t = er.chip();
       else if (modes.active()) t = modes.progress();
       else {
         const nx = nextEv(), ne = er.open().length;
-        if (nx) t = `${name} · 다음: ${nx.title} (${nx.who}, 금빛 기둥)`; else if (allDone() && !endSeen()) t = `${name} · ${guide.who}에게 (금빛 기둥)`;
+        if (nx) { t = `${name} · 다음 이야기`; h = `${nx.title}: ${nx.who}에게 말을 걸어요`; w = `어디: ${ZONES[nx.start || nx.zone].name} (금빛 기둥을 따라가요)`; }
+        else if (allDone() && !endSeen()) { t = `${name} · 이야기는 이어져요`; h = `${guide.who}에게 말을 걸어요`; w = '어디: 금빛 기둥을 따라가요'; }
         else if (ne) t = `${name} · 오늘 받을 수 있는 부탁 ${ne}개 (🤝)`;
       }
     }
-    chip.set(t);
+    chip.set(t, h, w);
   }
   function info() {
     if (!inTown()) return null;
@@ -441,6 +473,7 @@ export function initFlow(cfg) {
     // 공용 장치 꽂기 (엔진을 지은 뒤): sys = { away, pre, frame, cleanup, reset, quit, first, done } 가운데 쓰는 것만. 돌려준 함수를 부르면 뺌
     use(sys) { plugged.push(sys); return () => { const i = plugged.indexOf(sys); if (i >= 0) plugged.splice(i, 1); }; },
     active: () => ui.isOpen(),
+    notice, // 알림을 사건 마침 카드 뒤로 미룸 (카드가 없으면 바로). 오늘의 마을 등 공용 장치가 씀
     get run() { return run; }, N, EV, ui, X, modes, trials,
     debug: { begin: (id) => begin(EV[id]), advance, complete: () => run && complete() },
     // 마을 엔진(사건 도구)이 쓰는 것

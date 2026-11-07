@@ -1,6 +1,7 @@
 // 마을 사건 말풍선·속삭임·진행 칩 (마을 공용, 2026-11 사도행전 0-가: js/john/engine.js에서 그대로 옮김)
 //   createTalk: 증인 말풍선 (사건·시험·모드·부탁이 함께 씀). spec = { who, sub, text, quote(구절 키), note, opts[{t, ok, why}], buttons[{t, cls, keep, fn}], extra(요소), dark(시험), onPick, onClose }
-//   createWhisper: 걸으며 하는 시험의 속삭임 한 줄 · createChip: 왼쪽 위 진행 표시 (누르면 부탁 창)
+//   createWhisper: 걸으며 하는 시험의 속삭임 한 줄 · createChip: 왼쪽 위 "지금 할 일" 카드 (누르면 부탁 창, 말줄임 없이 접혀 보임)
+//   spec.soft: 시험(옵션 고르기)의 "가벼운" 모양 — 어두운 보라 말풍선(dark) 대신 따뜻한 말풍선(.soft, 금빛 테두리). 기쁜 장면용. 닫으면 다시 열리는 것·말씀 카드 숨김은 dark와 같음
 //   id는 마을마다 (요한: #jtalk · #jwhisper · #johnChip). 한 화면에 마을 엔진이 여럿이라 id가 겹치지 않게 마을이 정함
 //   모양(css/style.css)은 class 기준: 말풍선 'npcb jn', 속삭임 .vwhisper, 칩 .vchip → 새 마을은 새 id만 주면 CSS를 베끼지 않아도 됨
 import { VERSES } from '../verses.js';
@@ -15,7 +16,7 @@ export function createTalk({ id, cls }) {
   const ui = {
     open(s) {
       spec = s;
-      box.className = cls + (s.dark ? ' trial' : '');
+      box.className = cls + (s.dark ? ' trial' : '') + (s.soft ? ' soft' : '');
       const q = s.quote && VERSES[s.quote];
       box.innerHTML = `<div class="who"><b>${esc(s.who)}</b><span class="n">${esc(s.sub || '')}</span></div>
         <p class="say">${esc(s.text)}${q ? `<small>${esc(q[0])} (${esc(q[1])})</small>` : ''}</p>
@@ -26,11 +27,11 @@ export function createTalk({ id, cls }) {
       if (s.extra) box.querySelector('.x').replaceWith(s.extra); else box.querySelector('.x').remove();
       box.hidden = false;
       document.body.classList.add('talking');
-      document.body.classList.toggle('trialing', !!s.dark);
+      document.body.classList.toggle('trialing', !!(s.dark || s.soft));
     },
     close() {
       if (!spec) return; const s = spec; spec = null; box.hidden = true; document.body.classList.remove('talking', 'trialing');
-      if (s.dark && !s.done) ui.onUnanswered?.(); // 답하기 전에 닫힌 시험 (사건 진행이 정함: 증인에게 다시 말을 걸면 다시 열림)
+      if ((s.dark || s.soft) && !s.done) ui.onUnanswered?.(); // 답하기 전에 닫힌 시험 (사건 진행이 정함: 증인에게 다시 말을 걸면 다시 열림)
       s.onClose?.();
     },
     isOpen: () => !!spec,
@@ -71,15 +72,30 @@ export function createWhisper(id, cls = 'vwhisper') {
   return (t) => { if (t === whText) return; whText = t; wh.hidden = !t; if (t) { wh.textContent = t; wh.classList.remove('on'); void wh.offsetWidth; wh.classList.add('on'); } };
 }
 
-// 진행 표시 (왼쪽 위, 누르면 onPress: 부탁 창)
+// 지금 할 일 카드 (왼쪽 위, 누르면 onPress: 부탁 창)
+//   set(제목, 할 일, 어디): 제목 한 줄(작게) + 할 일(굵게, 접혀 보임) + 어디(작게). 글 하나만 주면 그대로. 글이 바뀌면 살짝 반짝
 export function createChip(id, onPress, cls = 'vchip') {
   const chip = document.createElement('div'); chip.id = id; chip.className = cls; chip.hidden = true; document.body.appendChild(chip);
   chip.setAttribute('role', 'button'); chip.tabIndex = 0; chip.title = '눌러서 내용 보기';
   chip.addEventListener('pointerdown', (e) => { e.stopPropagation(); onPress?.(); });
-  let text = '';
+  let text = '', lastHead = '';
+  const pulse = () => { chip.classList.remove('pulse'); void chip.offsetWidth; chip.classList.add('pulse'); };
   return {
     el: chip,
-    set(t) { if (t !== text) { text = t; chip.textContent = t; } chip.hidden = !t; },
+    set(t, hint, where) {
+      const key = t ? `${t}|${hint || ''}|${where || ''}` : '';
+      if (key !== text) {
+        // 반짝임은 제목·어디가 바뀔 때만 (할 일 글 속 초 세기·진행 수가 바뀔 때마다 번쩍이지 않게)
+        const head = t ? `${t}|${where || ''}` : '';
+        const had = !!text, blink = had && head !== lastHead; text = key; lastHead = head;
+        chip.classList.toggle('card', hint != null);
+        if (!t) chip.textContent = '';
+        else if (hint == null) chip.textContent = t;
+        else chip.innerHTML = `<small>${esc(t)}</small><b>${esc(hint)}</b>${where ? `<i>${esc(where)}</i>` : ''}`;
+        if (t && blink && hint != null) pulse();
+      }
+      chip.hidden = !t;
+    },
     hide() { chip.hidden = true; },
   };
 }

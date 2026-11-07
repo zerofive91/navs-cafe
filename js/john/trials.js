@@ -1,4 +1,4 @@
-// 어둠의 시험 (2026-11 요한복음 마을, 기획서 5장): 넘어지지 않는 연습형. 틀리면 이유를 한 줄로 알려 주고 다시 고름
+// 마음의 소리 시험 (2026-11 요한복음 마을, 기획서 5장 "어둠의 시험"을 아이 눈높이로 순화: 이름은 "마음의 소리"): 넘어지지 않는 연습형. 틀리면 이유를 한 줄로 알려 주고 다시 고름
 //   B 빛 비추기: 어둠이 등불 둘레를 좁혀 옴. 멈추지 않고 빛으로 걸어가면 이김 (요 1:5, 12:35)
 //   D 대답: 질문에 마음으로 대답 (맞는 대답이 있는 심문형) (요 1:46, 9:25)
 //   E 머물기: 속삭임이 "떠나" 할 때 움직이지 않고 앉아 있거나 기도 (요 15:4)
@@ -24,14 +24,14 @@ export function initTrials({ ui, me, toast, sfx, burst, whisper, sky, showVerse,
   // 고르는 시험 (D 대답 · F 내려놓기 · A 말씀 고르기): 말풍선에 속삭임과 보기
   //   A의 보기는 { v: 'jn-6-6', ok } 처럼 말씀 키로 (본문만 보여 줌)
   const optText = (o) => { const v = o.v && VERSES[o.v]; return v ? v[0] : o.t; }; // 장절은 보기에 붙이지 않음 (붙이면 모양으로 정답이 보임). 이긴 뒤 말씀 카드에서 보여 줌
-  function choose(kind, { who, lie, q, opts, win, then, drop, sub }) {
+  function choose(kind, { who, lie, q, opts, win, then, drop, sub, soft }) {
     const g = gen; choosing = true;
     ui.open({
-      dark: true, who: who || '어둠의 속삭임', sub: sub || `어둠의 시험 · ${SUB[kind]}`,
+      dark: !soft, soft: !!soft, who: who || '마음의 소리', sub: sub || SUB[kind],
       text: lie, note: q,
       opts: opts.map((o) => ({ t: optText(o), ok: !!o.ok, why: o.why || '' })),
       onPick(o) {
-        if (!o.ok) { sfx('impact/impactSoft_medium_000', 0.18, 0.8); return; }
+        if (!o.ok) { sfx('tap', 0.2, 0.75); return; } // 틀리면 부드러운 소리 (부딪히는 소리 대신)
         sfx('orb', 0.28, 1.15); burst(me.x, me.y + 1.4, me.z);
         if (drop) drop();
         setTimeout(() => { if (g !== gen) return; choosing = false; ui.close(); won.add(kind); if (win) showVerse(win, { cooldown: 0, delay: 0.3, title: { drop: '내려놓았어요', verse: '말씀을 붙들었어요' }[kind] || '대답했어요' }); then?.(); }, 1100);
@@ -42,7 +42,7 @@ export function initTrials({ ui, me, toast, sfx, burst, whisper, sky, showVerse,
   const dropIt = (o) => choose('drop', o);
   const pick = (o) => choose('verse', o);
   // H 흐림 걷어내기: layers 차례로 고르기. 맞을 때마다 fog(남은 겹 / 전체)로 한 겹씩 걷힘. 다 걷히면 win 말씀
-  function clear({ who, layers, win, then, onLayer }) {
+  function clear({ who, layers, win, then, onLayer, soft }) {
     let k = 0;
     const g = gen;
     fog?.(1);
@@ -50,7 +50,7 @@ export function initTrials({ ui, me, toast, sfx, burst, whisper, sky, showVerse,
       if (g !== gen) return;
       const L = layers[k];
       choose('clear', {
-        who, lie: L.lie, q: L.q || `물결과 어둠이 마음을 덮어요. 어떤 말씀으로 걷어 낼까요? (${k + 1}/${layers.length})`, opts: L.opts,
+        who, soft, lie: L.lie, q: L.q || `물결과 두려움이 마음을 덮어요. 어떤 말씀으로 걷어 낼까요? (${k + 1}/${layers.length})`, opts: L.opts,
         then: () => {
           k++; fog?.((layers.length - k) / layers.length); onLayer?.(k);
           if (k < layers.length) setTimeout(open, 500);

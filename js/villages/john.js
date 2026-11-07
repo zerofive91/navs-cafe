@@ -50,7 +50,7 @@ export default {
   travel: {
     going: '요한복음 마을로 가는 중',
     arrive: '요한복음 마을에 왔어요',
-    first: '요한복음 마을에 왔어요. 마을은 지금 짓는 중이에요. 둘러보며 쉬어 가세요',
+    first: '요한복음 마을에 온 것을 환영해요! 빛의 광장에서 사도 요한이 기다려요. 금빛 기둥을 따라가 봐요',
     firstVerse: 'jn-20-31',
   },
   // 처음 들어갈 때: 모형(build)과 사건 모듈(engine·events·trials·modes)을 같은 주소 끝(q, 다시 시도할 때 ?retry=n)으로 불러 지음
