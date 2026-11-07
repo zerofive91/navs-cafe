@@ -891,7 +891,8 @@ export const EV = {
         until: (r, dt) => { r.t = X.sitting(X.P.fireSeat, 1.8) ? (r.t || 0) + dt : 0; return r.t > 1.2; },
         leave: () => X.verse(['jn-21-9', 'jn-21-12', 'jn-21-13'], '와서 조반을 먹으라') },
       { hint: '조반을 먹은 뒤, 베드로에게 말을 걸어요', go: () => X.npcAt('peter'), where: '디베랴 바닷가 숯불 곁', talk: 'peter',
-        open: (r, next) => loveAsk(X, next) },
+        told: (r) => !!r.asking, // 물음 사이(토스트가 사라질 때까지)에는 다시 말 걸기를 띄우지 않음
+        open: (r, next) => loveAsk(X, next, r) },
       { hint: '곁에서 속삭임이 들려요. 어떤 말씀을 붙들까요?', go: X.P.fireSeat, ring: false, where: '디베랴 바닷가',
         enter: (r, next) => X.trial.pick({
           who: '비교의 속삭임', lie: '사랑하시는 그 제자가 뒤따라와요(21:20). "저 사람은 어떻게 되나요? 왜 나만 이런 길을 가요?"',
@@ -914,16 +915,9 @@ export const EV = {
 const me = (X) => X.me;
 
 // ---------- (3차) 이름 부르기·사랑의 물음 ----------
-// 받침이 있으면 "아", 없으면 "야" (한글 끝 글자만 봄. 한글이 아니면 이름 그대로). 이름이 없으면 null
-const hasBatchim = (name) => { const c = name.charCodeAt(name.length - 1); return c >= 0xac00 && c <= 0xd7a3 ? (c - 0xac00) % 28 > 0 : null; };
-export function callName(name) {
-  name = String(name || '').trim(); if (!name) return null;
-  const b = hasBatchim(name);
-  return { voc: b == null ? name : name + (b ? '아' : '야'), obj: name + (b == null ? '을(를)' : b ? '을' : '를') };
-}
 // 마리아야 (20:16) 다음 카드: 내 닉네임과 10:3 "자기 양의 이름을 각각 불러" (기획서 9장 결정 9)
 function nameCard(X, next) {
-  const c = callName(X.myName());
+  const c = X.callName(); // 이름 부르기는 js/john/passion.js callName
   X.ui.open({
     who: '이름을 부르시는 목자', sub: '마리아야',
     text: c ? `"${c.voc}" 그분은 마리아의 이름을 부르셨듯이, 오늘 ${c.obj} 이름으로 부르세요.` : '그분은 마리아의 이름을 부르셨듯이, 오늘 당신의 이름도 부르세요.',
@@ -932,17 +926,21 @@ function nameCard(X, next) {
   });
 }
 // 나를 사랑하느냐 (21:15-17): 세 번 묻고 세 번 맡기심. 머뭇거리는 대답도 받으시고 똑같이 맡기심
-function loveAsk(X, next) {
+//   r: 그 단계의 기록. 다시 열면(창을 닫고 다시 말을 걸면) 새 차례(tok)가 되고, 먼저 걸어 둔 다음 물음은 열리지 않음
+function loveAsk(X, next, r) {
+  const tok = (r.love = (r.love || 0) + 1);
   const Q = [
     { v: 'jn-21-15', t: '조반을 먹은 뒤 그분이 저에게 물으셨어요. "요한의 아들 시몬아 네가 이 사람들보다 나를 더 사랑하느냐" 오늘은 당신에게도 물으세요.', give: '"내 어린 양을 먹이라" (21:15)' },
     { v: 'jn-21-16', t: '두 번째로 물으세요. "네가 나를 사랑하느냐"', give: '"내 양을 치라" (21:16)' },
     { v: 'jn-21-17', t: '세 번째로 물으세요. 저는 근심했어요. 숯불 곁에서 세 번 "나는 아니라" 했던 그 밤처럼, 세 번이에요.', give: '"내 양을 먹이라" (21:17)' },
   ];
   const ask = (i) => {
+    if (r.love !== tok) return;
+    r.asking = false;
     const q = Q[i];
     const go = (shy) => () => {
-      X.toast(shy ? `그분은 그 대답도 받으시고, 똑같이 맡기세요. ${q.give}` : q.give, 5);
-      if (i < 2) X.later(900, () => ask(i + 1)); else next();
+      X.toast(shy ? `그분은 그 대답도 받으시고, 똑같이 맡기세요. ${q.give}` : q.give, 2.5);
+      if (i < 2) { r.asking = true; X.later(2800, () => ask(i + 1)); } else next(); // 토스트가 사라진 뒤 다음 물음 (가로 폰에서 창 윗단을 덮지 않게)
     };
     X.ui.open({
       who: '시몬 베드로', sub: `나를 사랑하느냐 · ${i + 1}/3`, text: q.t, quote: q.v,

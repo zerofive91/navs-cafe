@@ -1,4 +1,4 @@
-// 요한복음 마을 3차 (2026-11): 다락방·수난·부활 사건이 쓰는 도구 (기획서 3.3 표 17~23번)
+// 요한복음 마을 3차 (2026-11): 다락방·수난·부활 사건이 쓰는 도구 (기획서 3.3 표 17~23번, ORDER로는 22개 중 마지막 7개)
 //   사람들(도마·다른 제자·막달라 마리아·제자들·문 지키는 여종·대제사장의 종·빌라도·예수의 어머니·니고데모·횃불 든 사람·무리),
 //   발 씻기기(다락방), 닫히는 문(도마), 검을 칼집에 꽂기·횃불 무리·숯불(동산과 뜰), 무리·향품(관정·골고다·새 무덤),
 //   굴러 놓인 무덤 돌과 개켜진 수건(마리아야), 그물과 일백 쉰 세 마리·어린 양(디베랴 바다의 아침)
@@ -13,6 +13,15 @@ import { SP, TOMB11, LAMP_IDS, PASSION_ZONE, SHORE_ZONE } from './layout.js';
 
 const STILLING = () => document.body.classList.contains('stilling'); // 머무름 묵상(js/stillness.js) 중
 
+// 이름 부르기: 받침이 있으면 "아", 없으면 "야" (한글 끝 글자만 봄. 한글이 아니면 이름 그대로). 이름이 없으면 null
+//   마리아야 카드(events.js, X.callName)와 졸업 카드(engine.js)가 함께 씀. engine은 events.js를 직접 부르지 않으므로(region.js ?retry) 여기에 둠
+const hasBatchim = (name) => { const c = name.charCodeAt(name.length - 1); return c >= 0xac00 && c <= 0xd7a3 ? (c - 0xac00) % 28 > 0 : null; };
+export function callName(name) {
+  name = String(name || '').trim(); if (!name) return null;
+  const b = hasBatchim(name);
+  return { voc: b == null ? name : name + (b ? '아' : '야'), obj: name + (b == null ? '을(를)' : b ? '을' : '를') };
+}
+
 export function initPassion({ root, me, parts, N, person, GREET, toast, sfx, burst, fxSprite, dist, G, profile, runId }) {
   const done = (id) => !!profile.john?.ev?.[id]?.done;
   const sitNpc = (n, kind, face) => { n.seat = { kind }; n.state = 'sit'; n.path = []; n.fixFace = true; n.action = null; if (face != null) n.face = face; };
@@ -22,7 +31,8 @@ export function initPassion({ root, me, parts, N, person, GREET, toast, sfx, bur
   const goNpc = (n, p) => { standNpc(n); n.state = 'idle'; n.path = findPath(n, p); if (!n.path.length) { const q = nearestFree(p) || p; n.x = q.x; n.z = q.z; } n.home = { x: p.x, z: p.z }; n.state = n.path.length ? 'walk' : 'idle'; n.action = null; };
   let gen = 0; // reset마다 늘어남: 그만두기·마침 뒤 늦게 도는 타이머를 막음
   const later = (ms, f) => { const g = gen; setTimeout(() => { if (g === gen) f(); }, ms); };
-  const act = (a, ms) => { me.action = a; later(ms, () => { if (me.action === a) me.action = null; }); };
+  // 자세(심기·던지기·손 흔들기)를 푸는 타이머는 gen과 상관없이 돎: 마지막 동작 직후 마침(reset)이 와도 자세가 남지 않게
+  const act = (a, ms) => { me.action = a; setTimeout(() => { if (me.action === a) me.action = null; }, ms); };
 
   // ---------- 사람들 ----------
   const thomas = person('thomas', '도마', { hoodie: 0x6a7a5a, hair: 0x3b2a22 }, SP.thomasSeat, SP.warmUp);
@@ -63,7 +73,7 @@ export function initPassion({ root, me, parts, N, person, GREET, toast, sfx, bur
     act('plant', 1200); sfx('cup', 0.18, 0.75 + washed.size * 0.04); burst(n.x, G(n) + 0.5, n.z);
     return feetOf().every((x) => washed.has(x.key));
   }
-  function washPeter() { const n = N.peter; markFeet(n); act('plant', 1300); sfx('cup', 0.2, 0.9); burst(n.x, G(n) + 0.5, n.z); n.action = 'wave'; later(2600, () => { if (n.action === 'wave') n.action = null; }); }
+  function washPeter() { const n = N.peter; markFeet(n); act('plant', 1300); sfx('cup', 0.2, 0.9); burst(n.x, G(n) + 0.5, n.z); n.action = 'wave'; setTimeout(() => { if (n.action === 'wave') n.action = null; }, 2600); }
   let doorShut = false, thomasAway = false;
   function thomasAt(away, where) {
     thomasAway = !!away;
@@ -216,7 +226,7 @@ export function initPassion({ root, me, parts, N, person, GREET, toast, sfx, bur
   return {
     step, reset,
     X: {
-      passionZone: PASSION_ZONE, shoreZone: SHORE_ZONE, rested, later, tombMouth: TOMB11.mouth, myName: () => profile.name || '',
+      passionZone: PASSION_ZONE, shoreZone: SHORE_ZONE, rested, later, tombMouth: TOMB11.mouth, callName: () => callName(profile.name),
       // 다락방
       door: (on) => { doorShut = !!on; if (on) sfx('impact/impactWood_light_000', 0.14, 0.7); },
       basin: (on) => { if (parts.basin) for (const m of parts.basin) m.visible = !!on; },

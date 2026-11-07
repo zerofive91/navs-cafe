@@ -13,8 +13,7 @@ import { floorY } from '../layout.js';
 import { JX, JZ, ZONES, SP, PLAZA_LIGHT, JARS, ROOF_Y, HOUSE10, REGION, LAKE_AT, JN_ACTS, LAMP_IDS } from './layout.js';
 import { initGalilee } from './galilee.js'; // 2차 가 (갈릴리·사마리아) 사건 도구
 import { initJerusalem } from './jerusalem.js'; // 2차 나 (예루살렘·베다니) 사건 도구
-import { initPassion } from './passion.js'; // 3차 (다락방·수난·부활) 사건 도구
-import { callName } from './events.js';
+import { initPassion, callName } from './passion.js'; // 3차 (다락방·수난·부활) 사건 도구, 이름 부르기
 // events·trials·modes는 region.js가 불러와 넘김 (불러오기에 실패해 다시 시도할 때 주소 끝을 바꿀 수 있게)
 
 const MODE_NAME = { l: '듣기', r: '읽기', a: '적용', s: '공부', m: '암송', d: '묵상' };
@@ -577,7 +576,7 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
       msg = `${e.done} (걸음 +${R.steps}, ${statName(e.stat)} +${R.stat}, ${R.coin} 데나리온, ${R.items.map((x) => ITEMS[x]?.name || x).join('·')})`;
     } else if (e.quiet) msg = '다시 걸어 주었군요. 그 밤과 그 아침을 다시 기억했어요';
     else { addSteps(profile, 2); msg = `다시 걸어 주었군요. 말씀은 할 때마다 새로워요 (걸음 +2)`; }
-    const grad = first && allDone() && j.mark !== '졸업'; // 23사건을 다 마침 → 마을 졸업 표지
+    const grad = first && allDone() && j.mark !== '졸업'; // ORDER 22개를 다 마침 → 마을 졸업 표지 (기획서의 23사건 중 1번은 '와 보라'에 합쳐짐)
     if (grad) j.mark = '졸업';
     save(); onChange?.();
     sfx('orb', 0.3, 1.05); burst(me.x, me.y + 1.4, me.z);
@@ -669,6 +668,8 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
     if (!isDone(e) || (run && run.ev === e)) return talkWitness(e);
     const book = ORDER.map((id) => `${EV[id].title} ${isDone(EV[id]) ? (gold(id) ? '★' : '✓') : isOpen(EV[id]) ? '…' : '·'}`).join(' · ');
     if (allDone()) {
+      // 다른 기기 기록을 합쳐(mergeJohn) 다 마치게 된 경우: 여기서 졸업 표지를 세우고 졸업 카드부터
+      if (J().mark !== '졸업') { J().mark = '졸업'; save(); onChange?.(); graduate(); return; }
       lsSet(END_SEEN, String(ORDER.length));
       const lamps = J().lamps.length, signs = ORDER.filter((id) => EV[id].sign && isDone(EV[id])).length;
       ui.open({

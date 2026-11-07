@@ -625,6 +625,7 @@ function firePit(root, p) {
   return { g, flame: f };
 }
 function stage3(root, parts) {
+  WALLS3.length = 0; // 불러오기를 다시 해 마을을 새로 지어도 가림 물체가 겹쳐 들어가지 않게
   // Z10 다락방: 돌담(지붕 없음, 위에 들보 넷), 남쪽 문과 닫히는 문짝, 긴 식탁·긴 의자 둘·떡과 잔, 대야와 물항아리, 식탁 머리 등잔
   {
     const U = UPPER10, g0 = groundH(U.cu, U.cv), h = U.h, d = UPPER10_DOOR, P = (u, v) => W(u, v);
