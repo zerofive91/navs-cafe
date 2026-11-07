@@ -56,10 +56,18 @@ export default {
   // 처음 들어갈 때: 모형(build)과 사건 모듈(engine·events·trials·modes)을 같은 주소 끝(q, 다시 시도할 때 ?retry=n)으로 불러 지음
   //   사건이 고장 나도 마을 오가기는 되도록 엔진은 따로 감쌈
   load({ q = '', scene, occluders, makeCart, makeSignpost, kit, here }) {
-    return Promise.all(['build', 'engine', 'events', 'trials', 'modes'].map((n) => import(`../john/${n}.js${q}`))).then(([m, E, Ev, Tr, Md]) => {
+    return Promise.all(['build', 'engine', 'events', 'trials', 'modes', 'daily'].map((n) => import(`../john/${n}.js${q}`).catch((e) => { if (n !== 'daily') throw e; console.warn('오늘의 마을 모듈을 불러오지 못했어요', e); return null; }))).then(([m, E, Ev, Tr, Md, Dy]) => {
       const r = m.buildJohn({ scene, occluders, makeCart, makeSignpost });
       let engine = null;
-      try { if (kit) engine = E.initJohn({ ...kit, here }, r, { EV: Ev.EV, ORDER: Ev.ORDER, initTrials: Tr.initTrials, initModes: Md.initModes }); } catch (e) { console.warn('요한복음 마을 사건을 준비하지 못했어요', e); }
+      try {
+        if (kit) {
+          // 오늘의 마을(js/village/daily.js)을 사건 엔진에 이음: 엔진은 그대로 두고 kit.onChange와 엔진 객체를 한 겹 감쌈. 이음이 고장 나도 사건 엔진은 그대로 씀
+          let link = null;
+          try { link = Dy ? Dy.linkDaily({ ...kit, here }) : null; } catch (e) { console.warn('오늘의 마을을 준비하지 못했어요', e); }
+          engine = E.initJohn({ ...(link ? link.kit : kit), here }, r, { EV: Ev.EV, ORDER: Ev.ORDER, initTrials: Tr.initTrials, initModes: Md.initModes });
+          if (link) { try { engine = link.attach(engine, r, Ev); } catch (e) { console.warn('오늘의 마을을 사건 엔진에 잇지 못했어요', e); } }
+        }
+      } catch (e) { console.warn('요한복음 마을 사건을 준비하지 못했어요', e); }
       return { root: r.root, cart: r.cart, engine };
     });
   },
@@ -110,7 +118,7 @@ export default {
   transit: [],           // 마을 안 이동 노선 [{ id, from, to, route, open(profile) }] (밤바다 배는 사건 전용 galilee.js)
   shopGoods: ['chariot', 'donkey', 'oil'], // 수레꾼 두기고의 수레 짐 (profile.js GOODS id, 루디아와 같은 값). 안약은 초보자 마을 사람 기준이라 뺌 (E2 두기고 부탁과 이을 때 다시)
   quietZones: ['passion'], // 부탁·오늘의 일을 두지 않는 구역 (수난과 동산 Z11)
-  errands: null, daily: null, pieces: null, // 공용 장치 자료 모듈 경로 (요한 채우기 E1·E3·E5)
+  errands: null, daily: 'js/john/daily.js', pieces: null, // 공용 장치 자료 모듈 경로 (요한 채우기 E1·E3·E5). daily는 load가 같은 이름으로 불러옴 (등록부는 값만 둠)
   folk: null,            // (profile) → 지금 보여 줄 주민 목록 (자라는 마을)
   companions: [],        // 데리고 다닐 수 있는 동행
   next: 'acts',          // 졸업 뒤 다음 마을 (사도행전 마을이 열리면 안내에 씀)
