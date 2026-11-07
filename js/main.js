@@ -1041,7 +1041,7 @@ function driveStick(dt) {
   }
   const back = kb && fwd < 0;
   me.running = !back && !me.slow && runBoost(me) > 1 && mag > 0.6; // 무거운 짐을 지면 뛸 수 없음
-  const step = SPEED * (0.35 + 0.65 * mag) * (back ? 0.55 : 1) * (me.running ? runBoost(me) : 1) * (me.slow || 1) * dt;
+  const step = SPEED * (0.35 + 0.65 * mag) * (back ? 0.55 : 1) * (me.running ? runBoost(me) : 1) * (me.slow || 1) * (me.boost || 1) * dt; // boost: 나귀·복음의 신 (gear.js)
   const nx = me.x + mx * step, nz = me.z + mz * step;
   const hop = me.hop || 0; // 점프 중이면 낮은 물건은 넘어감
   const base = floorY(me.x, me.z);
