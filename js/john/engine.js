@@ -10,10 +10,12 @@ import { nameTag } from '../tutorial.js';
 import { addSteps, addStat, earn, giveItem, STATS, ITEMS, JOHN_EVENTS } from '../profile.js';
 import { findPath, nearestFree } from '../nav.js';
 import { floorY } from '../layout.js';
-import { JX, JZ, ZONES, SP, PLAZA_LIGHT, JARS, ROOF_Y, HOUSE10, REGION, LAKE_AT, JN_ACTS, LAMP_IDS } from './layout.js';
+import { JX, JZ, ZONES, SP, PLAZA_LIGHT, JARS, ROOF_Y, HOUSE10, REGION, LAKE_AT, JN_ACTS, LAMP_IDS, LAMPS } from './layout.js';
 import { initGalilee } from './galilee.js'; // 2차 가 (갈릴리·사마리아) 사건 도구
 import { initJerusalem } from './jerusalem.js'; // 2차 나 (예루살렘·베다니) 사건 도구
 import { initPassion, callName } from './passion.js'; // 3차 (다락방·수난·부활) 사건 도구, 이름 부르기
+import { initErrands, dayPick } from '../village/errands.js'; // 증인의 작은 부탁 (마을 공용 엔진, 채우기 E1)
+import { ER } from './errands.js'; // 요한 마을 부탁 자료
 // events·trials·modes는 region.js가 불러와 넘김 (불러오기에 실패해 다시 시도할 때 주소 끝을 바꿀 수 있게)
 
 const MODE_NAME = { l: '듣기', r: '읽기', a: '적용', s: '공부', m: '암송', d: '묵상' };
@@ -241,6 +243,9 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
       const t = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.28, 0.02), M(0xf4ecd8, 1)); t.position.set(0.2, -0.08, 0); g.add(t);
       g.position.set(0, -0.45, 0.16);
       return g;
+    } else if (kind === 'oil') { // 등잔 기름병 (부탁: 켜진 등잔에 기름 채우기)
+      const b = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 10), M(0xa8744a)); b.scale.y = 1.15; g.add(b);
+      const n = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.035, 0.09, 10), M(0xa8744a)); n.position.y = 0.11; g.add(n);
     } else if (kind === 'spice') { // 몰약과 침향 섞은 것 (19:39)
       const b = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.16, 0.18), M(0x8a6a48)); g.add(b);
       for (const s of [-1, 1]) { const j = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 0.1, 10), M(0xe8dcc0, 0.5)); j.position.set(s * 0.07, 0.12, 0); g.add(j); }
@@ -490,11 +495,56 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
   X.trial = trials;
   const modes = initModes({ ui, me, toast, sfx, burst, showVerse, walkTo, nearestFree });
 
+  // ---------- 증인의 작은 부탁 (채우기 E1): 엔진은 js/village/errands.js, 자료는 js/john/errands.js ----------
+  // 부탁 물건 (널어 둔 그물·수레 쐐기): 마을 모형(root) 안에 둠
+  const props = [];
+  const propMesh = (kind) => {
+    const g = new THREE.Group();
+    if (kind === 'net') {
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 1.1, 4, 3), new THREE.MeshStandardMaterial({ color: 0x8a7a5a, roughness: 1, wireframe: true }));
+      m.rotation.x = -Math.PI / 2; m.position.y = 0.05; g.add(m);
+      for (const s of [-1, 1]) { const st = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.6, 6), M(0x7a5a3a)); st.position.set(s * 0.85, 0.3, 0); g.add(st); }
+    } else { // wedge: 수레 쐐기
+      const m = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.22, 3), M(0x8a6748, 1, { flatShading: true })); m.rotation.z = Math.PI / 2; m.position.y = 0.1; g.add(m);
+    }
+    return g;
+  };
+  Object.assign(X, {
+    prop: (kind, p) => { const g = propMesh(kind); g.position.set(p.x, G(p), p.z); g.userData.at = { x: p.x, z: p.z }; built.root.add(g); props.push(g); return g; },
+    propAt: (p) => { const i = props.findIndex((g) => Math.hypot(g.userData.at.x - p.x, g.userData.at.z - p.z) < 0.6); if (i >= 0) built.root.remove(props.splice(i, 1)[0]); },
+    props: (none, later = 0) => { const old = props.splice(0); const drop = () => old.forEach((g) => built.root.remove(g)); if (later) setTimeout(drop, later); else drop(); },
+    resetNpc: (k) => { const n = N[k]; if (!n) return; n.path = []; n.state = 'idle'; n.follow = false; n.x = n.home0.x; n.z = n.home0.z; n.home = { ...n.home0 }; n.face = n.face0; },
+    litLamps: () => LAMP_IDS.map((id, i) => (J().lamps.includes(id) ? LAMPS[i] : null)).filter(Boolean),
+    dayPick,
+  });
+  const er = initErrands({
+    ER, store: () => J().er, X, ui, me, profile, save, onChange, toast, sfx, burst, standUp,
+    opened: (e) => !!J().ev[e.after]?.done && (!e.need || e.need(J())),
+    giverAt: (k) => N[k],
+    canShow: () => !busy() && !ui.isOpen() && inTown(),
+    eventRunning: () => !!run,
+  });
+  // 부탁할 일이 있는 사람 머리 위 작은 말풍선 표시
+  const erTex = (() => {
+    const cv = document.createElement('canvas'); cv.width = cv.height = 64;
+    const g = cv.getContext('2d');
+    g.fillStyle = '#eaf6e4'; g.strokeStyle = '#4f8a46'; g.lineWidth = 3;
+    g.beginPath(); g.roundRect(8, 10, 48, 34, 10); g.fill(); g.stroke();
+    g.beginPath(); g.moveTo(22, 43); g.lineTo(18, 56); g.lineTo(32, 44); g.fillStyle = '#eaf6e4'; g.fill(); g.stroke();
+    g.fillStyle = '#4f8a46'; for (const x of [21, 32, 43]) { g.beginPath(); g.arc(x, 27, 3.6, 0, Math.PI * 2); g.fill(); }
+    const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
+  })();
+  const erMarks = [...new Set(Object.values(ER).map((e) => e.who))].filter((k) => N[k]).map((k) => {
+    const m = new THREE.Sprite(new THREE.SpriteMaterial({ map: erTex, transparent: true, depthWrite: false }));
+    m.scale.setScalar(0.42); m.visible = false; N[k].av.add(m); return { k, m };
+  });
+
   const curStep = () => (run && run.i < run.steps.length ? run.steps[run.i] : null);
   const hintOf = () => { const s = curStep(); if (!s) return ''; return typeof s.hint === 'function' ? s.hint(run.r) : s.hint; };
   const goOf = (s) => { const g = s && (s.go || s.at); return typeof g === 'function' ? g() : g; };
   function begin(e) {
     if (run) quit(true);
+    if (er.running()) { er.stop(); toast('하던 부탁은 그만두었어요. 이야기를 마친 뒤 다시 받을 수 있어요', 4); }
     trials.reset(); modes.cancel(); readSeen.clear();
     run = { ev: e, steps: e.steps(X), i: 0, r: {}, sky: null };
     addMode(e.id, 'l'); save(); // 듣기는 증인의 말을 들었을 때
@@ -634,6 +684,7 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
       who: e.who, sub: `${e.title} · 깊이 보기`, text: `다시 와 주었군요! 이 이야기를 더 깊이 볼까요? ${marks(e.id)}`,
       buttons: [
         { t: '나중에', cls: 'later' },
+        ...er.buttons(e.npc), // 증인의 작은 부탁 (그 사건을 마친 뒤)
         ...others.map((o) => ({ t: `"${o.title}" 깊이 보기`, fn: () => deep(o) })),
         { t: '본문 읽기', fn: () => { X.verse(e.read, e.title); } },
         { t: '다시 하기', fn: () => begin(e) },
@@ -676,7 +727,7 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
         who: '사도 요한', sub: J().mark === '졸업' ? '요한복음 마을 졸업' : '이야기는 이어져요', quote: 'jn-21-25',
         text: `${ORDER.length} 이야기를 다 따라왔군요! 빛이 어둠에 비치고, 물이 포도주가 되고, 우물가의 여인이 동네로 달려갔어요. 떡 다섯 개가 무리를 먹이고, 소경이 눈을 뜨고, 나사로가 무덤에서 나왔어요. 다락방에서 그분이 발을 씻기셨고, 숯불 곁의 밤과 "다 이루었다" 하신 십자가를 지나, 동산에서 "마리아야" 이름을 부르셨어요. 닫힌 문 안에 평강을 주셨고, 바닷가 숯불 곁에서 "너는 나를 따르라" 하셨어요. 표적 ${signs}개를 보았고, "나는…" 등불 ${lamps}개가 켜졌어요. 이 외에도 많아서 낱낱이 기록하면 이 세상이라도 그 책을 두기에 부족하대요. 이제 당신의 이야기로 이어져요.`,
         note: `마을 기록장: ${book}`,
-        buttons: [{ t: '와 보라 깊이 보기', fn: () => deep(e) }, { t: '감사해요', cls: 'next' }],
+        buttons: [...er.buttons('john'), { t: '와 보라 깊이 보기', fn: () => deep(e) }, { t: '감사해요', cls: 'next' }],
       });
       return;
     }
@@ -685,18 +736,20 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
       who: '사도 요한', sub: '마을 기록장 · 요한의 두루마리',
       text: nx ? `다음 이야기는 "${nx.title}"예요. ${ZONES[nx.start || nx.zone].name}의 ${nx.who}에게 가 보세요. 금빛 기둥이 그 자리를 비춰요.` : '지금 따라갈 이야기가 없어요. 쉬어 가요.',
       note: `마을 기록장: ${book}`,
-      buttons: [{ t: '와 보라 깊이 보기', fn: () => deep(e) }, { t: '알겠어요', cls: 'next' }],
+      buttons: [...er.buttons('john'), { t: '와 보라 깊이 보기', fn: () => deep(e) }, { t: '알겠어요', cls: 'next' }],
     });
   }
 
   // ---------- 그 자리 단추 ----------
   const available = () => {
     if (!inTown() || ui.isOpen()) return [];
+    if (!run && er.running()) return er.available(); // 부탁의 그 자리 단추
     const s = curStep(); if (!s || !s.place) return [];
     const p = typeof s.at === 'function' ? s.at() : s.at;
     return p && dist(p) < s.r ? [['place', s.place]] : [];
   };
   const doPlace = () => {
+    if (!run && er.running()) { er.act(); updateChip(); return; }
     const s = curStep(); if (!s || !s.place) return;
     const p = typeof s.at === 'function' ? s.at() : s.at;
     if (!p || dist(p) > s.r) return;
@@ -713,8 +766,13 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
     let t = '';
     if (inTown()) {
       if (run) t = `${run.ev.title} · ${hintOf()}`;
+      else if (er.running()) t = er.chip();
       else if (modes.active()) t = modes.progress();
-      else { const nx = nextEv(); if (nx) t = `요한복음 마을 · 다음: ${nx.title} (${nx.who}, 금빛 기둥)`; else if (allDone() && !endSeen()) t = '요한복음 마을 · 사도 요한에게 (금빛 기둥)'; }
+      else {
+        const nx = nextEv(), ne = er.open().length;
+        if (nx) t = `요한복음 마을 · 다음: ${nx.title} (${nx.who}, 금빛 기둥)`; else if (allDone() && !endSeen()) t = '요한복음 마을 · 사도 요한에게 (금빛 기둥)';
+        else if (ne) t = `요한복음 마을 · 오늘 받을 수 있는 부탁 ${ne}개 (🤝)`;
+      }
     }
     if (t !== chipText) { chipText = t; chip.textContent = t; }
     chip.hidden = !t;
@@ -725,10 +783,13 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
       const s = curStep(), p = goOf(s) || N[run.ev.npc];
       return { title: run.ev.title, ch: run.ev.ch, hint: hintOf(), step: run.i + 1, steps: run.steps.length, where: s?.where || '', target: { x: p.x, z: p.z }, running: true, verse: VERSES[run.ev.read[0]] };
     }
-    if (modes.active()) { const p = modes.target(); return { title: '묵상', hint: modes.progress(), where: '', target: { x: p.x, z: p.z }, running: false }; }
+    if (er.running()) return er.info();
+    const errands = er.open(); // 오늘 받을 수 있는 부탁 (부탁 창 목록)
+    if (modes.active()) { const p = modes.target(); return { title: '묵상', hint: modes.progress(), where: '', target: { x: p.x, z: p.z }, running: false, errands }; }
     const nx = nextEv();
-    if (nx) { const n = N[nx.npc]; return { title: nx.title, ch: nx.ch, hint: `${nx.who}에게 말을 걸면 시작해요`, where: `${ZONES[nx.start || nx.zone].name} · ${nx.who}`, target: { x: n.x, z: n.z }, running: false, verse: VERSES[nx.read[0]] }; }
-    if (allDone() && !endSeen()) return { title: '이야기는 이어져요', hint: '사도 요한에게 말을 걸어요', where: '빛의 광장 · 사도 요한', target: { x: N.john.x, z: N.john.z }, running: false };
+    if (nx) { const n = N[nx.npc]; return { title: nx.title, ch: nx.ch, hint: `${nx.who}에게 말을 걸면 시작해요`, where: `${ZONES[nx.start || nx.zone].name} · ${nx.who}`, target: { x: n.x, z: n.z }, running: false, verse: VERSES[nx.read[0]], errands }; }
+    if (allDone() && !endSeen()) return { title: '이야기는 이어져요', hint: '사도 요한에게 말을 걸어요', where: '빛의 광장 · 사도 요한', target: { x: N.john.x, z: N.john.z }, running: false, errands };
+    if (errands.length) { const f = errands[0]; return { list: true, title: '증인의 작은 부탁', hint: `오늘 받을 수 있는 부탁이 ${errands.length}개 있어요. 머리 위 🤝 표시가 있는 사람에게 말을 걸어요`, where: `${f.where} · ${f.who}`, target: f.target, running: false, errands }; }
     return null;
   }
 
@@ -776,6 +837,7 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
     if (!town) { chip.hidden = true; beam.visible = false; ring.visible = false; return; }
     reattach();
     trials.step(); modes.step();
+    if (!run) er.step(dt);
     // 니고데모 지붕의 천: 바람이 불면 그쪽으로 날림
     {
       const g = parts.cloth, t = now / 1000;
@@ -798,18 +860,21 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
       n.mark.material.map = !isDone(e) ? TEX.scroll : gold(id) ? TEX.gold : TEX.star;
       n.mark.position.y = 2.75 + Math.sin(now / 500 + id.length) * 0.06;
     }
+    // 부탁 표시: 오늘 받을 수 있는 부탁이 있는 사람 (사건·부탁을 하는 동안은 감춤)
+    { const on = run || er.running() ? null : er.offerKeys(); for (const { k, m } of erMarks) { m.visible = !!on && on.has(k); if (m.visible) m.position.set(N[k].mark?.visible ? 0.42 : 0, 2.78 + Math.sin(now / 450) * 0.05, 0); } }
     // 금빛 기둥: 진행 중이면 지금 할 자리, 아니면 다음 사건의 증인
     let bp = null;
     if (run) bp = goOf(curStep());
+    else if (er.running()) bp = er.goal();
     else if (modes.active()) bp = modes.target();
     else { const nx = nextEv(); if (nx) bp = N[nx.npc]; else if (allDone() && !endSeen()) bp = N.john; }
-    beam.visible = !!bp && (!run || dist(bp) > 4);
+    beam.visible = !!bp && ((!run && !er.running()) || dist(bp) > 4);
     if (bp) beam.position.set(bp.x, G(bp), bp.z);
     beam.userData.star.material.rotation = now / 2500;
     beam.children[0].material.opacity = 0.18 + Math.sin(now / 500) * 0.06;
     // 빛나는 자리 고리 (그 자리 단추·서기·앉기 단계)
-    const s = curStep(), rp = s && !s.talk && goOf(s);
-    if (rp && s.ring !== false) putRing(ring, rp); else ring.visible = false;
+    const s = curStep(), rp = run ? s && !s.talk && s.ring !== false && goOf(s) : er.ringAt();
+    if (rp) putRing(ring, rp); else ring.visible = false;
     const pulse = Math.sin(now / 400);
     for (const m of [ring, ...extraRings]) if (m.visible) { m.material.opacity = 0.45 + 0.3 * pulse; m.children[0].material.opacity = 0.13 + 0.07 * pulse; }
     // 단계 진행
@@ -820,24 +885,27 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
     // 말 걸기 (가까이 가도 저절로 열지 않음: 단추나 그 사람을 눌러야)
     if (ui.isOpen() || busy()) return;
     // 가까이 있는 사람 중 지금 단계의 대화 상대 → 사건 증인·요한 → 나머지 순으로 (무리가 아이보다 가까워도 아이에게)
-    const st = curStep(), want = st ? [].concat(st.talk || []) : [];
-    const rank = (n) => (want.includes(n.key) && !(st.told && st.told(run.r, n.key)) ? 0 : evsOf(n.key).length || n.key === 'john' ? 1 : 2);
+    const st = curStep(), want = st ? [].concat(st.talk || []) : [], ew = run ? [] : er.talkWant(); // ew: 부탁 단계에서 말을 걸 사람
+    const rank = (n) => ((want.includes(n.key) && !(st.told && st.told(run.r, n.key))) || ew.includes(n.key) ? 0 : evsOf(n.key).length || n.key === 'john' || er.offers(n.key) ? 1 : 2);
     let best = null, bd = 2.9, br = 3;
     for (const n of Object.values(N)) { if (n.hide || !n.av.visible) continue; const d = dist(n); if (d >= 2.9) continue; const rk = rank(n); if (rk < br || (rk === br && d < bd)) { br = rk; bd = d; best = n; } }
     if (!best) return;
     const k = best.key;
     const ev = evsOf(k).length ? (run && run.ev.npc === k ? run.ev : relEv(k)) : null;
     if (st && [].concat(st.talk || []).includes(k) && !(st.told && st.told(run.r, k))) offerTalk('jn:' + k, best, () => { const myRun = run, myI = run.i; st.open(run.r, () => { if (run === myRun && run.i === myI) advance(); }, k, best); });
+    else if (ew.includes(k)) offerTalk('jn:' + k, best, () => { best.face = Math.atan2(me.x - best.x, me.z - best.z); er.openTalk(k, best); spec && (spec.anchor = best); });
     else if (k === 'john') offerTalk('jn:john', best, () => { talkJohn(); spec && (spec.anchor = best); });
     else if (ev) offerTalk('jn:' + k, best, () => { talkWitness(ev); spec && (spec.anchor = best); });
-    else if (GREET[k]) offerTalk('jn:' + k, best, () => { best.face = Math.atan2(me.x - best.x, me.z - best.z); toast(`${best.name}: ${GREET[k]}`, 4); });
+    else if (er.offers(k)) offerTalk('jn:' + k, best, () => { best.face = Math.atan2(me.x - best.x, me.z - best.z); er.talk(k); spec && (spec.anchor = best); }); // 사건 증인이 아닌 부탁하는 사람 (나다나엘·연회장·수가 사람)
+    else if (GREET[k]) offerTalk('jn:' + k, best, () => { best.face = Math.atan2(me.x - best.x, me.z - best.z); toast(`${best.name}: ${GREET[k]}${er.buttons(k).length ? ' (오늘 부탁은 다 해 주었어요. 내일 또 와요)' : ''}`, 4); });
   }
 
   const markKeys = [...new Set(ORDER.map((id) => EV[id].npc))];
   placeShared();
   updateChip();
   return {
-    step, available, actions, wants, info, quit: () => quit(),
+    step, available, actions, wants, info, quit: () => (run ? quit() : er.quit()),
+    errands: er, // 증인의 작은 부탁 (마을 밖 사람은 errands.register(key, npc) 뒤 errands.talk(key))
     active: () => ui.isOpen(),
     get run() { return run; }, N, EV, ui, X, modes, trials,
     debug: { begin: (id) => begin(EV[id]), advance, complete: () => run && complete() },
