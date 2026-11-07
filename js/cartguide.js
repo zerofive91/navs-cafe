@@ -38,8 +38,8 @@ export function initCartGuide(K) {
   const hide = () => { dlg.close(); cur = null; };
   const done = () => eventsDone(profile.john);
   const board = (to) => { hide(); region().board(to); };
-  // 이 마을 수레가 가는 마을마다 '…로 가요' 단추 (2026-11 사도행전 0-나: 마을이 셋). 첫 단추(초보자 마을)가 main
-  const goTo = (from) => destinations(from).map((v, i) => ({ label: `${v.short} 마을로`, cls: 'go', main: i === 0, on: () => board(v.id) }));
+  // 이 마을 수레가 가는 마을마다 마을 이름 단추 (폰 세로 한 줄에 맞게 짧은 이름: 초보자·요한복음·사도행전) (2026-11 사도행전 0-나: 마을이 셋). 첫 단추(초보자 마을)가 main
+  const goTo = (from) => destinations(from).map((v, i) => ({ label: v.short || v.name, cls: 'go', main: i === 0, on: () => board(v.id) }));
   const fresh = (v) => (v.save ? !profile[v.save.key]?.seen : false); // 아직 가 보지 않은 마을
 
   function talkBase(info = false) {
