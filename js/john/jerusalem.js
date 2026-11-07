@@ -102,6 +102,7 @@ export function initJerusalem({ root, me, parts, N, person, GREET, toast, sfx, b
   // ---------- 나사로: 무덤 돌, 나옴, 베 풀기 (11:38-44) ----------
   const T = { k: 0, shown: 0 };
   const L = { out: false, wrapped: true };
+  let lzFree = false; // 부탁(나사로와 함께 걷기) 동안만: 나사로를 식탁 자리에 다시 앉히지 않음
   function pushStone() {
     if (T.k >= 4) return true;
     T.k++;
@@ -169,7 +170,7 @@ export function initJerusalem({ root, me, parts, N, person, GREET, toast, sfx, b
 
   // ---------- 되돌리기 (그만두기·마침·처음) ----------
   function reset() {
-    lgen++;
+    lgen++; lzFree = false;
     stream(false); accusersOn(false);
     for (const s of stalls) s.cleared = false;
     matUp = false; T.k = 0; L.out = false; L.wrapped = true; fragOn = false; planted = false; growT = 0;
@@ -203,7 +204,7 @@ export function initJerusalem({ root, me, parts, N, person, GREET, toast, sfx, b
     const lzRun = rid === 'lazarus';
     N.lazarus.hide = lzRun ? !L.out : !done('lazarus');
     wrap.visible = L.out && L.wrapped;
-    if (!L.out && !N.lazarus.seat) sitNpc(N.lazarus, 'gbench', Math.PI);
+    if (!L.out && !lzFree && !N.lazarus.seat) sitNpc(N.lazarus, 'gbench', Math.PI);
     const showMourn = lzRun || !done('lazarus');
     for (const n of mourners) n.hide = !showMourn;
     // 무덤 돌: 밀 때마다 4분의 1씩 굴러 비켜남. 나사로를 마친 뒤에는 열린 채로
@@ -279,6 +280,7 @@ export function initJerusalem({ root, me, parts, N, person, GREET, toast, sfx, b
       // 앉아 있던 사람을 일으켜 걷게 함 (마리아 11:29)
       npcGo: (k, p) => { const n = N[k]; standNpc(n); n.state = 'idle'; n.path = findPath(n, p); if (!n.path.length) { const q = nearestFree(p) || p; n.x = q.x; n.z = q.z; } n.home = { x: p.x, z: p.z }; n.state = n.path.length ? 'walk' : 'idle'; },
       rise: (k) => { const n = N[k]; standNpc(n); n.state = 'idle'; },
+      lazarusFree: (on) => { lzFree = !!on; }, // 부탁 동안 나사로가 식탁 자리를 떠나 걸을 수 있게
     },
   };
 }

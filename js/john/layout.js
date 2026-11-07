@@ -116,7 +116,8 @@ export const JN_ACTS = ['jn_lamp', 'jn_water', 'jn_draw', 'jn_give', 'jn_look', 
   'jn_clear', 'jn_lift', 'jn_push', 'jn_untie', 'jn_pour', 'jn_plant', // 2차 나: 장사판 치우기 · 자리 들기 · 돌 옮기기 · 베 풀기 · 향유 붓기 · 밀 심기
   'jn_towel', 'jn_feet', 'jn_sheathe', 'jn_spice', 'jn_net', 'jn_pull', 'jn_feed', // 3차: 수건과 대야 · 발 씻기기 · 검 꽂기 · 향품 놓기 · 그물 던지기 · 그물 끌어 올리기 · 어린 양 먹이기
   'jn_oil', 'jn_dry', 'jn_pick', // 증인의 작은 부탁 (js/john/errands.js): 기름 붓기 · 그물 널기 · 줍기
-  'jn_board']; // 소식판 보기 (오늘의 마을, js/village/daily.js)
+  'jn_board', // 소식판 보기 (오늘의 마을, js/village/daily.js)
+  'jn_sweep', 'jn_kindle']; // 부탁 둘째 묶음: 쓸기 · 등잔 켜기
 // 구역 팻말 (빈 자리마다 하나)
 export const SIGNPOSTS = Object.entries(ZONES).map(([id, z]) => {
   const p = id === 'light' ? W(PU + 4.5, PV + 15.5) : W(z.u - z.r * 0.55, z.v - z.r * 0.55);

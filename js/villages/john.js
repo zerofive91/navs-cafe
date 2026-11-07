@@ -116,7 +116,7 @@ export default {
   rest: REST,            // 쉼 놀이 판정 구역 [{ kind: 'shore'|'hill'|'roof', at, r, ... }] (js/leisure.js가 읽음, 마을 안에서는 이 구역에서만 물수제비·낚시·별 보기)
   seatVerse: (seat) => SEAT_VERSE.get(seat) || null, // 머무름 묵상이 그 자리 구절을 고름 (js/stillness.js)
   transit: [],           // 마을 안 이동 노선 [{ id, from, to, route, open(profile) }] (밤바다 배는 사건 전용 galilee.js)
-  shopGoods: ['chariot', 'donkey', 'oil'], // 수레꾼 두기고의 수레 짐 (profile.js GOODS id, 루디아와 같은 값). 안약은 초보자 마을 사람 기준이라 뺌 (E2 두기고 부탁과 이을 때 다시)
+  shopGoods: ['chariot', 'donkey', 'oil'], // 수레꾼 두기고의 수레 짐 (profile.js GOODS id, 루디아와 같은 값). 안약은 초보자 마을 사람 기준이라 뺌 (두기고 부탁 cart-wedge는 안약을 쓰지 않음. 안약은 E5 조각 빛기둥과 함께 다시)
   quietZones: ['passion'], // 부탁·오늘의 일을 두지 않는 구역 (수난과 동산 Z11)
   errands: null, daily: 'js/john/daily.js', pieces: null, // 공용 장치 자료 모듈 경로 (요한 채우기 E1·E3·E5). daily는 load가 같은 이름으로 불러옴 (등록부는 값만 둠)
   folk: null,            // (profile) → 지금 보여 줄 주민 목록 (자라는 마을)

@@ -93,7 +93,7 @@ export function initErrands({ ER, store, X, ui, me, profile, opened, giverAt, sa
     else { addSteps(profile, AGAIN.steps); note = `다시 도와주었어요 · 걸음 +${AGAIN.steps}`; }
     save(); onChange?.();
     sfx('orb', 0.28, 1.15); burst(me.x, me.y + 1.4, me.z);
-    const again = er.again === 'day' ? '내일 또 부탁해도 될까요?' : '';
+    const again = er.again === 'day' && !idsOf(er.who).some(startable) ? '내일 또 부탁해도 될까요?' : ''; // 같은 사람에게 오늘 받을 부탁이 더 남았으면 빼 (둘째 부탁이 바로 열림)
     const show = () => {
       if (!canShow()) { setTimeout(show, 800); return; }
       ui.open({
