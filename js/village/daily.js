@@ -62,8 +62,8 @@ export function initDaily({ T, getDay, setDay, profile, save, onChange, toast, s
 
   // ---------- 소식판 ----------
   let lastBoard = '';
-  const boardShape = () => { const v = view(); return `${v.got}|${v.full}`; };
-  function board() { const v = view(); T.board.set?.(v.got, v.full); lastBoard = boardShape(); }
+  const boardShape = () => { const v = view(); return `${v.got}|${v.full}|${v.tasks.map((t) => (t.off ? t.k : '')).join('')}`; };
+  function board() { const v = view(); T.board.set?.(v.got, v.full, v.tasks.filter((t) => t.off).map((t) => t.k).join('')); lastBoard = boardShape(); }
   const near = () => Math.hypot(me.x - T.board.x, me.z - T.board.z) < T.board.r;
   const dist = (p) => Math.hypot(p.x - me.x, p.z - me.z);
 
@@ -75,8 +75,8 @@ export function initDaily({ T, getDay, setDay, profile, save, onChange, toast, s
     for (const t of v.tasks) {
       const li = document.createElement('li');
       li.className = t.off ? 'off' : t.done ? 'done' : '';
-      const b = document.createElement('b'); b.textContent = `${t.done ? '✓' : '○'} ${t.icon} ${t.title}`;
-      const sm = document.createElement('span'); sm.textContent = t.off ? '오늘은 받을 부탁이 없어요 (건너뛰어요)' : t.done ? `${t.text}` : `${t.text}${t.where ? ` · ${t.where}` : ''}`;
+      const b = document.createElement('b'); b.textContent = `${t.off ? '–' : t.done ? '✓' : '○'} ${t.icon} ${t.title}`;
+      const sm = document.createElement('span'); sm.textContent = t.off ? '건너뜀 · 오늘은 받을 부탁이 없어요' : t.done ? `${t.text}` : `${t.text}${t.where ? ` · ${t.where}` : ''}`;
       li.append(b, sm); ul.append(li);
     }
     const lines = v.locked

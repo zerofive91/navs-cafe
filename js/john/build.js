@@ -183,24 +183,25 @@ function noticeBoard(root) {
   const flag = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.26, 0.03), new THREE.MeshStandardMaterial({ color: 0xe8b84a, roughness: 0.7, emissive: 0x6a4a10, emissiveIntensity: 0.5 }));
   flag.position.set(0.35, 2.42, 0.1); flag.visible = false; g.add(flag);
   const pole = bx(g, 0.04, 0.5, 0.04, mat.wood, 0.12, 2.3, 0.1); pole.visible = false;
-  const names = ['이야기', '부탁', '머무름'];
-  const draw = (got, full) => {
+  const names = ['이야기', '부탁', '머무르기'];
+  const draw = (got, full, skip = '') => {
     const c = cv.getContext('2d');
     c.fillStyle = '#e9d9b4'; c.fillRect(0, 0, 512, 300);
     c.strokeStyle = '#a9895a'; c.lineWidth = 8; c.strokeRect(6, 6, 500, 288);
     c.fillStyle = '#6a4a2a'; c.textAlign = 'center'; c.font = '700 40px "Noto Serif KR", serif'; c.fillText('오늘의 마을', 256, 62);
     for (let i = 0; i < 3; i++) {
-      const x = 96 + i * 160, done = got.includes('abc'[i]);
+      const x = 96 + i * 160, off = skip.includes('abc'[i]), done = !off && got.includes('abc'[i]);
       c.beginPath(); c.arc(x, 158, 46, 0, Math.PI * 2);
       c.fillStyle = done ? '#ffd57a' : '#f4ecd6'; c.fill(); c.lineWidth = 5; c.strokeStyle = done ? '#c88a22' : '#b9a67e'; c.stroke();
-      c.fillStyle = done ? '#8a5a10' : '#b9a67e'; c.font = '700 54px system-ui, sans-serif'; c.fillText(done ? '✓' : '·', x, 176);
+      c.fillStyle = done ? '#8a5a10' : '#b9a67e'; c.font = '700 54px system-ui, sans-serif'; c.fillText(off ? '–' : done ? '✓' : '·', x, 176);
       c.fillStyle = '#6a4a2a'; c.font = '600 28px "Noto Serif KR", serif'; c.fillText(names[i], x, 252);
+      if (off) { c.font = '500 20px "Noto Serif KR", serif'; c.fillText('건너뜀', x, 282); }
     }
     tex.needsUpdate = true;
   };
-  draw('', false);
+  draw('', false, '');
   root.add(g);
-  return { set(got, full) { draw(got || '', !!full); flag.visible = pole.visible = !!full; } };
+  return { set(got, full, skip) { draw(got || '', !!full, skip || ''); flag.visible = pole.visible = !!full; } };
 }
 
 function glowTex() {

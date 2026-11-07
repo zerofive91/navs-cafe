@@ -40,7 +40,7 @@ export function initQuestLog({ me, quests, story, walkTo, toast, john = () => nu
     if (j && j.daily) { // 오늘의 마을 (js/village/daily.js): 하루 몫 셋
       const d = j.daily;
       h += `<section class="st jn dl"><h3>📅 오늘의 마을 · ${esc(d.day)}${d.full ? ' ✦ 오늘의 표지' : ''}</h3>
-        <ul class="dlist">${d.tasks.map((t) => `<li class="${t.off ? 'off' : t.done ? 'done' : ''}"><b>${t.off ? '–' : t.done ? '✓' : '○'} ${t.icon} ${esc(t.title)}</b> <span>${t.off ? '오늘은 받을 부탁이 없어 건너뛰어요' : `${esc(t.text)}${!t.done && t.where ? ` · ${esc(t.where)}` : ''}`}</span>${!t.done && !t.off && t.target ? ` <button class="go sm" data-go="d:${t.k}">가기</button>` : ''}</li>`).join('')}</ul>
+        <ul class="dlist">${d.tasks.map((t) => `<li class="${t.off ? 'off' : t.done ? 'done' : ''}"><b>${t.off ? '–' : t.done ? '✓' : '○'} ${t.icon} ${esc(t.title)}</b> <span>${t.off ? '건너뜀 · 오늘은 받을 부탁이 없어요' : `${esc(t.text)}${!t.done && t.where ? ` · ${esc(t.where)}` : ''}`}</span>${!t.done && !t.off && t.target ? ` <button class="go sm" data-go="d:${t.k}">가기</button>` : ''}</li>`).join('')}</ul>
         <p class="where">${d.locked ? '이 기기의 날짜가 마지막으로 한 날보다 앞서 있어서 오늘 몫은 쉬어요' : `${d.run ? `${d.run}일 이어서 했어요` : '오늘 하루를 시작해요'}${d.best > 1 ? ` · 가장 길게 ${d.best}일` : ''} · 셋을 다 하면 1 데나리온·걸음 +10, 7일 이어 하면 등잔 기름 하나`}</p></section>`;
     }
     if (q) {
