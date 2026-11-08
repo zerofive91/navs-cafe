@@ -7,6 +7,9 @@
 // initFlow(cfg) → 마을 엔진 (region.js·main.js·questlog.js가 쓰는 모양: step·available·actions·wants·info·quit·errands·active·run·N·EV·ui·X·modes·trials·debug)
 //   cfg 필드
 //     me, profile, save, onChange, toast, sfx, burst, busy, standUp   마을 공용 도구 (main.js townKit)
+//     walkTo              걸어가기 (되짚기·다음 이야기 카드의 "그곳으로 가기") · ride(zoneId): 병거로 그 구역에 (없으면 병거 단추 없음)
+//     town                마을 id ('john'). sessionStorage 키(navs-cafe-<town>-recap · -run)에 씀
+//     toldAgain           사건 단계에서 이미 전한 사람에게 다시 말을 걸었을 때 글 (기본 글 있음)
 //     inTown()            지금 이 마을에 있나
 //     ui, chip, whisper   js/village/talk.js (createTalk·createChip·createWhisper)
 //     sky, beacon, people js/village/sky.js·beacon.js·people.js
@@ -33,10 +36,13 @@ import { VERSES, showVerse } from '../verses.js';
 import { addSteps, addStat, earn, giveItem, STATS, ITEMS } from '../profile.js';
 import { nearestFree } from '../nav.js';
 import { initMarks } from './marks.js';
+import { walkToward } from '../questlog.js'; // 그 자리 가까이 빈 곳까지 걸어가기 (되짚기·다음 이야기 카드)
 
 const MODE_NAME = { l: '듣기', r: '읽기', a: '적용', s: '공부', m: '암송', d: '묵상' };
 const lsGet = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* 이번만 */ } };
+// 조사: 받침이 있으면 앞, 없으면 뒤 ("가나의 혼인잔치"예요 · "와 보라"를)
+const josa = (w, a, b) => { const c = String(w).slice(-1); return /[가-힣]/.test(c) && (c.charCodeAt(0) - 0xac00) % 28 ? a : b; };
 
 // 부탁이 없는 마을 (부탁 자료를 아직 안 넣은 마을)
 const NO_ERRANDS = {
@@ -59,15 +65,32 @@ function checkCfg(cfg) {
 }
 
 // 사건 단계가 쓰는 공용 도구 (X에 펼쳐 넣음). run(): 지금 사건 진행 (flow.run)
-export function townTools({ me, toast, standUp, shot, people, beacon, run }) {
+//   이야기 줄 (2026-11 구조 고침 S3): say(증인 말)·tell(해설)·verse(말씀 카드)가 한 줄에 들어가 하나씩 보임. 말풍선은 [다음 ▸]를 눌러야 닫힘 (자동 닫힘 없음)
+//     ui가 없으면(옛 마을) say는 예전처럼 위쪽 알림. storyClear(): 줄 비우기 (사건을 그만둘 때)
+export function townTools({ me, toast, standUp, shot, people, beacon, run, ui = null, busy = () => false }) {
   const dist = (a, b = me) => Math.hypot(a.x - b.x, a.z - b.z);
+  const line = []; // [{ who, text, sub } | { verse: keys, title }]
+  let showing = false, timer = 0;
+  const showVerseNow = (keys, title) => { keys = [].concat(keys); showVerse(keys[0], { cooldown: 0, delay: 0.5, title, then: keys.slice(1), stay: () => true }); };
+  const next = () => {
+    clearTimeout(timer); timer = 0;
+    if (showing || !line.length) return;
+    const it = line[0];
+    if (it.verse) { line.shift(); showVerseNow(it.verse, it.title); timer = setTimeout(next, 900); return; } // 카드는 막지 않음. 카드가 먼저 떠오른 뒤 다음 말풍선
+    if (ui.isOpen() || busy()) { timer = setTimeout(next, 400); return; } // 시험 창·부탁 말풍선이 열려 있으면 닫힌 뒤에
+    line.shift(); showing = true;
+    ui.open({ who: it.who, sub: it.sub, text: it.text, buttons: [{ t: '다음 ▸', cls: 'next' }], onClose: () => { showing = false; timer = setTimeout(next, 150); } });
+  };
+  const push = (it) => { it.sub = run()?.ev.title || ''; line.push(it); next(); };
   return {
     near: (p, r) => dist(p) < r,
     sitting: (p, r) => me.state === 'sit' && dist(p) < r,
     praying: () => me.action === 'pray',
-    verse: (keys, title = '') => { keys = [].concat(keys); showVerse(keys[0], { cooldown: 0, delay: 0.5, title, then: keys.slice(1), stay: () => true }); },
+    verse: (keys, title = '') => (ui ? push({ verse: keys, title }) : showVerseNow(keys, title)),
     sky: (p, zone, pad) => { const r = run(); if (!r) return; r.sky = p ? { p, zone: zone || r.ev.zone, pad } : null; }, // zone: 구역 id 또는 {x, z, r}
-    say: (who, text, sec = 4) => toast(`${who}: ${text}`, sec),
+    say: (who, text, sec = 4) => (ui ? push({ who, text }) : toast(`${who}: ${text}`, sec)),
+    tell: (text) => (ui ? push({ who: '이야기', text }) : toast(text, 5)), // 해설 (사건 글)
+    storyClear: () => { line.length = 0; clearTimeout(timer); timer = 0; if (showing) { showing = false; } },
     ...people.X,
     rings: beacon.rings,
     // 멀리 바라보기 (희어진 밭 등)
@@ -77,10 +100,11 @@ export function townTools({ me, toast, standUp, shot, people, beacon, run }) {
 
 export function initFlow(cfg) {
   const {
-    me, profile, save, onChange, toast, sfx, burst, busy, standUp, inTown,
+    me, profile, save, onChange, toast, sfx, burst, busy, standUp, inTown, walkTo, ride,
     ui, chip, whisper, sky, beacon, people, X, EV, ORDER, openOrder, store, trials, modes, ER = {}, SP, ZONES,
     name, book, guide, greet = {}, talkKey, endKey, introKey, acts = [], seatOf, resetKeys = {}, errandTitle = '작은 부탁',
     quietAgain = '다시 걸어 주었군요. 그 이야기를 다시 기억했어요', hooks = {}, systems = [],
+    town = (talkKey || 'town').replace(/\W/g, ''), toldAgain = '벌써 전해 주었어요. 고마워요! 이제 다른 사람에게 가요.',
   } = cfg;
   checkCfg(cfg);
   const er = cfg.er || NO_ERRANDS;
@@ -94,6 +118,11 @@ export function initFlow(cfg) {
   };
   const N = people.N;
   const dist = (a, b = me) => Math.hypot(a.x - b.x, a.z - b.z);
+  // 이번 탭에서만 기억하는 것 (2026-11 구조 고침 S4): 되짚기 카드를 봤는지 · 하던 사건 (새로고침 뒤 "처음부터 다시" 묻기)
+  const RECAP_KEY = `navs-cafe-${town}-recap`, RUN_KEY = `navs-cafe-${town}-run`;
+  const ssGet = (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } };
+  const ssSet = (k, v) => { try { if (v == null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, v); } catch (e) { /* 이번만 */ } };
+  const goTo = (p) => { if (!p) return; if (!walkTo || !walkToward(me, walkTo, p)) toast('그곳으로 가는 길을 찾지 못했어요. 금빛 기둥을 따라가요', 4); };
 
   // ---------- 기록 ----------
   const rec = (id) => store().ev[id];
@@ -103,6 +132,10 @@ export function initFlow(cfg) {
   const endSeen = () => lsGet(endKey) === String(ORDER.length);
   const allDone = () => ORDER.every((id) => isDone(EV[id]));
   const nextEv = () => ORDER.map((id) => EV[id]).find((e) => isOpen(e) && !isDone(e)) || null;
+  const doneN = () => ORDER.filter((id) => isDone(EV[id])).length;
+  const lastDone = () => ORDER.map((id) => EV[id]).filter(isDone).sort((a, b) => (rec(b.id).done || 0) - (rec(a.id).done || 0))[0] || null; // 가장 늦게 마친 사건
+  const zoneOf = (e) => e.start || e.zone;
+  const zoneHere = () => Object.keys(ZONES).find((id) => dist(ZONES[id]) < ZONES[id].r) || null; // 내가 선 구역 (없으면 null)
   function addMode(id, letters) {
     const j = store(); const r = j.ev[id] || (j.ev[id] = { done: 0, m: '' });
     const before = r.m;
@@ -118,7 +151,9 @@ export function initFlow(cfg) {
   };
 
   // ---------- 사건 진행 ----------
-  let run = null; // { ev, steps, i, r, sky }
+  let run = null; // { ev, steps, i, r, sky, role }  role: 오늘 나는 ○○ (사건 role 또는 X.role로 바뀜. r은 단계마다 비워지므로 run에 둠)
+  const roleOf = (e) => (run && run.ev === e ? run.role || e.role : e?.role) || '';
+  X.role = (text) => { if (!run) return; run.role = text; updateChip(); }; // 단계 중간에 역할이 바뀔 때 (와 보라: 빌립)
   // 알림 순서 (2026-11 흐름 고침): 사건을 마치고 "마침 카드"가 열려 닫힐 때까지 시스템 알림(등잔·오늘의 마을 등)은 미뤘다가 카드 뒤에 차례로
   //   마침 카드 → (닫으면) 알림들 → 마을 졸업/기다림 안내
   let holding = false;
@@ -133,18 +168,19 @@ export function initFlow(cfg) {
     if (run) quit(true);
     if (er.running()) { er.stop(); toast('하던 부탁은 그만두었어요. 이야기를 마친 뒤 다시 받을 수 있어요', 4); }
     trials.reset(); modes.cancel();
-    run = { ev: e, steps: e.steps(X), i: 0, r: {}, sky: null };
+    run = { ev: e, steps: e.steps(X), i: 0, r: {}, sky: null, role: e.role || '' };
     addMode(e.id, 'l'); save(); // 듣기는 증인의 말을 들었을 때
     e.begin?.(X);
     sfx('tap', 0.2, 1.2);
     startStep();
   }
+  const remember = () => ssSet(RUN_KEY, run ? JSON.stringify({ id: run.ev.id, i: run.i, t: Date.now() }) : null); // 하던 사건 (이번 탭)
   function startStep() {
     const s = curStep(); if (!s) return;
     run.r = {};
     const myRun = run, myI = run.i;
     s.enter?.(run.r, () => { if (run === myRun && run.i === myI) advance(); });
-    updateChip();
+    updateChip(); remember();
   }
   function advance() {
     const s = curStep();
@@ -180,7 +216,8 @@ export function initFlow(cfg) {
   }
   function quit(silent) {
     if (!run) return;
-    const e = run.ev; run = null;
+    const e = run.ev; run = null; remember();
+    X.storyClear?.(); // 줄에 남은 증인 말·해설은 버림
     if (ui.isOpen()) ui.close(); // 사건 자리의 짧은 대화 창이 떠 있었으면 함께 닫음
     cleanup(e); resetNpcs(e);
     fire('quit', e, isDone(e));
@@ -188,7 +225,7 @@ export function initFlow(cfg) {
     if (!silent) toast(`"${e.title}"을(를) 그만두었어요. ${e.who}에게 다시 말을 걸면 처음부터 할 수 있어요`, 4);
   }
   function complete() {
-    const e = run.ev; run = null;
+    const e = run.ev, role = run.role || e.role || ''; run = null; remember();
     cleanup(e);
     const first = !isDone(e);
     addMode(e.id, 'lra');
@@ -221,7 +258,7 @@ export function initFlow(cfg) {
     const showDone = () => {
       if (busy() || ui.isOpen() || !inTown()) { setTimeout(showDone, 800); return; } // 다른 창이 닫힐 때까지 (마을을 떠났으면 돌아올 때)
       ui.open({
-        who: e.who, sub: `${e.title} · 마침`, text: msg, note: [got, '깊이 보기(공부·암송·묵상)는 언제든 이 증인에게 다시 말을 걸면 해요.'].filter(Boolean).join(' · '),
+        who: e.who, sub: `${e.title} · 마침`, badge: role, text: msg, note: [got, '깊이 보기(공부·암송·묵상)는 언제든 이 증인에게 다시 말을 걸면 해요.'].filter(Boolean).join(' · '),
         buttons: [{ t: '감사해요', cls: 'next' }],
         onClose: () => {
           holding = false;
@@ -229,10 +266,58 @@ export function initFlow(cfg) {
           setTimeout(flushNotices, 600); // 말씀 카드(일곱 등불)가 뜨면 그 뒤로 알림이 차례로
           if (grad) setTimeout(graduate, 800);
           else if (first && allDone()) setTimeout(() => toast(guide.waitToast, 6), 800);
+          else if (first) { const nx = nextEv(); if (nx) setTimeout(() => bridge(nx), 1800); } // 알림들 뒤 1.2초쯤 다음 이야기 카드 (S5)
         },
       });
     };
     setTimeout(showDone, 2200);
+  }
+  // 다음 이야기 카드 (2026-11 구조 고침 S5): 왜 그곳에 가는지(bridge)와 어떻게 가는지. 먼 길이고 병거 삯이 있으면 병거 단추
+  function bridge(nx) {
+    if (!inTown() || isDone(nx)) return;
+    if (busy() || ui.isOpen()) { setTimeout(() => bridge(nx), 800); return; }
+    const n = N[nx.npc], zid = zoneOf(nx);
+    const far = zoneHere() !== zid && dist(n) > 60 && (profile.bag?.chariot | 0) > 0 && !!ride;
+    ui.open({
+      who: '이야기', sub: '다음 이야기',
+      text: `${nx.bridge ? nx.bridge + ' ' : ''}다음은 "${nx.title}"${josa(nx.title, '이에요', '예요')}. ${ZONES[zid].name}의 ${nx.who}에게 가요.`,
+      buttons: [
+        { t: '나중에', cls: 'later' },
+        ...(far ? [{ t: `병거 타기 (삯 ${profile.bag.chariot | 0})`, cls: 'ride', fn: () => ride(zid) }] : []),
+        { t: '걸어가기', cls: 'next', fn: () => goTo(n) },
+      ],
+    });
+  }
+
+  // ---------- 돌아왔을 때 되짚기 (2026-11 구조 고침 S4) ----------
+  //   마을에 들어온 뒤 1.5초: 하던 사건이 있으면(이번 탭, 새로고침) "처음부터 다시" 묻기 → 아니면 마친 사건이 있고 졸업 전이면 안내자의 되짚기 카드 (탭마다 한 번)
+  let arriveT = 0;
+  function onArrive() {
+    clearTimeout(arriveT);
+    arriveT = setTimeout(() => resumeCard(0), 1500);
+  }
+  function resumeCard(waited) {
+    if (!inTown()) return;
+    let saved = null; try { saved = JSON.parse(ssGet(RUN_KEY) || 'null'); } catch (e) { saved = null; }
+    const e = saved && EV[saved.id];
+    if (!e || isDone(e) || !isOpen(e) || run) { ssSet(RUN_KEY, null); return recapCard(waited); }
+    if (busy() || ui.isOpen()) { if (waited < 20000) arriveT = setTimeout(() => resumeCard(waited + 800), 800); return; }
+    ui.open({
+      who: e.who, sub: e.title, badge: e.role || '',
+      text: `아까 "${e.title}"${josa(e.title, '을', '를')} 하던 중이었어요. 처음부터 다시 같이 해 볼까요? 금방 따라잡아요.`,
+      buttons: [{ t: '나중에', cls: 'later', fn: () => { ssSet(RUN_KEY, null); recapCard(0); } }, { t: '처음부터 다시', cls: 'next', fn: () => begin(e) }],
+    });
+  }
+  function recapCard(waited) {
+    if (!inTown() || run || ssGet(RECAP_KEY) === '1') return;
+    const last = lastDone(), nx = nextEv(), done = doneN();
+    if (!last || !nx || !done || store().mark === '졸업' || allDone()) return; // 첫 방문(마친 사건 0)은 안내 세 장면이 맡음
+    if (busy() || ui.isOpen()) { if (waited < 20000) arriveT = setTimeout(() => recapCard(waited + 800), 800); return; }
+    ssSet(RECAP_KEY, '1');
+    const tail = `다음은 "${nx.title}"${josa(nx.title, '이에요', '예요')}. ${ZONES[zoneOf(nx)].name}의 ${nx.who}에게 가 봐요.`;
+    let text = `지난번엔 "${last.title}"까지 걸었어요 (${done}/${ORDER.length}). ${last.recap ? last.recap + ' ' : ''}${tail}`;
+    if (text.length > 90) text = `지난번엔 "${last.title}"까지 걸었어요 (${done}/${ORDER.length}). ${tail}`;
+    ui.open({ who: guide.who, sub: '지난번 이야기', text, buttons: [{ t: '알겠어요', cls: 'later' }, { t: '그곳으로 가기', cls: 'next', fn: () => goTo(N[nx.npc]) }] });
   }
 
   // 마을 졸업 카드 (마을이 guide.graduation()으로 글을 줌)
@@ -262,17 +347,25 @@ export function initFlow(cfg) {
     };
     const seat = seatOf(e);
     const others = evsOf(e.npc).filter((o) => o !== e && isDone(o)); // 같은 증인의 다른 이야기
-    ui.open({
-      who: e.who, sub: `${e.title} · 깊이 보기`, text: `다시 와 주었군요! 이 이야기를 더 깊이 볼까요? ${modeMarks(e.id)}`,
+    // 단추 정리 (2026-11 구조 고침 S8): 첫 말풍선은 셋(+부탁), 공부·암송·묵상·본문·다른 이야기는 "더 깊이 보기" 안에
+    const menu = () => ui.open({
+      who: e.who, sub: `${e.title} · 깊이 보기`, text: '어떤 것을 해 볼까요?', note: modeMarks(e.id),
       buttons: [
-        { t: '나중에', cls: 'later' },
-        ...er.buttons(e.npc), // 작은 부탁 (그 사건을 마친 뒤)
-        ...others.map((o) => ({ t: `"${o.title}" 깊이 보기`, fn: () => deep(o) })),
+        { t: '돌아가기', cls: 'later', fn: () => deep(e) },
         { t: '본문 읽기', fn: () => { X.verse(e.read, e.title); } },
-        { t: '다시 하기', fn: () => begin(e) },
         { t: `${m.includes('s') ? '✓ ' : ''}공부`, fn: () => modes.study(e, fin('s', '공부')) },
         { t: `${m.includes('m') ? '✓ ' : ''}암송`, fn: () => modes.memo(e, fin('m', '암송')) },
         { t: `${m.includes('d') ? '✓ ' : ''}묵상`, cls: 'next', fn: () => modes.meditate(e, seat, fin('d', '묵상')) },
+        ...others.map((o) => ({ t: `"${o.title}" 이야기`, fn: () => deep(o) })),
+      ],
+    });
+    ui.open({
+      who: e.who, sub: `${e.title} · 다시 만나요`, text: '다시 와 주었군요! 이 이야기를 더 볼까요?', note: modeMarks(e.id),
+      buttons: [
+        { t: '나중에', cls: 'later' },
+        { t: '다시 하기', fn: () => begin(e) },
+        { t: '더 깊이 보기 ▸', cls: 'next', fn: menu },
+        ...er.buttons(e.npc), // 작은 부탁 (그 사건을 마친 뒤)
       ],
     });
   }
@@ -280,7 +373,7 @@ export function initFlow(cfg) {
     const n = N[e.npc];
     if (run && run.ev === e) {
       if (run.r.closed && curStep()?.enter) { startStep(); return; } // 닫힌 시험 창 다시 열기
-      ui.open({ who: e.who, sub: `${e.title} · ${run.i + 1}/${run.steps.length}`, text: hintOf(), buttons: [{ t: '그만두기', cls: 'later', fn: () => quit() }, { t: '알겠어요', cls: 'next' }] });
+      ui.open({ who: e.who, sub: `${e.title} · ${run.i + 1}/${run.steps.length}`, badge: roleOf(e), text: hintOf(), buttons: [{ t: '그만두기', cls: 'later', fn: () => quit() }, { t: '알겠어요', cls: 'next' }] });
       return;
     }
     if (run) { ui.open({ who: e.who, sub: e.title, text: `지금은 "${run.ev.title}"을(를) 따라가고 있군요. 그 일을 마치고 다시 와 주세요.`, buttons: [{ t: '알겠어요', cls: 'next' }] }); return; }
@@ -292,7 +385,7 @@ export function initFlow(cfg) {
     }
     if (isDone(e)) return deep(e);
     ui.open({
-      who: e.who, sub: `${book} ${e.ch} · ${e.title}`, text: e.listen, note: rewardNote(e),
+      who: e.who, sub: `${book} ${e.ch} · ${e.title}`, badge: roleOf(e), text: e.listen, note: rewardNote(e),
       buttons: [{ t: '🔈 읽어 주기', cls: 'speak', keep: true, fn: () => speak(e.listen) }, { t: '나중에', cls: 'later' }, { t: '따라 해 보기', cls: 'next', fn: () => begin(e) }],
     });
     n.face = Math.atan2(me.x - n.x, me.z - n.z);
@@ -315,7 +408,24 @@ export function initFlow(cfg) {
     const e = EV[guide.ev];
     if (!isDone(e) && !(run && run.ev === e) && !introSeen()) return intro(0);
     if (!isDone(e) || (run && run.ev === e)) return talkWitness(e);
-    const bookLine = ORDER.map((id) => `${EV[id].title} ${isDone(EV[id]) ? (gold(id) ? '★' : '✓') : isOpen(EV[id]) ? '…' : '·'}`).join(' · ');
+    // 마을 기록장 (S8): 첫 말풍선에는 한 줄 요약, 펼치면 22줄 목록 (폰에서 스크롤)
+    const goldN = ORDER.filter((id) => gold(id)).length;
+    const bookLine = `마을 기록장: 마친 이야기 ${doneN()}/${ORDER.length} · 금빛 ★ ${goldN}`;
+    const book = () => {
+      const ol = document.createElement('ol'); ol.className = 'book';
+      ol.innerHTML = ORDER.map((id) => { const x = EV[id], d = isDone(x); return `<li class="${d ? (gold(id) ? 'gold' : 'done') : isOpen(x) ? 'open' : 'off'}"><span>${x.title}</span><em>${d ? (gold(id) ? '★' : '✓') : isOpen(x) ? '…' : '·'}</em></li>`; }).join('');
+      ui.open({ who: guide.who, sub: guide.bookSub, text: `마친 이야기 ${doneN()}/${ORDER.length} · 금빛 ★ ${goldN}. ★은 듣기·읽기·적용·공부·암송·묵상을 다 채운 이야기예요.`, extra: ol, buttons: [{ t: '닫기', cls: 'next' }] });
+    };
+    const more = () => ui.open({
+      who: guide.who, sub: guide.bookSub, text: '무엇을 해 볼까요?',
+      buttons: [
+        { t: '돌아가기', cls: 'later', fn: () => talkGuide() },
+        { t: `${e.title} 깊이 보기`, fn: () => deep(e) },
+        ...(guide.intro ? [{ t: '마을 안내 다시 듣기', fn: () => intro(0, true) }] : []),
+        { t: '마을 기록장 펼치기', cls: 'next', fn: book },
+        ...er.buttons(guide.key),
+      ],
+    });
     if (allDone()) {
       // 다른 기기 기록을 합쳐 다 마치게 된 경우: 여기서 졸업 표지를 세우고 졸업 카드부터
       if (store().mark !== '졸업') { store().mark = '졸업'; save(); onChange?.(); graduate(); return; }
@@ -323,17 +433,17 @@ export function initFlow(cfg) {
       const c = guide.end();
       ui.open({
         who: guide.who, sub: c.sub, quote: c.quote, text: c.text,
-        note: `마을 기록장: ${bookLine}`,
-        buttons: [...er.buttons(guide.key), { t: `${e.title} 깊이 보기`, fn: () => deep(e) }, ...(guide.intro ? [{ t: '마을 안내 다시 듣기', fn: () => intro(0, true) }] : []), { t: '감사해요', cls: 'next' }],
+        note: bookLine,
+        buttons: [{ t: '더 보기 ▸', fn: more }, { t: '감사해요', cls: 'next' }],
       });
       return;
     }
     const nx = nextEv();
     ui.open({
       who: guide.who, sub: guide.bookSub,
-      text: nx ? `다음 이야기는 "${nx.title}"예요. ${ZONES[nx.start || nx.zone].name}의 ${nx.who}에게 가 보세요. 금빛 기둥이 그 자리를 비춰요.` : '지금 따라갈 이야기가 없어요. 쉬어 가요.',
-      note: `마을 기록장: ${bookLine}`,
-      buttons: [...er.buttons(guide.key), { t: `${e.title} 깊이 보기`, fn: () => deep(e) }, ...(guide.intro ? [{ t: '마을 안내 다시 듣기', fn: () => intro(0, true) }] : []), { t: '알겠어요', cls: 'next' }],
+      text: nx ? `다음 이야기는 "${nx.title}"${josa(nx.title, '이에요', '예요')}. ${ZONES[nx.start || nx.zone].name}의 ${nx.who}에게 가 보세요. 금빛 기둥이 그 자리를 비춰요.` : '지금 따라갈 이야기가 없어요. 쉬어 가요.',
+      note: bookLine,
+      buttons: [{ t: '더 보기 ▸', fn: more }, { t: '알겠어요', cls: 'next' }],
     });
   }
 
@@ -374,7 +484,7 @@ export function initFlow(cfg) {
     // 제목 · 할 일 · 어디 (카드 모양: 말줄임 없이 접혀 보임). 글 하나만 주면 그대로
     let t = '', h, w;
     if (inTown()) {
-      if (run) { const s = curStep(); t = `${run.ev.title} · ${run.i + 1}/${run.steps.length}`; h = hintOf(); w = s?.where ? `어디: ${s.where}` : ''; }
+      if (run) { const s = curStep(), role = roleOf(run.ev); t = `${run.ev.title} · ${run.i + 1}/${run.steps.length}${role ? ` · 나는 ${role}` : ''}`; h = hintOf(); w = s?.where ? `어디: ${s.where}` : ''; }
       else if (er.running()) t = er.chip();
       else if (modes.active()) t = modes.progress();
       else {
@@ -411,7 +521,7 @@ export function initFlow(cfg) {
   };
 
   // ---------- 매 프레임 ----------
-  let lastT = 0, chipT = 0, wasTown = inTown();
+  let lastT = 0, chipT = 0, wasTown = inTown(), wasHere = false;
   function step() {
     const now = performance.now(), dt = lastT ? Math.min(0.25, (now - lastT) / 1000) : 0; lastT = now; // 실제 흐른 시간 (헤드리스에서도 같게)
     const town = inTown();
@@ -423,6 +533,7 @@ export function initFlow(cfg) {
       trials.away(!town);
       fire('away', !town);
     }
+    if (town !== wasHere) { wasHere = town; if (town) onArrive(); else clearTimeout(arriveT); } // 들어올 때마다 (처음 지을 때 이미 마을 안이면 그때도)
     fire('pre', dt, town, now);
     people.step(town);
     fire('frame', dt, town, now);
@@ -458,6 +569,7 @@ export function initFlow(cfg) {
     const k = best.key;
     const ev = evsOf(k).length ? (run && run.ev.npc === k ? run.ev : relEv(k)) : null;
     if (st && [].concat(st.talk || []).includes(k) && !(st.told && st.told(run.r, k))) offerTalk(talkKey + k, best, () => { const myRun = run, myI = run.i; st.open(run.r, () => { if (run === myRun && run.i === myI) advance(); }, k, best); });
+    else if (st && [].concat(st.talk || []).includes(k)) offerTalk(talkKey + k, best, () => ui.open({ who: best.name, sub: run.ev.title, text: toldAgain, buttons: [{ t: '알겠어요', cls: 'next' }] })); // 이미 전한 사람 (S4)
     else if (ew.includes(k)) offerTalk(talkKey + k, best, () => { best.face = Math.atan2(me.x - best.x, me.z - best.z); er.openTalk(k, best); ui.anchor(best); });
     else if (k === guide.key) offerTalk(talkKey + k, best, () => { talkGuide(); ui.anchor(best); });
     else if (ev) offerTalk(talkKey + k, best, () => { talkWitness(ev); ui.anchor(best); });
@@ -474,6 +586,7 @@ export function initFlow(cfg) {
     use(sys) { plugged.push(sys); return () => { const i = plugged.indexOf(sys); if (i >= 0) plugged.splice(i, 1); }; },
     active: () => ui.isOpen(),
     notice, // 알림을 사건 마침 카드 뒤로 미룸 (카드가 없으면 바로). 오늘의 마을 등 공용 장치가 씀
+    holding: () => holding, // 마침 카드가 열려 닫히기를 기다리는 동안 (main.js가 시스템 알림을 미루는 데 씀, S3)
     get run() { return run; }, N, EV, ui, X, modes, trials,
     debug: { begin: (id) => begin(EV[id]), advance, complete: () => run && complete() },
     // 마을 엔진(사건 도구)이 쓰는 것

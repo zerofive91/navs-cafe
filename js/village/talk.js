@@ -1,5 +1,6 @@
 // 마을 사건 말풍선·속삭임·진행 칩 (마을 공용, 2026-11 사도행전 0-가: js/john/engine.js에서 그대로 옮김)
 //   createTalk: 증인 말풍선 (사건·시험·모드·부탁이 함께 씀). spec = { who, sub, text, quote(구절 키), note, opts[{t, ok, why}], buttons[{t, cls, keep, fn}], extra(요소), dark(시험), onPick, onClose }
+//   spec.badge: 역할 배지 (2026-11 구조 고침 S6) — 이름 오른쪽에 "오늘 나는 ○○" 작은 띠. 사건의 role 글이 있을 때만
 //   createWhisper: 걸으며 하는 시험의 속삭임 한 줄 · createChip: 왼쪽 위 "지금 할 일" 카드 (누르면 부탁 창, 말줄임 없이 접혀 보임)
 //   spec.soft: 시험(옵션 고르기)의 "가벼운" 모양 — 어두운 보라 말풍선(dark) 대신 따뜻한 말풍선(.soft, 금빛 테두리). 기쁜 장면용. 닫으면 다시 열리는 것·말씀 카드 숨김은 dark와 같음
 //   id는 마을마다 (요한: #jtalk · #jwhisper · #johnChip). 한 화면에 마을 엔진이 여럿이라 id가 겹치지 않게 마을이 정함
@@ -15,10 +16,11 @@ export function createTalk({ id, cls }) {
   let spec = null;
   const ui = {
     open(s) {
+      if (spec && spec !== s) { const old = spec; spec = null; old.onClose?.(); } // 열린 말풍선 위에 새 말풍선: 앞 것의 뒷일(이야기 줄 다음 항목 등)은 그대로 이어지게
       spec = s;
       box.className = cls + (s.dark ? ' trial' : '') + (s.soft ? ' soft' : '');
       const q = s.quote && VERSES[s.quote];
-      box.innerHTML = `<div class="who"><b>${esc(s.who)}</b><span class="n">${esc(s.sub || '')}</span></div>
+      box.innerHTML = `<div class="who"><b>${esc(s.who)}</b>${s.badge ? `<em class="badge">오늘 나는 ${esc(s.badge)}</em>` : ''}<span class="n">${esc(s.sub || '')}</span></div>
         <p class="say">${esc(s.text)}${q ? `<small>${esc(q[0])} (${esc(q[1])})</small>` : ''}</p>
         ${s.note ? `<p class="note">${esc(s.note)}</p>` : ''}
         ${s.opts ? `<div class="opts">${s.opts.map((o, i) => `<button class="opt" data-o="${i}"><kbd>${i + 1}</kbd><span>${esc(o.t)}</span></button>`).join('')}</div><p class="why" hidden></p>` : ''}

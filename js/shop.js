@@ -169,6 +169,14 @@ export function initShop(K) {
     trip.hidden = true;
     go(b.dataset.to, b.textContent);
   });
+  // 밖에서 부르는 병거 (마을 엔진의 "다음 이야기" 카드, 2026-11 S5): 이 마을 trips의 id로. 삯·장면은 고르기 창과 같음
+  function rideTo(id) {
+    const n = placesHere().find(([i]) => i === id)?.[1];
+    if (!n) { toast('이 마을에서는 병거를 쓸 수 없어요', 3); return false; }
+    if (!(profile.bag?.chariot > 0)) { toast('병거 삯이 없어요. 루디아의 가게에서 살 수 있어요', 3.5); return false; }
+    if (me.climb) { toast('먼저 나무에서 내려와요', 3); return false; }
+    go(id, n); return true;
+  }
   function go(id, name) {
     const at = placeOf(id); if (!at) return; // 삯을 쓰기 전에 확인
     if (!useGood(profile, 'chariot')) return;
@@ -216,7 +224,7 @@ export function initShop(K) {
   }
 
   return {
-    open, openGoods, close, use, shekel, lydia,
+    open, openGoods, close, use, shekel, lydia, rideTo,
     salveOn: () => performance.now() < salveUntil, // 안약 효과가 켜져 있는가 (마을의 두루마리 조각 빛기둥이 읽음)
     available: () => (near() && me.state !== 'walk' && !busy?.() ? [['shop', 'shop']] : []),
     actions: { shop: open },

@@ -259,13 +259,13 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
   });
 
   // ---------- 사건 단계 도구 (공용 도구는 js/village/flow.js townTools) ----------
-  const T = townTools({ me, toast, standUp, shot, people, beacon, run: runNow });
+  const T = townTools({ me, toast, standUp, shot, people, beacon, run: runNow, ui, busy }); // ui: 증인 말·해설이 한 줄로 말풍선에 (S3)
   const X = {
     me, P: SP, parts, center: PLAZA_LIGHT, toast, sfx, burst,
     near: T.near, sitting: T.sitting, praying: T.praying, verse: T.verse, sky: T.sky,
     lake: LAKE_AT,
     carry, carrying: () => hands.kind() === 'jar',
-    say: T.say,
+    say: T.say, tell: T.tell, storyClear: T.storyClear, // role은 flow가 넣음 (X.role)
     walkNpc: T.walkNpc, follow: T.follow, unfollow: T.unfollow, dn: T.dn, npcAt: T.npcAt,
     trial: null,
     apron: setApron, jarsReset, jarsFull, nextJar, nearJar, fillJar, wine, cheer, dropFx,
@@ -322,7 +322,9 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
   // ---------- 사건 진행·마침·졸업·말 걸기 (js/village/flow.js). 여기에는 요한 마을의 글과 자리만 ----------
   const signsN = () => ORDER.filter((id) => EV[id].sign && flow.isDone(EV[id])).length;
   flow = initFlow({
-    me, profile, save, onChange, toast, sfx, burst, busy, standUp, inTown,
+    me, profile, save, onChange, toast, sfx, burst, busy, standUp, inTown, walkTo,
+    ride: (zone) => K.shop?.()?.rideTo?.('j:' + zone), // 다음 이야기 카드의 병거 타기 (shop.js rideTo, 삯은 루디아 가게 값 그대로)
+    town: 'john',
     ui, chip, whisper, sky, beacon, people, X, EV, ORDER, openOrder: JOHN_EVENTS, store: J, trials, modes, er, ER, SP, ZONES,
     name: '요한복음 마을', book: '요한복음', talkKey: 'jn:', endKey: END_SEEN, introKey: INTRO_SEEN, acts: JN_ACTS,
     greet: GREET, errandTitle: '증인의 작은 부탁', quietAgain: '다시 걸어 주었군요. 그 밤과 그 아침을 다시 기억했어요',
