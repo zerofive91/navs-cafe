@@ -96,7 +96,7 @@ export function initCharacter({ me, look, profile, save, rebuild, view, toast, o
   //   탈것을 갖추었으면 카페 안에 있어도 탄 모습으로 찍음
   const drawMe = (card) => { const cv = card.querySelector('canvas.me'); if (cv && portrait) setTimeout(() => { try { cosApi?.preview(me.state !== 'sit'); poseAvatar(me.av, me, performance.now() / 1000, 0); portrait(cv); } catch (e) { /* 못 찍으면 빈 칸 */ } finally { cosApi?.preview(false); } }, 60); };
   // 꾸미기 (날개·탈것·머리 장식): 가진 것만 단추로, 없으면 가게 안내
-  const cosButtons = () => { const mine = Object.keys(COS).filter((id) => cosApi?.owned(id)); return mine.length ? COS_KINDS.map(([k]) => mine.filter((id) => COS[id].kind === k).map((id) => { const on = cosApi.worn(id); return `<button data-cos="${id}" class="${on ? 'on' : ''}">${COS[id].name}${on ? ' ✓' : ''}</button>`; }).join('')).join('') : `<span class="none">날개·탈것·머리 장식은 정원 동쪽 루디아의 가게 '꾸미기'에서 살 수 있어요</span>`; };
+  const cosButtons = () => { const mine = Object.keys(COS).filter((id) => cosApi?.owned(id)); return mine.length ? COS_KINDS.map(([k]) => mine.filter((id) => COS[id].kind === k).map((id) => { const on = cosApi.worn(id); return `<button data-cos="${id}" class="${on ? 'on' : ''}">${COS[id].name}${on ? ' ✓' : ''}</button>`; }).join('')).join('') : `<span class="none">날개·탈것·머리 장식은 간식 가게 곁 루디아의 가게 '꾸미기'에서 살 수 있어요</span>`; };
   // ---------- '오늘 말씀' 탭 (2026-11, met.js): 오늘 화면에 떠오른 말씀 모음. 누르면 전문(지금 번역), 복사는 개역한글 ----------
   let cardTab = 'me';
   const md = (d) => { const [, m, dd] = d.split('-'); return `${+m}월 ${+dd}일`; };
@@ -153,7 +153,7 @@ export function initCharacter({ me, look, profile, save, rebuild, view, toast, o
       <div class="items cos">${cosButtons()}</div><p class="does cosdoes"></p>
       ${Object.keys(profile.pets || {}).length ? `<p class="lb">돌본 동물</p><div class="items pets">${Object.entries(PETS).filter(([id]) => profile.pets[id]).map(([id, pt]) => { const tame = profile.pets[id] >= 3, on = profile.pet === id; return `<button data-pet="${id}" class="${on ? 'on' : tame ? '' : 'locked'}">${pt.name}${tame ? (on ? ' · 함께' : ' · 데리고 다니기') : ` ${profile.pets[id]}/3`}</button>`; }).join('')}</div>` : ''}
       <p class="lb">지갑</p>
-      <p class="purse">${fmtMoney(profile.coins)}${Object.keys(profile.bag || {}).length ? '' : ' <span>· 정원 동쪽 루디아의 가게에서 쓸 수 있어요</span>'}</p>
+      <p class="purse">${fmtMoney(profile.coins)}${Object.keys(profile.bag || {}).length ? '' : ' <span>· 간식 가게 곁 루디아에게서 쓸 수 있어요</span>'}</p>
       ${Object.keys(profile.bag || {}).length ? `<div class="items goods">${Object.entries(profile.bag).map(([id, n]) => `<button data-use="${id}">${GOODS[id] ? GOODS[id].name : id} ${n}${{ spice: ' · 피우기', chariot: ' · 타기', donkey: ' · 타기', salve: ' · 바르기' }[id] || ''}</button>`).join('')}</div>` : ''}
       <p class="lb">받은 것</p>
       <div class="items">${profile.items.length ? profile.items.map((id) => `<button data-item="${id}">${ITEMS[id] ? ITEMS[id].name : id}</button>`).join('') : '<span class="none">아직 없어요</span>'}</div>

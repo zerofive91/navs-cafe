@@ -1672,7 +1672,7 @@ stillness = initStillness({ me, profile, save: () => saveProfile(profile), busy:
 Object.assign(ACTIONS, stillness.actions);
 // 오늘 만난 말씀 (2026-11, js/met.js): 화면에 떠오른 말씀을 하루치 모아 내 카드 '오늘 말씀' 탭에
 onVerseShown((key) => { if (recordMet(profile.met, key)) saveProfile(profile); });
-const scrolls = initScrolls({ scene, me, sfx, fxSprite, burst, icon: ICONS.scroll });
+const scrolls = initScrolls({ scene, me, sfx, fxSprite, burst, icon: ICONS.scroll, toast });
 // 마을 사이 다니기: 정원 길목의 수레 ↔ 요한복음 마을 (2026-11). 마을마다 하늘·안개, 지도, 함께 있는 사람이 바뀜
 const ENV0 = { fog: null, near: 0, far: 0, hemiSky: hemi.color.clone(), hemiGround: hemi.groundColor.clone() };
 function setEnv(env) {

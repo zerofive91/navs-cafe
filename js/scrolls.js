@@ -33,7 +33,7 @@ const KEY = 'navs-cafe-scrolls';
 function load() { try { return new Set(JSON.parse(localStorage.getItem(KEY) || '[]')); } catch (e) { return new Set(); } }
 function save(s) { try { localStorage.setItem(KEY, JSON.stringify([...s])); } catch (e) { /* 무시 */ } }
 
-export function initScrolls({ scene, me, sfx, fxSprite, burst, icon }) {
+export function initScrolls({ scene, me, sfx, fxSprite, burst, icon, toast }) {
   const got = load();
   const paper = new THREE.MeshStandardMaterial({ color: 0xf6e7c4, roughness: 0.7, emissive: 0xffd58a, emissiveIntensity: 0.35 });
   const rod = new THREE.MeshStandardMaterial({ color: 0x9a6a3e, roughness: 0.6 });
@@ -53,11 +53,14 @@ export function initScrolls({ scene, me, sfx, fxSprite, burst, icon }) {
     return { g, glow, k, p };
   });
   // 왼쪽 위 두루마리 표시: 모은 수
+  let shown = false;
   const chip = document.createElement('button');
   chip.id = 'scrollChip';
   chip.setAttribute('aria-label', 'scrolls');
+  chip.title = '숨은 두루마리';
   document.body.appendChild(chip);
-  const paint = () => { chip.innerHTML = icon + `<span>${got.size}/${SCROLLS.length}</span>`; chip.classList.toggle('done', got.size === SCROLLS.length); };
+  // 첫 두루마리를 찾기 전에는 칩을 숨김(무엇인지 모르는 숫자). 처음 찾으면 알림 뒤에 나타남
+  const paint = () => { chip.style.display = got.size || shown ? '' : 'none'; chip.innerHTML = icon + `<span>${got.size}/${SCROLLS.length}</span>`; chip.classList.toggle('done', got.size === SCROLLS.length); };
   paint();
   chip.addEventListener('pointerdown', (e) => {
     e.stopPropagation();
@@ -78,7 +81,9 @@ export function initScrolls({ scene, me, sfx, fxSprite, burst, icon }) {
         it.glow.material.opacity = 0.5 + Math.sin(t * 3 + it.k) * 0.25;
         if (Math.hypot(me.x - it.p.x, me.z - it.p.z) < 1.2) {
           it.g.visible = false;
-          got.add(it.k); save(got); paint();
+          const first = got.size === 0;
+          got.add(it.k); save(got);
+          if (first) { toast?.('숨은 두루마리를 찾았어요! 정원에 12개가 숨어 있어요', 5); setTimeout(() => { shown = true; paint(); }, 1200); } else paint();
           burst(it.p.x, 0.4, it.p.z); sfx('share', 0.3);
           if (got.size === SCROLLS.length) {
             VERSES.__scrollAll = ['이 예언의 말씀을 읽는 자와 듣는 자들과 그 가운데 기록한 것을 지키는 자들이 복이 있나니 때가 가까움이라', '요한계시록 1:3'];

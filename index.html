@@ -24,10 +24,9 @@
     <span class="art" aria-hidden="true"></span>
     <span class="veil" aria-hidden="true"></span>
     <span class="title"><small>Navigators</small>Wheel Life <br>Cafe</span>
-    <!-- 들어가는 방법: 혼자 / 함께(랜덤) / 초대 링크. 초대 링크로 오면 문 하나만 보임 -->
+    <!-- 들어가는 방법: 혼자(기본) / 모임(번호) / 초대 링크. 초대 링크로 오면 문 하나만 보임. 낯선 사람과 만나는 "다같이"(random) 단추는 뺐음(js/together.js 경로는 남아 있으나 쓰이지 않음) -->
     <div class="modes" role="group" aria-label="들어가기">
-      <button class="mode" data-mode="solo"><span class="ring"><svg viewBox="0 0 32 32" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="16" cy="10" r="4"/><path d="M8 27v-3a8 8 0 0 1 16 0v3"/></svg></span><span>혼자</span></button>
-      <button class="mode main" data-mode="random"><span class="ring"><svg viewBox="0 0 32 32" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="16" cy="9" r="3.4"/><circle cx="7.5" cy="13" r="2.8"/><circle cx="24.5" cy="13" r="2.8"/><path d="M10 27v-3a6 6 0 0 1 12 0v3"/><path d="M3 26v-2a4.5 4.5 0 0 1 7-3.7M29 26v-2a4.5 4.5 0 0 0-7-3.7"/></svg></span><span>다같이</span></button>
+      <button class="mode main big" data-mode="solo"><span class="ring"><svg viewBox="0 0 32 32" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="16" cy="10" r="4"/><path d="M8 27v-3a8 8 0 0 1 16 0v3"/></svg></span><span>혼자</span></button>
       <button class="mode" data-mode="invite"><span class="ring"><svg viewBox="0 0 32 32" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="5" width="20" height="22" rx="3"/><path d="M11 11h2M15 11h2M19 11h2M11 16h2M15 16h2M19 16h2M11 21h2M15 21h2M19 21h2"/></svg></span><span>모임</span></button>
       <button class="mode main big" data-mode="invite" data-arrive hidden><span class="ring"><svg viewBox="0 0 32 32" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 28V8a7 7 0 0 1 14 0v20M5 28h22"/><circle cx="19" cy="18" r="1" fill="currentColor"/></svg></span><span>초대받은 카페</span></button>
     </div>

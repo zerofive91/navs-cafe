@@ -5,6 +5,7 @@ import { TRAILS, PARK, R_HALL, R_WALK, R_PARK, R_GARDEN, BRIDGE, FLOWER_BEDS, TE
 import { VILLAGES, village, destinations } from './villages/registry.js';
 import { COURSE_META, COURSE_STATIONS as STN, foundCourses } from './courses.js';
 import { stars } from './dungeon.js';
+import { jo } from './profile.js';
 import { nearestFree, findPath } from './nav.js';
 
 // 마을 (2026-11): 지금 있는 마을의 지도를 그림. 위쪽 "마을" 탭에 가 본 마을만 (다른 마을을 누르면 이 마을의 수레 곁으로)
@@ -95,7 +96,7 @@ export function initMap({ me, people, walkTo, say, icon, placesEl, before, towns
         e.stopPropagation();
         const q = nearestFree(M.pick(id));
         const path = q ? findPath(me, q) : [];
-        if (q && (path.length || Math.hypot(q.x - me.x, q.z - me.z) < 1)) { walkTo(me, q, null, path); shut(); say?.(nm + '(으)로 가요', 2); }
+        if (q && (path.length || Math.hypot(q.x - me.x, q.z - me.z) < 1)) { walkTo(me, q, null, path); shut(); say?.(nm + jo(nm, '으로', '로') + ' 가요', 2); }
         else say?.('그곳은 걸어서 갈 수 없어요', 2);
       });
       el.appendChild(b);

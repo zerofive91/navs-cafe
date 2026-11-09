@@ -49,6 +49,7 @@ export function createDialog({ id, cls = '', talking = true } = {}) {
     b.dataset.k = on.push(c.on) - 1;
     b.dataset.slot = slot;
     if (cls) b.className = cls;
+    if (c.soon) b.setAttribute('aria-disabled', 'true'); // 눌러도 안내만 하는 단추
     if (c.sub != null) { const t = document.createElement('b'), s = document.createElement('small'); t.textContent = c.label; s.textContent = c.sub; b.append(t, s); } else b.textContent = c.label;
     return b;
   };

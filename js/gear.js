@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import { setOutfit } from './avatar.js';
 import { R_PARK, FAR_X } from './layout.js';
-import { saveProfile } from './profile.js';
+import { jo, saveProfile } from './profile.js';
 import { initCosmetic } from './cosmetic.js';
 
 const done = (o) => Object.keys(o || {}).length;
@@ -32,7 +32,7 @@ export function initGear({ me, profile, scene, toast, sfx, burst, TIER }) {
   const tell = (list) => {
     const what = list.map((g) => `${g.why} ${g.name}`).join(', ');
     toast(list.length === 1
-      ? `${what}을(를) 받아 갖추었어요 (${list[0].verse[1]}). ${list[0].does}. 내 카드에서 벗을 수 있어요`
+      ? `${what}${jo(what, '을', '를')} 받아 갖추었어요 (${list[0].verse[1]}). ${list[0].does}. 내 카드에서 벗을 수 있어요`
       : `그동안 해 온 일로 장비 ${list.length}개를 받아 갖추었어요: ${what}. 내 카드에서 하나씩 보고 벗을 수 있어요`, 7 + list.length);
   };
   function check(first) {
@@ -79,7 +79,7 @@ export function initGear({ me, profile, scene, toast, sfx, burst, TIER }) {
     if (worn(id)) G.worn = G.worn.filter((x) => x !== id); else G.worn.push(id);
     saveProfile(profile); apply(true);
     const g = GEAR[id];
-    toast(worn(id) ? `${g.name}을(를) 갖추었어요 (${g.verse[1]}). ${g.does}` : `${g.name}을(를) 벗었어요`, 4);
+    toast(worn(id) ? `${g.name}${jo(g.name, '을', '를')} 갖추었어요 (${g.verse[1]}). ${g.does}` : `${g.name}${jo(g.name, '을', '를')} 벗었어요`, 4);
   }
   check(true); apply(true);
   return { step, toggle, worn, owned, full: () => ARMOR6.every(worn), apply };

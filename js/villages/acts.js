@@ -13,7 +13,7 @@ const zoneAt = (id) => (id === 'jerusalem'
 const LAND = Object.entries(ZONES).filter(([, z]) => !z.island);
 
 export default {
-  id: 'acts', name: '사도행전 마을', short: '사도행전', book: '사도행전', status: 'open',
+  id: 'acts', name: '사도행전 마을', short: '사도행전', book: '사도행전', status: 'open', soon: true, // soon: 1차가 머지되면 삭제. 수레는 '짓는 중'으로 막음 (결정 D2)
   region: REGION,
   cart: CART, // 다락방 광장 남쪽 끝 (x, z, rot, stand, arrive, look). 갈 곳은 등록부 destinations (초보자 마을·요한복음 마을)
   // 입장 조건: 요한 마을과 같음 (기획서 12장 결정 4 A: 정원 안내를 마친 사람 누구나, 요한 마을을 먼저 권함)
