@@ -941,7 +941,7 @@ export function addCourses(ctx) {
         me.x = p.x; me.z = p.z; me.y = G0; me.av.position.set(p.x, G0, p.z); me.path = []; me.state = 'idle';
         const ti = B.tries.indexOf(fall.t);
         me.slow = fall.slow || 0; fall = null;
-        showVerse('course-x-fall' + ti, { cooldown: 0, title: ['선행', '종교', '철학'][ti] + '의 다리로는 건널 수 없어요' });
+        showVerse('course-x-fall' + ti, { cooldown: 0, title: ['착한 일', '종교', '똑똑한 생각'][ti] + '의 다리로는 건널 수 없어요' });
       }
     }
   });

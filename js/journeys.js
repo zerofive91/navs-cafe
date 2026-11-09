@@ -730,13 +730,13 @@ export function journeySetup(K) {
   const standS = by('armor', 'stand')[0];
   if (standS) {
     let told = false;
-    const flee = () => { standS.foe.T = 0; hit('impactSoft_heavy_000', 0.4, 0.4); burst(me.x, me.y + 1.4, me.z); sfx('orb', 0.3, 0.8); emit('toast', ['마귀를 대적하니 어둠이 물러갔어요! (약 4:7)', 4]); setTimeout(() => showVerse('course-x-soldier', { cooldown: 0, title: '그리스도 예수의 좋은 군사' }), 6000); };
+    const flee = () => { standS.foe.T = 0; hit('impactSoft_heavy_000', 0.4, 0.4); burst(me.x, me.y + 1.4, me.z); sfx('orb', 0.3, 0.8); emit('toast', ['기도로 맞서니 어둠이 물러갔어요!', 4]); setTimeout(() => showVerse('course-x-soldier', { cooldown: 0, title: '그리스도 예수의 좋은 군사' }), 6000); };
     steps.push(() => {
       const F = standS.foe, d = dist(standS.g.position);
       if (F.T < 0 && F.g.visible && d < 7) {
         const h = pieces() || [];
         if (h.length >= 6 || me.action === 'pray' || me.action === 'slash' || me.action === 'worship' || me.action === 'praise') flee();
-        else if (!told) { told = true; emit('toast', ['어둠이 길을 막고 있어요. 하나님께 순복하며 기도하면(X 또는 기도 단추) 마귀가 물러가요', 6]); }
+        else if (!told) { told = true; emit('toast', ['어둠이 길을 막아요. 두 손 모은 단추를 눌러 기도해요 (X)', 6]); }
       }
       if (d > 60 && !F.g.visible) { F.g.visible = true; F.T = -1; F.g.position.set(0, 0.3, -2.6); F.g.scale.setScalar(1); told = false; }
     });
