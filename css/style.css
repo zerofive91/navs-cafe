@@ -754,6 +754,7 @@ body.at-door #enter { z-index: 100; }
 .npcb .pick button b { display: block; font-size: 15px; }
 .npcb .pick button small { display: block; color: #8a7458; font-size: 13px; margin-top: 2px; }
 .npcb .pick button:active { transform: scale(0.98); }
+.npcb .pick button.main { border-color: #e2b04e; background: #fff4d8; } /* 길 안내 "처음이면 여기" (T02 B1) */
 #map .guideMe { position: absolute; top: max(12px, env(safe-area-inset-top)); left: 14px; height: 44px; padding: 0 16px; border-radius: 22px; border: 0; background: #ffe9b8; color: #5a4128; font: 700 14px system-ui, sans-serif; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
 /* 가로 화면 (진짜 가로 또는 눕힌 화면, main.js resize가 html.land를 붙임) */
   html.land .npcb .pick { display: grid; grid-template-columns: repeat(3, 1fr); }

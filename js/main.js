@@ -41,6 +41,7 @@ import { escDialog } from './dialog.js';
 import { initRegion } from './region.js';
 import { VILLAGES, village, visitedTowns, lastTown } from './villages/registry.js';
 import { initCartGuide } from './cartguide.js';
+import { initBaseGuide } from './baseguide.js';
 
 const canvas = document.getElementById('cafe');
 const bar = document.getElementById('actions');
@@ -161,7 +162,7 @@ function makeChar(look, x, z) {
 const myLook = loadLook();
 let region = null; // 마을 사이 다니기 (region.js). 맨 아래에서 만듦
 let cartGuide = null; // 수레 안내인 (cartguide.js)
-let tut = null, character = null, training = null, dungeon = null, warfare = null, guides = null, garden = null, wayguide = null, quests = null, shop = null, gear = null, story = null, pets = null, questLog = null, stillness = null; // 안내와 캐릭터 창은 맨 아래에서 만듦
+let tut = null, character = null, training = null, dungeon = null, warfare = null, guides = null, garden = null, wayguide = null, quests = null, shop = null, gear = null, story = null, pets = null, questLog = null, stillness = null, baseGuide = null; // 안내와 캐릭터 창은 맨 아래에서 만듦
 const profile = loadProfile(); // 닉네임·걸음·받은 것·안내 기록 (이 기기 안에만)
 if (profile.name) myLook.name = profile.name;
 const me = makeChar(myLook, SPAWN.x, SPAWN.z);
@@ -988,9 +989,11 @@ HOTKEYS.Slash = () => toggleKeyHelp();
 HOTKEYS.F1 = () => toggleKeyHelp();
 { const esc = HOTKEYS.Escape; HOTKEYS.Escape = () => { if (document.getElementById('meCard')) character?.closeCard(); else if (!keyHelp.hidden) toggleKeyHelp(false); else if (leisure.photoOn()) leisure.togglePhoto(); else if (stillness?.active()) stillness.actions.stay(); else esc(); }; }
 let keyTipShown = false;
+const TOUCH = matchMedia('(hover: none)').matches; // 폰·태블릿: ? 키가 없음
 try { keyTipShown = localStorage.getItem('navs-cafe-keytip') === '1'; } catch (e) { /* 저장 안 됨 */ }
 window.addEventListener('keydown', (e) => {
-  if (!keyTipShown) { keyTipShown = true; try { localStorage.setItem('navs-cafe-keytip', '1'); } catch (er) { /* 저장 안 됨 */ } setTimeout(() => toast('? 키를 누르면 단축키 안내가 열려요', 4), 300); }
+  // ? 키 알림: 컴퓨터 키보드에서만, 이름을 쓰는 칸 밖에서 (폰에서 이름을 칠 때 뜨지 않게, T02 B1)
+  if (!keyTipShown && !TOUCH && !(e.target && /^(INPUT|TEXTAREA)$/.test(e.target.tagName))) { keyTipShown = true; try { localStorage.setItem('navs-cafe-keytip', '1'); } catch (er) { /* 저장 안 됨 */ } setTimeout(() => toast('? 키를 누르면 단축키 안내가 열려요', 4), 300); }
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (e.target && /^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return; // 이름을 쓰는 동안에는 단축키 쉼
   if (character?.isOpen()) return;
@@ -1357,6 +1360,7 @@ function frame(now) {
   story.step(dt, t);
   pets.step(dt);
   questLog?.step(dt);
+  baseGuide?.step(dt);
   region.step(dt);
   cartGuide?.step(dt);
   for (const n of npcs) { stepChar(n, dt); poseAvatar(n.av, n, t, dt); }
@@ -1707,7 +1711,9 @@ cartGuide = initCartGuide({ me, makeChar, npcs, profile, toast, busy: () => busy
 //   새 모듈이 생기면 여기 한 줄만 보태면 됨. busyOf(자기 이름, ...보지 않을 이름)은 자기 자신을 뺀 나머지를 살핌
 //   story(누가) 말풍선이 열려 있으면 훈련·시험·부탁·가게도 열리지 않음 (2026-11 단위 6에서 정리, 예전엔 예외였음)
 const OPEN_WINDOWS = {
-  tut: () => tut?.active(), character: () => character?.isOpen(), training: () => training?.active(), dungeon: () => dungeon?.active(),
+  tut: () => tut?.active(), character: () => character?.isOpen(),
+  training: () => training?.active(), dungeon: () => dungeon?.active(),
+  me: () => !!character?.isOpen() || !!document.getElementById('meCard'), // 나 카드가 열린 채 다른 창이 겹치지 않게 (T02 B1)
   guides: () => guides?.active(), garden: () => garden?.active(), wayguide: () => wayguide?.active(), warfare: () => warfare?.active(),
   quests: () => quests?.active(), shop: () => shop?.active(), story: () => story?.active?.(),
   cart: () => cartGuide?.active(), // 수레 안내인 말풍선
@@ -1810,6 +1816,8 @@ story = initStory({
   onChange: () => character.showChip(),
 });
 questLog = initQuestLog({ me, quests, story, walkTo, toast, john: () => region.engineHere(), town: () => region.here() });
+// 처음 마을 "지금 할 일" 카드 (왼쪽 위, T02 B1)
+baseGuide = initBaseGuide({ me, profile, tut, wayguide, region: () => region, quests: () => quests, questLog: () => questLog, walkTo, toast, busy: busyOf('baseguide') });
 requestAnimationFrame(frame);
 if (window.__pick) choose(window.__pick);
 // 첫 화면이 뜬 뒤 소품 모델을 천천히 불러와 바꿔 끼움
@@ -1819,4 +1827,4 @@ setTimeout(() => {
   for (const n of npcs) if (n.av) upgradeCup(n.av);
 }, 300);
 
-window.__cafe = { get region() { return region; }, get cartGuide() { return cartGuide; }, get questLog() { return questLog; }, get pets() { return pets; }, get story() { return story; }, get shop() { return shop; }, get gear() { return gear; }, get warfare() { return warfare; }, get guides() { return guides; }, get garden() { return garden; }, get wayguide() { return wayguide; }, availableActions, profile, tut, character, training, dungeon, quests, camera, shot, together, me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs, placed, park, scrolls, renderer, map };
+window.__cafe = { get region() { return region; }, get cartGuide() { return cartGuide; }, get questLog() { return questLog; }, get baseGuide() { return baseGuide; }, get pets() { return pets; }, get story() { return story; }, get shop() { return shop; }, get gear() { return gear; }, get warfare() { return warfare; }, get guides() { return guides; }, get garden() { return garden; }, get wayguide() { return wayguide; }, availableActions, profile, tut, character, training, dungeon, quests, camera, shot, together, me, seats, walkTo, ACTIONS, view, sitOn, npcs, stick, signs, placed, park, scrolls, renderer, map };
