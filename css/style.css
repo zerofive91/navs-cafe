@@ -821,6 +821,23 @@ body.region-john #storyChip, body.region-john #questChip { display: none; } /* �
 .npcb.jn .row .speak { color: #6a8a5a; }
 .npcb.jn .row .help { color: #8f6744; }
 .npcb.jn .row .er { color: #4f8a46; } /* 증인의 작은 부탁 단추 */
+.npcb.jn .row .ride { color: #8a5a2a; box-shadow: inset 0 0 0 1px #d8c09a; } /* 다음 이야기 카드의 병거 단추 */
+/* 오늘 나는 ○○ (T02 S6): 머리 줄 오른쪽, 사건 이름 앞. 폰에서 한 줄에 들어가게 사건 이름은 줄임 */
+.npcb.jn .badge { font-style: normal; font-size: 12px; padding: 1px 8px; border-radius: 10px; background: #f1e4c4; color: #7a5a20; margin-right: 6px; margin-left: auto; white-space: nowrap; flex: none; font-family: system-ui, sans-serif; }
+.npcb.jn .who.hasbadge { align-items: center; gap: 6px; }
+.npcb.jn .who.hasbadge b { flex: none; white-space: nowrap; }
+.npcb.jn .who.hasbadge .n { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.npcb.jn.trial .badge { background: rgba(241, 228, 196, 0.18); color: #f1e4c4; }
+/* 마을 기록장 펼침 (T02 S8): 22줄, 폰에서는 상자 안에서 스크롤 */
+.npcb.jn .book { list-style: none; margin: 8px 0 2px; padding: 0 4px 0 0; max-height: min(46vh, 340px); overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; counter-reset: bk; }
+.npcb.jn .book li { display: flex; justify-content: space-between; gap: 8px; padding: 4px 8px; border-bottom: 1px dashed #eadcc0; font: 500 14px/1.45 "Noto Serif KR", serif; color: #5a4030; counter-increment: bk; }
+.npcb.jn .book li span::before { content: counter(bk) ". "; color: #b09878; font-size: 12px; }
+.npcb.jn .book li b { flex: none; color: #b09878; }
+.npcb.jn .book li.done b { color: #4f8a46; }
+.npcb.jn .book li.gold b { color: #c8901a; }
+.npcb.jn .book li.open { background: #fff4d8; border-radius: 8px; }
+.npcb.jn .book li.open b { color: #8a5a2a; }
+.npcb.jn .book li.lock { opacity: 0.6; }
 #questLog .er h3 { color: #4f7a42; }
 #questLog .erl ul { margin: 4px 0 0; padding-left: 18px; }
 #questLog .erl li { margin: 2px 0; }
