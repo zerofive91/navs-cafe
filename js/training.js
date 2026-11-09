@@ -16,6 +16,7 @@ import { GEAR } from './gear.js';
 
 const V = (k, text, ref) => { VERSES[k] = [text, ref]; return k; };
 const STEP_REWARD = 20, STAT_REWARD = 10;
+const STAR = { 제자: '★★', 일꾼: '★★★' }; // 새 단계에 열리는 숲길의 별
 
 export function initTraining(K) {
   const { scene, me, makeChar, npcs, profile, save, toast, sfx, burst, fxSprite, busy, onChange, quests, goTo } = K;
@@ -54,8 +55,8 @@ export function initTraining(K) {
     ['듣기', V('t-w0', '그러므로 믿음은 들음에서 나며 들음은 그리스도의 말씀으로 말미암았느니라', '로마서 10:17')],
     ['읽기', V('t-w1', '이 예언의 말씀을 읽는 자와 듣는 자들과 그 가운데 기록한 것을 지키는 자들이 복이 있나니', '요한계시록 1:3')],
     ['공부', V('t-w2', '간절한 마음으로 말씀을 받고 이것이 그러한가 하여 날마다 성경을 상고하므로', '사도행전 17:11')],
-    ['암송', V('t-w3', '내가 주께 범죄하지 아니하려 하여 주의 말씀을 내 마음에 두었나이다', '시편 119:11')],
-    ['묵상', V('t-w4', '오직 여호와의 율법을 즐거워하여 그 율법을 주야로 묵상하는 자로다', '시편 1:2')],
+    ['외우기', V('t-w3', '내가 주께 범죄하지 아니하려 하여 주의 말씀을 내 마음에 두었나이다', '시편 119:11')],
+    ['곱씹기', V('t-w4', '오직 여호와의 율법을 즐거워하여 그 율법을 주야로 묵상하는 자로다', '시편 1:2')],
   ];
   // 다섯을 다 마친 뒤 마무리 멘트에 쓰는 말씀: 말씀의 손이 행함으로 이어짐 (적용은 기둥이 아니라 맺음)
   const WORD_END = '너희는 도를 행하는 자가 되고 듣기만 하여 자신을 속이는 자가 되지말라 (야고보서 1:22)';
@@ -83,12 +84,27 @@ export function initTraining(K) {
     ['중보', V('t-p4', '그러므로 내가 첫째로 권하노니 모든 사람을 위하여 간구와 기도와 도고와 감사를 하되', '디모데전서 2:1')],
     ['간구', V('t-p3', '아무 것도 염려하지 말고 오직 모든 일에 기도와 간구로, 너희 구할 것을 감사함으로 하나님께 아뢰라', '빌립보서 4:6')],
   ];
+  // 제단마다 빛 동그라미 색이 달라서, 엉뚱한 제단에서 기도하면 "○○색 빛 동그라미"라고 알려 줌. 제단 이름 밑에 작은 풀이 글
+  const ALT = [[0xffd86a, '노란', '하나님을 높여요'], [0x9fd8ff, '하늘색', '고마움을 말해요'], [0xb6e59a, '연두색', '잘못을 솔직히 말해요'], [0xffa8c8, '분홍색', '친구를 위해 기도해요'], [0xd8c0ff, '보라색', '필요한 걸 구해요']];
+  const note = (text, size = 0.6) => {
+    const cv = document.createElement('canvas'); cv.width = 384; cv.height = 64;
+    const g = cv.getContext('2d');
+    g.font = '600 28px "Noto Serif KR", serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    const w = Math.min(372, g.measureText(text).width + 40);
+    g.fillStyle = 'rgba(255,250,238,0.88)'; g.beginPath(); g.roundRect(192 - w / 2, 8, w, 48, 24); g.fill();
+    g.fillStyle = '#7a5c40'; g.fillText(text, 192, 33);
+    const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
+    sp.scale.set(size * 3.4, size * 0.57, 1);
+    return sp;
+  };
   const altars = R.altars.map((p, i) => {
     const g = new THREE.Group();
     const b = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.85, 0.9), stone); b.position.y = 0.42; g.add(b);
     const flame = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.42, 10), M(0xffb050, 0.4, { emissive: 0xff9a30, emissiveIntensity: 0.9 })); flame.position.y = 1.08; flame.visible = false; g.add(flame);
     const tag = label(PRAY[i][0]); tag.position.y = 1.9; g.add(tag);
-    const ring = glowRing(1.0, 0xd8c0ff); ring.position.set(p.stand.x - p.x, 0.04, p.stand.z - p.z); g.add(ring);
+    const sub = note(ALT[i][2]); sub.position.y = 1.52; g.add(sub);
+    const ring = glowRing(1.0, ALT[i][0]); ring.position.set(p.stand.x - p.x, 0.04, p.stand.z - p.z); g.add(ring);
     put(g, p);
     return { g, flame, ring, p };
   });
@@ -160,7 +176,7 @@ export function initTraining(K) {
   const T = {
     word: {
       who: ezra, stat: 'word', item: 'scroll', name: '말씀 훈련장',
-      intro: '저는 학사 에스라예요. 말씀은 듣고, 읽고, 공부하고, 암송하고, 묵상할 때 내 것이 돼요. 다섯 기둥을 차례로 들러 볼까요?',
+      intro: '저는 성경을 가르치는 선생님 에스라예요. 말씀은 듣고, 읽고, 공부하고, 외우고, 곱씹을 때 내 것이 돼요. 다섯 기둥을 하나씩 들러 볼래요?',
       verse: '에스라가 여호와의 율법을 연구하여 준행하며 율례와 규례를 이스라엘에게 가르치기로 결심하였었더라 (에스라 7:10)',
       total: 5,
       hint: (i) => `${WORD[i][0]} 기둥 앞, 빛나는 자리에 서 보세요.`,
@@ -168,55 +184,62 @@ export function initTraining(K) {
       check(r) { const p = pillars[r.i]; if (near(p.p.stand, 1.5)) { p.fire.material.emissiveIntensity = 1.4; showVerse(WORD[r.i][1], { cooldown: 0, title: WORD[r.i][0] }); return true; } return false; },
       glow(r, t) { pillars.forEach((p, i) => { p.ring.material.opacity = r && i === r.i ? 0.45 + Math.sin(t * 4) * 0.25 : 0; }); },
       endVerse: WORD_END,
-      done: '잘했어요. 말씀은 날마다 이렇게 먹는 양식이에요. 이 다섯을 손에 쥐면 행함으로 이어져요. 이 두루마리를 가져가요.',
+      done: '잘했어요! 다섯 기둥을 다 들렀어요. 말씀은 날마다 먹는 밥 같아요. 이 두루마리를 선물로 줄게요.',
     },
     pray: {
       who: daniel, stat: 'prayer', item: 'incense', name: '기도 훈련장',
-      intro: '저는 다니엘이에요. 저는 하루 세 번 창을 열고 무릎을 꿇었어요. 다섯 제단에서 차례로 기도해 볼까요? 찬양, 감사, 자백, 중보, 간구예요.',
+      intro: '저는 다니엘이에요. 하루 세 번 창을 열고 기도했어요. 다섯 돌 제단에서 한 가지씩 기도해 볼래요?',
       verse: '그 방의 예루살렘으로 향하여 열린 창에서 전에 행하던대로 하루 세번씩 무릎을 꿇고 기도하며 그 하나님께 감사하였더라 (다니엘 6:10)',
       total: 5,
-      hint: (i) => `${PRAY[i][0]}의 제단 앞에서 기도하세요 (X 또는 기도 단추).`,
+      hint: (i) => `${PRAY[i][0]} 제단 앞 빛 동그라미에서 두 손 모은 단추를 꾹 눌러요 (X)`,
       start() { altars.forEach((a) => { a.flame.visible = false; }); },
       check(r, dt) {
         const a = altars[r.i];
         if (near(a.p.stand, 1.8) && me.action === 'pray') r.hold = (r.hold || 0) + dt; else r.hold = 0;
         if (r.hold > 2) { r.hold = 0; a.flame.visible = true; showVerse(PRAY[r.i][1], { cooldown: 0, title: PRAY[r.i][0] }); return true; }
+        // 엉뚱한 제단에서 기도하면 어디로 가야 하는지 알려 줌
+        const w = me.action === 'pray' && !near(a.p.stand, 1.8) ? altars.findIndex((x, j) => j !== r.i && near(x.p.stand, 1.8)) : -1;
+        if (w >= 0) {
+          r.wrong = (r.wrong || 0) + dt;
+          if (r.wrong > 1.2 && !r.said) { r.said = true; toast(`그건 ${PRAY[w][0]} 제단이에요. ${PRAY[r.i][0]} 제단은 ${ALT[r.i][1]} 빛 동그라미예요`, 4); }
+        } else { r.wrong = 0; r.said = false; }
         return false;
       },
       glow(r, t) { altars.forEach((a, i) => { a.ring.material.opacity = r && i === r.i ? 0.45 + Math.sin(t * 4) * 0.25 : 0; a.flame.scale.y = 1 + Math.sin(t * 9 + i) * 0.12; }); },
-      done: '기도는 하나님과 나누는 숨이에요. 이 향을 가져가요. 성도의 기도는 금 대접에 담긴 향이래요.',
+      done: '잘했어요! 다섯 가지 기도를 다 했어요. 기도는 하나님과 나누는 이야기예요. 이 향을 선물로 줄게요.',
     },
     fellow: {
       who: aquila, stat: 'fellow', item: 'bread', name: '교제 훈련장',
-      intro: '저는 아굴라, 이쪽은 아내 브리스길라예요. 우리는 장막을 지어요. 저쪽에 무거운 보따리가 셋 있는데 같이 날라 줄래요? 짐은 서로 지는 거래요.',
+      intro: '저는 아굴라, 이쪽은 아내 브리스길라예요. 우리는 천막을 만들어요. 큰 천막 반대편 보따리 셋을 탁자로 같이 날라 줄래요?',
       verse: '너희가 짐을 서로 지라 그리하여 그리스도의 법을 성취하라 (갈라디아서 6:2)',
       total: 3,
-      hint: (i, r) => (r.carry ? '보따리를 장막 짓는 탁자로 가져가세요.' : '보따리 곁에서 E(또는 반짝이는 단추)로 들어요.'),
+      hint: (i, r) => (r.carry ? '천 두루마리 놓인 탁자로 가져가요' : '보따리 곁에 멈춰 서서 반짝이는 단추를 눌러요 (E)'),
       start(r) { r.carry = false; sacks.forEach((s) => { s.visible = true; }); },
       check(r) {
         if (r.carry && near(F.table, 2.4)) { r.carry = false; carried.visible = false; sfx('cup', 0.2, 0.7); burst(F.table.x, G(F.table) + 1.2, F.table.z); if (r.i === 0) showVerse(V('t-f1', '두 사람이 한 사람보다 나음은 저희가 수고함으로 좋은 상을 얻을 것임이라', '전도서 4:9'), { cooldown: 0 }); return true; }
         return false;
       },
       glow() {},
-      done: '고마워요! 함께 지니 금방 끝났네요. 우리 집에서 떡을 떼요. 한 덩이 가져가요.',
+      done: '고마워요! 함께 지니 금방 끝났네요. 우리 집에서 같이 빵을 나눠 먹어요. 한 덩이 가져가요.',
     },
     witness: {
       who: philip, stat: 'witness', item: 'lamp', name: '증거 훈련장',
-      intro: '저는 빌립이에요. 성령께서 "가까이 나아가라" 하셔서 달려가 물었지요. "읽는 것을 깨닫느뇨?" 이 길을 걷는 세 사람에게 다가가 빛을 건네 볼래요?',
+      intro: '저는 빌립이에요. 성령님이 \'가까이 가라\' 하셔서 달려가 말을 걸었어요. 흙길을 걷는 세 사람에게 빛을 건네 볼래요?',
       verse: '빌립이 달려가서 선지자 이사야의 글 읽는 것을 듣고 말하되 읽는 것을 깨닫느뇨 (사도행전 8:30)',
       total: 3,
-      hint: () => '길 가는 사람 곁으로 가서 V(또는 빛 단추)로 빛을 건네요.',
+      hint: () => '흙길을 걷는 사람 곁에서 두 사람 사이 빛 단추를 눌러요 (V)',
       start() { seekers.forEach((n) => { n.seek.lit = false; }); },
       check(r) { const lit = seekers.filter((n) => n.seek.lit).length; return lit > r.i; },
       glow() {},
-      done: '아름답도다 좋은 소식을 전하는 자들의 발이여 (로마서 10:15). 이 등불을 가져가서 빛을 비추어요.',
+      endVerse: '아름답도다 좋은 소식을 전하는 자들의 발이여 (로마서 10:15)',
+      done: '세 사람 모두에게 빛을 건넸어요! 좋은 소식을 전하는 발은 참 아름다워요. 이 등불을 선물로 줄게요.',
     },
     obey: {
       who: abraham, stat: 'obey', item: 'stake', name: '순종 훈련장',
-      intro: '저는 아브라함이에요. 하나님이 "내가 지시할 땅으로 가라" 하실 때 갈 바를 알지 못하고 나갔어요. 앞서가는 등불을 따라가 볼래요? 멀어지면 등불이 기다려 줘요.',
+      intro: '저는 아브라함이에요. 어디로 갈지 몰라도 하나님 말씀대로 길을 떠났어요. 앞에 떠 있는 등불을 따라와 볼래요?',
       verse: '이에 아브람이 여호와의 말씀을 좇아 갔고 (창세기 12:4)',
       total: O.way.length - 1,
-      hint: () => '등불을 따라 걸어요. 길이 굽어도 등불만 보고 가요.',
+      hint: (i, r) => (r.far ? '등불 곁으로 가까이 가요' : '떠 있는 등불을 따라 걸어요'),
       start(r) { r.lp = { ...O.way[0] }; lantern.visible = true; pathDots.forEach((d) => { d.visible = false; }); },
       check(r, dt) {
         const tg = O.way[r.i + 1], L = r.lp;
@@ -227,32 +250,32 @@ export function initTraining(K) {
       },
       glow(r, t) { if (r && r.lp) { lantern.position.set(r.lp.x, G(r.lp) + 1.5 + Math.sin(t * 2.4) * 0.12, r.lp.z); lantern.scale.setScalar(near(r.lp, 4.2) ? 1 : 1 + Math.sin(t * 6) * 0.15); } },
       end() { lantern.visible = false; },
-      done: '네가 끝까지 따라왔구나. 여기가 마므레 상수리나무예요. 이 말뚝을 가져가 네 장막터를 넓혀요.',
+      done: '끝까지 잘 따라왔어요! 여기는 아브라함이 천막을 친 큰 나무 아래예요. 이 말뚝을 선물로 줄게요.',
     },
   };
 
   // ---------- 말풍선 (dialog.js, 안내와 같은 모양) ----------
   const dlg = createDialog({ id: 'talk' });
   let offer = null, run = null;
-  const hide = () => { dlg.close(); offer = null; };
+  const hide = () => { dlg.close(); offer = null; blocked = false; };
   const later = () => hide();
   const goQ = () => { const q = pickQ; hide(); if (q) goTo(q.who, `${q.name}에게 가요`); };
-  const onNext = () => { if (offer) begin(offer); else if (run && run.finished) finish(); };
+  const onNext = () => { if (offer && blocked) hide(); else if (offer) begin(offer); else if (run && run.finished) finish(); };
   // 훈련 안내 단추: 하는 방법·진행 보기·부탁 받기 (사부에게 말을 걸었을 때만)
   const GUIDE = [['하는 방법', 'how'], ['진행 보기', 'prog'], ['부탁 받기', 'quest']].map(([label, g]) => ({ label, on: () => { if (offer) guide(offer, g); } }));
-  let row = {};
+  let row = {}, blocked = false; // blocked: 부탁 중이라 훈련을 못 시작함 (알려 주기만)
   const rowOf = (goq = false) => [
     { label: '그만두기', cls: 'end', hidden: !row.end, on: stop },
     { label: '그 사람에게 가기', cls: 'goq', hidden: !goq, on: goQ },
     { label: '나중에', cls: 'later', hidden: !row.later, on: later },
     { label: row.next, cls: 'next', hidden: !row.next, main: true, on: onNext },
   ];
-  function show(who, text, verse, { n = '', next = '', later: canLater = false, end = false } = {}) {
+  function show(who, text, verse, { n = '', next = '', later: canLater = false, end = false, how = '' } = {}) {
     row = { next, later: canLater, end };
     dlg.el.classList.remove('ok');
     dlg.open({
-      who, n, say: text, verse,
-      guide: offer ? GUIDE : [],
+      who, n, say: text, verse, how,
+      guide: offer && !blocked ? GUIDE : [],
       choices: rowOf(false),
       // Esc: 말을 건 때는 '나중에', 마친 인사는 '감사해요'. 훈련 중(그만두기만 있을 때)은 Esc로 그만두지 않음
       esc: offer ? later : run && run.finished ? onNext : null,
@@ -263,15 +286,21 @@ export function initTraining(K) {
   function offerTo(id) {
     offer = id;
     const d = T[id], again = profile.train[d.stat];
+    const qr = quests?.()?.run;
+    if (qr) { // 부탁을 하는 중에는 훈련을 시작하지 않고 알려 줌
+      blocked = true;
+      show(whoName(id), `지금 ${qr.q.name}의 부탁을 하고 있어요. 왼쪽 위 부탁 표시를 누르면 갈 곳이 나와요.`, '', { next: '알겠어요', n: d.name });
+      return;
+    }
     show(whoName(id), again ? `다시 왔군요, ${profile.name || '친구'}님! 한 번 더 해 볼까요? 이번에는 연습이에요.` : d.intro, again ? '' : d.verse, { next: '훈련 시작', later: true, n: d.name });
   }
   // 훈련장 안내: 하는 방법·진행 정도·이 덕목에 맞는 부탁 (2026-11)
   const HOW = {
-    word: '다섯 기둥(듣기·읽기·공부·암송·묵상) 앞의 빛나는 자리에 차례로 서요. 기둥마다 말씀 한 구절이 떠요. 다섯을 다 들르면 마쳐요.',
-    pray: '다섯 제단(찬양·감사·자백·중보·간구) 앞의 빛나는 자리에서 기도해요 (X 또는 기도 단추, 잠시 손 모으고 있기). 다섯을 차례로 하면 마쳐요.',
-    fellow: '보따리 곁에서 E(또는 반짝이는 단추)로 들고, 장막 짓는 탁자까지 가져가요. 세 번 나르면 마쳐요.',
-    witness: '길 가는 사람 곁으로 가서 V(또는 빛 단추)로 빛을 건네요. 세 사람에게 건네면 마쳐요.',
-    obey: '앞서가는 등불 가까이에서 따라 걸어요. 멀어지면 등불이 기다려 줘요. 끝까지 따라가면 마쳐요.',
+    word: '① 기둥 앞 빛나는 자리에 서요. ② 기둥마다 말씀 한 구절이 떠요. ③ 다섯 기둥을 다 들르면 끝! 곱씹기는 말씀을 곱씹어 생각하는 거예요.',
+    pray: '① 빛 동그라미에 서요. ② 두 손 모은 단추를 꾹 눌러요 (X). ③ 다섯 제단을 다 하면 끝!',
+    fellow: '① 보따리 곁에 멈춰 서요. ② 반짝이는 단추를 눌러 보따리를 들어요 (E). ③ 탁자로 날라요. 세 번 하면 끝!',
+    witness: '① 흙길을 걷는 사람 곁으로 가요. ② 두 사람 사이 빛 단추를 눌러요 (V). ③ 세 사람에게 건네면 끝!',
+    obey: '① 앞에 떠 있는 등불 가까이 서요. ② 등불을 따라 걸어요. ③ 멀어지면 등불이 기다려 줘요. 끝까지 가면 끝!',
   };
   const GEAR_OF = { word: 'belt', obey: 'breast', witness: 'shoes' };
   let pickQ = null;
@@ -281,25 +310,27 @@ export function initTraining(K) {
     const Qs = quests?.()?.Q || [];
     const mine = Qs.filter((q) => q.stat === d.stat);
     const qdone = (q) => profile.quests?.[q.id] === 'done';
-    let text = '';
+    let text = '', how = '';
     pickQ = null;
     if (kind === 'how') {
-      text = `${HOW[id]} 훈련 중에는 아래 말풍선에 지금 할 일이 나와요. 마치면 ${st.name} +${STAT_REWARD}, 걸음 +${STEP_REWARD}, ${ITEMS[d.item].name}, 5 데나리온을 받아요. 다시 하면 연습이에요.`;
+      text = HOW[id];
+      how = `마치면 ${st.name} +${STAT_REWARD}, 걸음 +${STEP_REWARD}, ${ITEMS[d.item].name}, 5 데나리온을 받아요. 다시 하면 연습이에요. 훈련 중에는 아래 말풍선에 할 일이 나와요.`;
     } else if (kind === 'prog') {
       const gid = GEAR_OF[id], gear = gid && GEAR[gid];
-      text = `${st.name} 능력치 ${(profile.stats && profile.stats[d.stat]) || 0} · 훈련 ${fin ? '마침 ✓' : '아직'}`
-        + (gear ? ` · 장비 ${gear.name} ${profile.gear?.owned?.includes(gid) ? '받음 ✓' : '(훈련을 마치면 받아요)'}` : '')
-        + (mine.length ? `. ${st.name}${jo(st.name, '을', '를')} 기르는 부탁: ${mine.map((q) => `${q.name} "${q.title}" ${qdone(q) ? '✓' : '아직'}`).join(', ')}` : '') + '.';
+      text = [`${fin ? '✓' : '○'} ${d.name} ${fin ? '마침' : '아직'}`,
+        ...(gear ? [`${profile.gear?.owned?.includes(gid) ? '✓' : '○'} ${gear.name} ${profile.gear?.owned?.includes(gid) ? '받음' : '(훈련을 마치면 받아요)'}`] : []),
+        ...mine.map((q) => `${qdone(q) ? '✓' : '○'} ${q.name}의 부탁`)].join(' · ');
+      how = `${st.name} 수레바퀴 점수 ${(profile.stats && profile.stats[d.stat]) || 0}`;
     } else {
       const run = quests?.()?.run;
-      if (run) text = `지금 ${run.q.name}의 부탁 "${run.q.title}"을 하고 있군요. 왼쪽 📜 표시를 누르면 할 일과 자리를 보고 그곳으로 갈 수 있어요.`;
+      if (run) text = `지금 ${run.q.name}의 부탁을 하고 있어요. 왼쪽 위 부탁 표시를 누르면 갈 곳이 나와요.`;
       else {
         pickQ = mine.find((q) => !qdone(q)) || Qs.find((q) => !qdone(q)) || mine[0] || null;
         text = !pickQ ? '지금은 부탁할 사람이 없어요.'
-          : `${pickQ.name}${jo(pickQ.name, '이', '가')} 도움을 기다려요. "${pickQ.title}" (${(STATS.find((x) => x.id === pickQ.stat)?.name || '')}${jo(STATS.find((x) => x.id === pickQ.stat)?.name || '', '을', '를')} 길러요)${qdone(pickQ) ? '. 이미 마친 부탁이지만 한 번 더 할 수 있어요' : ''}. 그 사람 곁으로 가면 부탁을 들려줘요.`;
+          : `${pickQ.name}${jo(pickQ.name, '이', '가')} 도와 달래요. 「${pickQ.title}」이에요.${qdone(pickQ) ? ' 이미 마친 부탁이지만 한 번 더 할 수 있어요.' : ''} 아래 단추를 누르면 ${pickQ.name}에게 데려다줄게요.`;
       }
     }
-    dlg.update({ say: text, verse: '', choices: rowOf(!!pickQ) });
+    dlg.update({ say: text, how, verse: '', choices: rowOf(!!pickQ) });
   }
   function begin(id) {
     offer = null;
@@ -329,12 +360,12 @@ export function initTraining(K) {
       giveItem(profile, d.item); earn(profile, 5);
       const up = addSteps(profile, STEP_REWARD);
       const st = STATS.find((x) => x.id === d.stat);
-      extra = ` (${st.name} +${STAT_REWARD}, 걸음 +${STEP_REWARD}, ${ITEMS[d.item].name}, 5 데나리온)`;
-      if (up) setTimeout(() => { toast(`${profile.name}님이 ${up.name}${/[가-힣]/.test(up.name.slice(-1)) && (up.name.charCodeAt(up.name.length - 1) - 0xac00) % 28 && (up.name.charCodeAt(up.name.length - 1) - 0xac00) % 28 !== 8 ? '으로' : '로'} 자랐어요! 내게 들은 바를 충성된 사람들에게 부탁하라 저희가 또 다른 사람들을 가르칠수 있으리라 (디모데후서 2:2)`, 7); burst(me.x, me.y + 1.4, me.z); sfx('orb', 0.3, 0.9); }, 2500);
+      extra = `${st.name} +${STAT_REWARD}, 걸음 +${STEP_REWARD}, ${ITEMS[d.item].name}, 5 데나리온을 받았어요`;
+      if (up) setTimeout(() => { const c = up.name.charCodeAt(up.name.length - 1) - 0xac00; toast(`${profile.name}님이 ${up.name}${c >= 0 && c < 11172 && c % 28 && c % 28 !== 8 ? '으로' : '로'} 자랐어요!${STAR[up.name] ? ` 이제 ${STAR[up.name]} 숲길에 들어갈 수 있어요.` : ''}`, 5); burst(me.x, me.y + 1.4, me.z); sfx('orb', 0.3, 0.9); }, 2500);
       save(); onChange?.();
     } else { addSteps(profile, 2); earn(profile, 1); save(); onChange?.(); }
     sfx('orb', 0.25, 1.1); burst(me.x, me.y + 1.2, me.z);
-    show(whoName(run.id), d.done + extra, d.endVerse || '', { n: d.name, next: '감사해요' });
+    show(whoName(run.id), run.practice ? '또 해냈어요! 연습이라 선물은 없지만 걸음 +2, 1 데나리온을 받아요.' : d.done, d.endVerse || '', { n: d.name, next: '감사해요', how: extra });
   }
   function finish() { const d = T[run.id]; d.glow(null, 0); run = null; hide(); }
 
@@ -364,7 +395,7 @@ export function initTraining(K) {
     for (const sp of [todo, done]) { sp.position.y = 2.75; sp.renderOrder = 5; d.who.av.add(sp); }
     signs[id] = { todo, done, called: false };
   }
-  const CALL = { word: '말씀을 듣고 읽고 공부하고 암송하고 묵상하는 다섯 기둥을 함께 돌아요', pray: '찬양·감사·자백·중보·간구, 다섯 제단에서 함께 기도해요', fellow: '서로 짐을 지는 법을 함께 배워요. 보따리 나르기를 도와줄래요?', witness: '길 가는 사람들에게 빛을 건네는 법을 알려 줄게요', obey: '갈 바를 몰라도 앞서가는 등불을 따라 걸어 봐요' };
+  const CALL = { word: '말씀을 듣고 읽고 공부하고 외우고 곱씹는 다섯 기둥을 함께 돌아요', pray: '찬양·감사·자백·중보·간구, 다섯 제단에서 함께 기도해요', fellow: '서로 짐을 지는 법을 함께 배워요. 보따리 나르기를 도와줄래요?', witness: '길 가는 사람들에게 빛을 건네는 법을 알려 줄게요', obey: '갈 바를 몰라도 앞서가는 등불을 따라 걸어 봐요' };
   function callOut(t) {
     if (run || busy()) return;
     for (const [id, n] of trainers) {
@@ -405,12 +436,16 @@ export function initTraining(K) {
         run.i++;
         sfx('tap', 0.2, 1.3);
         if (run.i >= d.total) complete(); else progress();
+      } else if (run.id === 'obey' && run.lp) {
+        const far = !near(run.lp, 4.2); // 등불이 멈춰 기다리면 "가까이 가요"로 바꿈
+        if (far !== !!run.far) { run.far = far; progress(); }
       }
       return;
     }
     if (run) return;
     // 사부 곁에 가면 말을 검 (안내 중이거나 다른 창이 열려 있으면 기다림)
-    if (busy()) { if (offer) hide(); return; }
+    const bz = quests?.()?.ignoreRun ? quests().ignoreRun(busy) : busy(); // 부탁 중이어도 사부 곁에서는 "지금 ○○의 부탁을 하고 있어요" 안내
+    if (bz) { if (offer) hide(); return; }
     let nearId = null;
     for (const [id, n] of trainers) if (Math.hypot(me.x - n.x, me.z - n.z) < 3.6) nearId = id;
     if (nearId && nearId !== offer) { const id = nearId; offerTalk('train:' + id, Object.fromEntries(trainers)[id], () => offerTo(id)); } // 말 걸기 단추를 눌러야 열림
