@@ -232,7 +232,7 @@ export function initWarfare(K) {
     run.miss++;
     if (b) { b.classList.add('no'); b.disabled = true; }
     $('.why').hidden = false;
-    $('.why').textContent = '음, 다시 골라 봐요. 그 말은 속삭임이 바라는 대답이에요.';
+    $('.why').textContent = '음, 다시 골라 봐요. 그 말은 마음의 소리가 바라는 대답이에요.';
     sfx('impact/impactSoft_medium_000', 0.22, 0.7);
   }
   function hint() {

@@ -201,7 +201,7 @@ export function initDungeon(K) {
     return mod && T.fill.m ? { text: mod, words: T.fill.m } : { text: krv, words: T.fill.k };
   }
   // 틀린 보기를 골랐을 때: 고르기는 한 문장, 채우기는 그 낱말이 왜 아닌지
-  const WRONG_NOTE = '음, 다시 골라 봐요. 그 말은 속삭임이 바라는 대답이에요.';
+  const WRONG_NOTE = '음, 다시 골라 봐요. 그 말은 마음의 소리가 바라는 대답이에요.';
   function whyNot(S, k) {
     if (S.kind === 'fill') return BY[S.lie].fill.why[Number(k[1]) - 1] || '';
     return WRONG_NOTE; // 틀린 보기는 속삭임에 넘어간 대답 (trials.js no)
