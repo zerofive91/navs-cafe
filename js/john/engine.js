@@ -259,13 +259,13 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
   });
 
   // ---------- 사건 단계 도구 (공용 도구는 js/village/flow.js townTools) ----------
-  const T = townTools({ me, toast, standUp, shot, people, beacon, run: runNow });
+  const T = townTools({ me, toast, standUp, shot, people, beacon, run: runNow, ui, inTown, busy }); // ui: 이야기 줄 (say·tell·verse가 말풍선 한 창에 하나씩, T02 S3)
   const X = {
     me, P: SP, parts, center: PLAZA_LIGHT, toast, sfx, burst,
     near: T.near, sitting: T.sitting, praying: T.praying, verse: T.verse, sky: T.sky,
     lake: LAKE_AT,
     carry, carrying: () => hands.kind() === 'jar',
-    say: T.say,
+    say: T.say, tell: T.tell, story: T.story, // tell: 해설 말풍선 (J2가 X.toast 사건 글을 옮김). role은 flow가 더함
     walkNpc: T.walkNpc, follow: T.follow, unfollow: T.unfollow, dn: T.dn, npcAt: T.npcAt,
     trial: null,
     apron: setApron, jarsReset, jarsFull, nextJar, nearJar, fillJar, wine, cheer, dropFx,
@@ -326,6 +326,8 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
     ui, chip, whisper, sky, beacon, people, X, EV, ORDER, openOrder: JOHN_EVENTS, store: J, trials, modes, er, ER, SP, ZONES,
     name: '요한복음 마을', book: '요한복음', talkKey: 'jn:', endKey: END_SEEN, introKey: INTRO_SEEN, acts: JN_ACTS,
     greet: GREET, errandTitle: '증인의 작은 부탁', quietAgain: '다시 걸어 주었군요. 그 밤과 그 아침을 다시 기억했어요',
+    // T02 J1: 되짚기·다음 이야기 카드의 걸어가기 (walkTo), 병거 타기 (ride: 수레 짐·루디아 가게의 병거 삯으로 그 구역까지), sessionStorage 키 이름 (id)
+    id: 'john', walkTo, ride: (zone) => K.shop?.()?.rideTo?.('j:' + zone),
     seatOf: (e) => (e.med.at === 'feast' ? SP.feast[1] : SP[e.med.at]),
     resetKeys: { come: ['andrew', 'nathan'], nico: ['nico'], cana: [], siloam: [] },
     // 사도 요한: 와 보라의 증인이자 마을 안내자. 마을 기록장(요한의 두루마리)과 다음 이야기

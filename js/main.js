@@ -1294,7 +1294,8 @@ function restMode(dt) {
 let prevAct = null, prevSeat = null;
 // 마을 사건·부탁을 따라가는 중이면 그 이야기의 말씀 카드가 이어지도록 앉기·동작 말씀을 띄우지 않음
 //   (앉자마자 시편 카드가 사건 말씀 묶음을 덮어쓰던 일, 2026-11-07 흐름 점검)
-const storyOn = () => { const e = region?.engineHere?.(); return !!(e && (e.run || e.errands?.running?.())); };
+//   T02 S3: 사건을 마치고 마침 카드를 기다리는 동안(holding)도 이야기 중. 마을 밖(수레로 나감)이면 이야기 중이 아님 (알림을 미루지 않음)
+const storyOn = () => { const e = region?.engineHere?.(); return !!(e && (e.inTown ? e.inTown() : true) && (e.run || e.holding || e.errands?.running?.())); };
 function verseHooks() {
   if (me.action !== prevAct) {
     prevAct = me.action;
@@ -1494,8 +1495,27 @@ function nextToast() {
   else { toastEl.hidden = true; placeOverlays(); }
 }
 const doorToasts = []; // 들어가기 전(첫 화면)에 생긴 알림은 들어간 뒤에 보여 줌
-function toast(msg, sec = 3) {
+// 이야기 중 시스템 알림 미루기 (2026-11 T02 S3 "한 창"): 마을 사건·부탁을 따라가는 동안(storyOn) 위쪽 알림은 모아 두었다가
+//   이야기가 끝난 뒤 0.6초 간격으로 차례로. 사건 글(마을 엔진의 toast, opt.story)과 계정·연결 알림은 바로. 모아 두는 것은 6개까지 (넘치면 오래된 것부터)
+const heldToasts = [];
+const NOW_TOAST = /다른 기기에서|불러오지 못했어요|연결/;
+let heldFlushT = 0;
+function holdToast(msg) { try { return !NOW_TOAST.test(msg) && storyOn(); } catch (e) { return false; } } // 모듈을 읽는 중(storyOn 앞)에 부른 알림은 바로
+function flushHeld() {
+  heldFlushT = 0;
+  if (!heldToasts.length) return;
+  if (storyOn()) return; // 다시 이야기 중 (다음 확인 때)
+  if (toastQ.length < 2) { const [m, s] = heldToasts.shift(); toast(m, s, { story: true }); }
+  if (heldToasts.length) heldFlushT = setTimeout(flushHeld, 600);
+}
+setInterval(() => { if (heldToasts.length && !heldFlushT && !storyOn()) heldFlushT = setTimeout(flushHeld, 0); }, 300);
+function toast(msg, sec = 3, opt = null) {
   if (document.body.classList.contains('at-door') && !document.getElementById('acct')?.offsetParent && !document.getElementById('roomkey')) { if (doorToasts.length < 4) doorToasts.push([msg, sec]); return; }
+  if (!opt?.story && holdToast(msg)) {
+    if (!heldToasts.some((h) => h[0] === msg)) heldToasts.push([msg, sec]);
+    if (heldToasts.length > 6) heldToasts.shift();
+    return;
+  }
   if (toastEl.hidden) return showToast(msg, sec);
   if (toastEl.textContent === msg || toastQ.some((q) => q[0] === msg)) return; // 같은 알림은 한 번만
   toastQ.push([msg, sec]);
@@ -1668,7 +1688,8 @@ region = initRegion({
   chooseTown: (ids) => cartGuide?.choose(ids), // 초보자 마을 수레가 갈 마을이 여럿이면 수레꾼이 고르기 말풍선을 엶 (사도행전 마을을 연 뒤)
   // 마을 사건 엔진(요한복음 마을: js/john/engine.js)이 쓰는 것: 마을을 처음 지을 때 넘겨받음 (등록부 load의 kit)
   townKit: {
-    scene, me, makeChar, npcs, profile, save: () => saveProfile(profile), toast, sfx, burst, fxSprite, walkTo, standUp, shot,
+    // toast: 마을 사건 글은 이야기 중에도 바로 (T02 S3, 셋째 인자 story). shop: 다음 이야기 카드의 병거 (rideTo)
+    scene, me, makeChar, npcs, profile, save: () => saveProfile(profile), toast: (m, s) => toast(m, s, { story: true }), shop: () => shop, sfx, burst, fxSprite, walkTo, standUp, shot,
     busy: () => busyOf('john')(), onChange: () => character?.showChip(), openLog: (k) => questLog?.open(k), lights: { hemi, sun },
     salve: () => shop?.salveOn?.(), // 마을의 두루마리 조각 빛기둥 (안약)
   },

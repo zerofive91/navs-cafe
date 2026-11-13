@@ -217,6 +217,8 @@ export function initShop(K) {
 
   return {
     open, openGoods, close, use, shekel, lydia,
+    // 이 마을의 그 자리로 병거 (T02 J1 요한 마을 다음 이야기 카드): id는 trips 목록 id ('j:cana'). 삯이 없거나 자리가 없으면 false
+    rideTo(id) { const pl = placesHere().find(([k]) => k === id); if (!pl || !(profile.bag?.chariot > 0)) return false; go(id, pl[1]); return true; },
     salveOn: () => performance.now() < salveUntil, // 안약 효과가 켜져 있는가 (마을의 두루마리 조각 빛기둥이 읽음)
     available: () => (near() && me.state !== 'walk' && !busy?.() ? [['shop', 'shop']] : []),
     actions: { shop: open },
