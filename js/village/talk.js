@@ -81,6 +81,7 @@ export function createChip(id, onPress, cls = 'vchip') {
   const chip = document.createElement('div'); chip.id = id; chip.className = cls; chip.hidden = true; document.body.appendChild(chip);
   chip.setAttribute('role', 'button'); chip.tabIndex = 0; chip.title = '눌러서 내용 보기';
   chip.addEventListener('pointerdown', (e) => { e.stopPropagation(); onPress?.(); });
+  chip.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onPress?.(); } }); // 키보드로도 누름 (T03 A)
   let text = '', lastHead = '';
   const pulse = () => { chip.classList.remove('pulse'); void chip.offsetWidth; chip.classList.add('pulse'); };
   return {
