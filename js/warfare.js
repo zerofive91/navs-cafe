@@ -210,8 +210,8 @@ export function initWarfare(K) {
     $('.scene').textContent = s.scene ? s.scene : '숲길에서 이런 마음의 소리를 만나요. 숲길에서는 틀리면 넘어지니 여기서 연습해요.';
     $('.say').textContent = `"${s.lie}"`;
     const sm = document.createElement('small'); sm.textContent = run.kind === 'real' ? '어떤 마음의 소리인지 알아채고, 이기는 말씀을 눌러요. 모르겠으면 두 손 모은 단추 (X)' : (s.who ? `${s.who}${jo(s.who, '이', '가')} 붙든 말씀을 눌러요.` : '이 마음의 소리를 이기는 말씀을 눌러요.') + ' 모르겠으면 두 손 모은 단추 (X)'; $('.say').append(sm);
-    opts = shuffle([s.id, 'n0', 'n1']); // n0·n1 = 속삭임에 넘어간 대답 (trials.js no 글)
-    $('.opts').innerHTML = opts.map((k, i) => `<button class="opt" data-i="${i}"><kbd>${i + 1}</kbd>${k === s.id ? `<span>${verseOf(k)[0]} <em>${verseOf(k)[1]}</em></span>` : `<span>${s.no[Number(k[1])]}</span>`}</button>`).join('');
+    opts = shuffle([s.id, 'n0', 'n1']); // n0·n1 = 마음의 소리가 바라는 대답 (trials.js no 글)
+    $('.opts').innerHTML = opts.map((k, i) => `<button class="opt" data-i="${i}"><kbd>${i + 1}</kbd><span>${k === s.id ? verseOf(k)[0] : s.no[Number(k[1])]}</span></button>`).join('');
     $('.why').hidden = true; $('.next').hidden = true;
     box.hidden = false; box.classList.remove('ok');
     document.body.classList.add('talking', 'trialing');

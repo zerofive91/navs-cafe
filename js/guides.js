@@ -68,14 +68,15 @@ export function initGuides(K) {
   function talk(g) {
     cur = g;
     const nm = COURSE_META[g.id].name, R = rec()[g.id], tt = total(g.id), sn = Math.min(seen(g.id), tt);
-    let say = g.about, btn = '부탁 받기';
+    // 말풍선 본문(say)은 90자·3문장 안, 부탁·덧붙일 말은 how (T02-B3)
+    let say = g.about, how = '', btn = '부탁 받기';
     const quest = `이 길의 정거장 ${tt}곳을 모두 들러 볼래요? 마치면 걸음 +10, ${statName(g.stat)} +3, 2 데나리온을 받아요.`;
-    if (!isOpen(g.id)) { say = `이 길은 걸음이 ${STAGES[TIER[g.id] - 1].need}이 되면(${TIER_STAGE[TIER[g.id]]}) 들어갈 수 있어요. 지금은 ${profile.steps | 0}걸음이에요. 정원 훈련장이나 부탁을 하면 걸음이 늘어요.`; btn = ''; }
-    else if (R === 'done') { say = `${nm}${jo(nm, '을', '를')} 끝까지 걸었군요! 정거장 ${tt}곳을 다 들렀어요. 언제든 다시 걸으며 말씀을 또 만나요.`; btn = ''; }
-    else if (R === 'on') { say = `${nm}: 정거장 ${sn} / ${tt}곳을 들렀어요.${TIER[g.id] ? ' 검은 그림자가 길을 막으면 말씀으로 이겨요. 틀리면 앞 정거장으로 돌아가 다시 걸어요.' : ''} 길 끝에서 반짝이는 문 단추를 누르면 입구로 와요 (E).`; btn = ''; }
-    else say += ` ${quest}${TIER[g.id] ? ` 이 길에는 검은 그림자가 ${TIER[g.id] + 1}곳 있어요.` : ''}`;
+    if (!isOpen(g.id)) { say = `이 길은 걸음이 ${STAGES[TIER[g.id] - 1].need}이 되면(${TIER_STAGE[TIER[g.id]]}) 들어갈 수 있어요. 지금은 ${profile.steps | 0}걸음이에요.`; how = '정원 훈련장이나 부탁을 하면 걸음이 늘어요.'; btn = ''; }
+    else if (R === 'done') { say = `${nm}${jo(nm, '을', '를')} 끝까지 걸었군요! 정거장 ${tt}곳을 다 들렀어요.`; how = '언제든 다시 걸으며 말씀을 또 만나요.'; btn = ''; }
+    else if (R === 'on') { say = `${nm}: 정거장 ${sn} / ${tt}곳을 들렀어요.`; how = `${TIER[g.id] ? '마음의 소리가 길을 막으면 말씀으로 이겨요. 틀리면 앞 정거장으로 돌아가 다시 걸어요. ' : ''}길 끝에서 반짝이는 문 단추를 누르면 입구로 와요 (E).`; btn = ''; }
+    else how = `${quest}${TIER[g.id] ? ` 이 길에는 마음의 소리가 ${TIER[g.id] + 1}곳 있어요.` : ''}`;
     dlg.open({
-      who: g.name, n: `${nm} ${stars(g.id)}`.trim(), say,
+      who: g.name, n: `${nm} ${stars(g.id)}`.trim(), say, how,
       choices: [
         { label: '나중에', cls: 'later', on: hide },
         { label: '길 시작점으로', cls: 'go', hidden: !isOpen(g.id) || R === 'done', main: !btn, on: () => enter(g) },
