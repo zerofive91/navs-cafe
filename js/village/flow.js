@@ -151,7 +151,7 @@ export function initFlow(cfg) {
     scenes = null,
   } = cfg;
   const sceneOf = (e) => (scenes && e?.scene && scenes.has(e.scene) ? e.scene : null); // 장면 영상이 있나 (미리 보기 기기에서만)
-  const startEv = (e) => { const id = sceneOf(e); if (id && !scenes.seen(id)) scenes.play(id, { part: 'open', then: () => begin(e) }); else begin(e); }; // 처음이면 여는 장면 → 놀이
+  const startEv = (e) => { const id = sceneOf(e); if (id && !scenes.seen(id)) scenes.play(id, { part: 'open', then: (why) => { if (why !== 'away') begin(e); } }); else begin(e); }; // 처음이면 여는 장면 → 놀이 (마을을 떠나 끝났으면 시작하지 않음)
   const townId = cfg.id || String(endKey || '').replace(/^navs-cafe-/, '').split('-')[0] || 'town';
   const RUN_KEY = `navs-cafe-${townId}-run`, RECAP_KEY = `navs-cafe-${townId}-recap`; // 이 탭에서만 (sessionStorage)
   const story = X.story || null; // 이야기 줄 (townTools): 사건을 그만두면 비우고, 마침 카드는 줄이 다 보인 뒤에

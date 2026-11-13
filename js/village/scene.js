@@ -4,10 +4,12 @@
 //
 // initScene(cfg) → { play(id, { part: 'open'|'close'|'all', then }), stop(why), step(dt), playing(), seen(id, part), has(id), sky() }
 //   cfg: me, people({ N, person, X.walkNpc }), SCENES, P(자리 표), shot, sfx, warm(p, h, k)(따뜻한 빛: p가 null이면 끔), fx({ 이름: (값) => 되돌릴 함수 }),
-//        inTown(), standUp, seenKey('navs-cafe-<마을>-scenes')
+//        inTown(), standUp, seenKey('navs-cafe-<마을>-scenes'), third()(1인칭이면 3인칭으로 바꾸고 되돌릴 함수를 돌려줌, 선택)
+//   장면 동안 내 캐릭터는 감춤(me.hidden: 카메라가 나를 축으로 돌아 가까운 장면에서 내 머리가 무대를 가리지 않게), 끝나면 되돌림
+//   then(why): why = 'end' | 'skip' | 'error' | 'timeout' | 'away'(마을을 떠남) | 'stop'
 //   박자 한 칸에 아래 것을 함께 적을 수 있음 (적힌 순서와 상관없이 cam → light → sky → fx → walk → pose → sfx → 글 순으로)
 //     cam  { at, dist, el, side, mid, y }   카메라 (main.js shot: 나를 축으로 대상 쪽을 봄)
-//     light { at, h, k } | false             따뜻한 빛 (예수님). 옮기면 천천히 미끄러져 감. k: 밝기(크기) 배율
+//     light { at, h, k, cut } | false        따뜻한 빛 (예수님). 옮기면 천천히 미끄러져 감(cut이면 바로). k: 밝기(크기) 배율
 //     sub  '자막'                            화면 아래 해설
 //     say  ['누가', '말']                    사람의 말 (자막 자리에 이름과 함께). 예수님은 쓰지 않음 (자료 검사)
 //     word '구절 키'                         말씀 카드 (아이가 고른 성경으로). 예수님·하나님의 말씀은 이것으로만
@@ -62,7 +64,7 @@ export function checkScenes(SCENES, N = {}) {
 }
 
 export function initScene(cfg) {
-  const { me, people, SCENES, P = {}, shot, sfx, warm, fx = {}, inTown = () => true, standUp, seenKey } = cfg;
+  const { me, people, SCENES, P = {}, shot, sfx, warm, fx = {}, inTown = () => true, standUp, seenKey, third = null } = cfg;
   const N = people.N;
   checkScenes(SCENES, N);
   const pt = (a) => (typeof a === 'function' ? a(P) : a);
@@ -143,7 +145,7 @@ export function initScene(cfg) {
     if (b.cam) { const c = b.cam; cur.cam = [pt(c.at), { dist: c.dist ?? 9, el: c.el ?? 0.32, side: c.side ?? 0.4, mid: c.mid ?? 0.6, y: c.y ?? 1.3 }]; shot?.(cur.cam[0], { ...cur.cam[1], dur: 60 }); }
     if (b.light === false) { cur.light = null; warm?.(null); } else if (b.light) {
       const to = pt(b.light.at), h = b.light.h ?? 1.5, k = b.light.k ?? 1;
-      if (!cur.light) { cur.light = { x: to.x, z: to.z, h, k, to: { x: to.x, z: to.z }, kTo: k }; warm?.(cur.light, h, k); } else { cur.light.to = { x: to.x, z: to.z }; cur.light.kTo = k; cur.light.h = h; }
+      if (!cur.light) { cur.light = { x: to.x, z: to.z, h, k, to: { x: to.x, z: to.z }, kTo: k }; warm?.(cur.light, h, k); } else { cur.light.to = { x: to.x, z: to.z }; cur.light.kTo = k; cur.light.h = h; if (b.light.cut) { Object.assign(cur.light, { x: to.x, z: to.z, k }); warm?.(cur.light, h, k); } }
     }
     if ('sky' in b) cur.skyName = b.sky;
     if (b.fx) { const [name, v] = [].concat(b.fx); const u = fx[name]?.(v); if (typeof u === 'function') cur.undo.push(u); }
@@ -225,6 +227,9 @@ export function initScene(cfg) {
       me.action = null;
       // 서서 보는 자리 (sc.view): 앉아 있지 않으면 무대가 잘 보이는 곳으로 옮겨 섬 (장면이 끝나도 그 자리에서 이어서)
       if (sc.view && !me.seat) { const v = pt(sc.view.at), q = nearestFree(v) || v; me.x = q.x; me.z = q.z; const f = pt(sc.view.face); if (f) me.face = Math.atan2(f.x - me.x, f.z - me.z); }
+      // 1인칭이면 장면 동안 3인칭 (shot은 1인칭에서 아무 일도 하지 않음). 내 캐릭터는 감춤
+      const back = third?.(); if (typeof back === 'function') cur.undo.push(back);
+      const hid = me.hidden; me.hidden = true; cur.undo.push(() => { me.hidden = hid; });
       extras(sc);
       for (const k of sc.cast || []) actor(k); // 있는 배우도 이름표·머리 표시를 감추고 얼굴을 고정 (복원표에 적음)
       window.addEventListener('keydown', onKey, true);
@@ -240,8 +245,8 @@ export function initScene(cfg) {
     step(() => restore());
     step(() => { for (const k of Object.keys(c.sc.extras || {})) if (N[k]) N[k].hide = true; });
     step(() => warm?.(null));
-    step(() => { for (const u of c.undo.splice(0).reverse()) u(); });
     step(() => { if (c.cam) shot?.(c.cam[0], { ...c.cam[1], dur: 0 }); }); // 지금 시점에서 천천히 내 뒤로 (방향이 휙 돌지 않게)
+    for (const u of c.undo.splice(0).reverse()) step(u); // 연출·시점·내 캐릭터 되돌림 (하나가 실패해도 나머지는)
     step(() => { el.hidden = true; $('.sc-end').innerHTML = ''; });
     step(() => hushVerses(false));
     document.body.classList.remove('cine');
@@ -261,7 +266,7 @@ export function initScene(cfg) {
       if (L && (Math.hypot(L.to.x - L.x, L.to.z - L.z) > 0.01 || Math.abs(L.kTo - L.k) > 0.01)) {
         const a = Math.min(1, dt * 1.6);
         L.x += (L.to.x - L.x) * a; L.z += (L.to.z - L.z) * a; L.k += (L.kTo - L.k) * a;
-        warm?.(L, L.h, L.k);
+        warm?.(L, L.h + Math.min(1.2, Math.hypot(L.to.x - L.x, L.to.z - L.z) * 0.5), L.k); // 옮겨 가는 동안은 사람 머리 위로 높이 떠서
       }
       const lim = (cur.sc.max || 60) * 1.5;
       if (cur.panel || cur.tap) return; // 아이가 누를 때까지 (잠금은 그대로, 넘기기는 늘 됨)
