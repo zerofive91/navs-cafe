@@ -46,7 +46,8 @@ export function initBaseGuide(K) {
     if (c.k === 'quest') { // 부탁: 바로 그 자리로 (마쳤으면 부탁한 사람에게)
       const q = c.q;
       if (!q.target) { questLog()?.open('q'); return; }
-      goTo(q.target, `그곳으로 걸어가요 · ${q.back ? `${q.name}에게` : q.where || `${q.name}에게`}`);
+      const at = q.back || !q.where ? '' : q.where.split(' (')[0]; // 알림은 짧게: 괄호 속 도움말은 뺌
+      goTo(q.target, at ? `${at}${ro(at)} 걸어가요` : `${q.name}에게 걸어가요`);
       return;
     }
     if (c.k === 'cafe') { tut.start('cafe'); return; } // 바나바에게는 말 걸기 단추가 없음: 바나바가 다가와 안내를 시작
@@ -56,7 +57,11 @@ export function initBaseGuide(K) {
       if (best) goTo(best, `${best.tutName}에게 걸어가요`);
       return;
     }
-    if (c.k === 'way' && c.p) { goTo(c.p, `${c.h}${ro(c.h)} 걸어가요`); return; } // 카드에 적힌 그곳으로 바로
+    if (c.k === 'way' && c.p) { // 카드에 적힌 그곳의 사람에게 바로 ('말씀 훈련장 · 에스라' → 에스라, '목자의 부탁 · 잃은 양' → 목자)
+      const who = /^(.+)의 부탁 · /.exec(c.h)?.[1] || c.h.split(' · ').pop();
+      goTo(c.p, `${who}에게 걸어가요`);
+      return;
+    }
     wayguide.openHere();
   }
   // 자세히: 부탁 → 부탁 창(그만두기 포함), 가 볼 만한 곳·쉬기 → 길 안내 고르기
@@ -67,10 +72,11 @@ export function initBaseGuide(K) {
     else if (c.k === 'way' || c.k === 'rest') wayguide.openHere();
   }
   const chip = createChip('baseChip', press);
+  chip.el.title = '누르면 그곳으로 걸어가요';
   const moreBtn = document.createElement('button');
   moreBtn.type = 'button'; moreBtn.className = 'more'; moreBtn.setAttribute('aria-label', '자세히 보기'); moreBtn.textContent = '≡';
   moreBtn.addEventListener('pointerdown', (e) => e.stopPropagation()); // 카드 누름(바로 걸어가기)으로 번지지 않게
-  moreBtn.addEventListener('keydown', (e) => e.stopPropagation());
+  moreBtn.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') e.stopPropagation(); }); // Esc·방향키는 그대로
   moreBtn.addEventListener('click', (e) => { e.stopPropagation(); more(); });
 
   // 왼쪽 위 칩이 겹치지 않게: 카드 아래로 큰 이야기 칩·두루마리 칩을 내림 (카드보다 위에 있는 칩은 그대로)
