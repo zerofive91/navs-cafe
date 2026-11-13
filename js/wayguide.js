@@ -109,7 +109,7 @@ export function initWayguide(K) {
     if (!profile.tut?.garden || tutActive?.() || busy()) return; // 정원 안내 전에는 tutorial.js가 말을 검
     let near = null;
     for (const n of tutors) if (Math.hypot(me.x - n.x, me.z - n.z) < 2.6) near = n;
-    if (near) offerTalk('way:' + near.tutName, near, () => talk(near)); // 말 걸기 단추를 눌러야 열림
+    if (near) offerTalk('way:' + near.tutName, near, () => talk(near), { auto: true }); // 안내 캐릭터: 곁에 멈추면 먼저 말을 걺 (talkgate autoTalk, T03 C)
   }
   // 정원 안내 중에는 곁으로 다가와도 되고, 끝나면 제자리로 걸어 돌아감
   function pin() {
