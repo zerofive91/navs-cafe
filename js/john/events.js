@@ -668,7 +668,7 @@ export const EV = {
     memo: { v: 'jn-13-34', parts: 4 },
     med: { q: '오늘 내가 낮아져 발을 씻겨 줄 한 사람은 누구인가요?', at: 'up10', sec: 20, v: 'jn-13-14', where: '다락방 식탁' },
     done: '친구들의 발을 정성껏 씻겨 주었네요! 예수님은 "너희도 서로 발을 씻겨 주어라" 하셨어요. 이 수건과 대야를 가져가요.',
-    role: '제자 (예수님처럼 섬겨 보기)', recap: '예수님이 제자들의 발을 씻기셨어요.',
+    role: '예수님처럼 섬기는 제자', recap: '예수님이 제자들의 발을 씻기셨어요.',
     bridge: '유월절 전날 저녁, 예수님이 제자들과 다락방에 모이세요.',
     steps: (X) => [
       { hint: '다락방 문 앞, 빛나는 고리 안에 서요', go: X.P.upDoor, where: '윗동네 다락방 문',
@@ -876,7 +876,7 @@ export const EV = {
     memo: { v: 'jn-20-29', parts: 4 },
     med: { q: '보지 못하고 믿는 나에게 "복되도다" 하세요. 오늘 믿음으로 고백할 한 마디는 무엇인가요?', at: 'up10w', sec: 20, v: 'jn-20-29', where: '다락방 식탁' },
     done: '함께 고백해 주었네요! 예수님은 보지 않고도 믿는 사람이 복되다고 하셨어요. 이 고백을 가져가요.',
-    role: '도마의 자리에 앉은 제자', recap: '닫힌 문 안에 오셔서 평강을 주셨어요.',
+    role: '도마 자리에 앉은 제자', recap: '닫힌 문 안에 오셔서 평강을 주셨어요.',
     bridge: '그날 저녁, 제자들이 문을 꼭 닫고 다락방에 모여 있어요.',
     end: (X) => { X.door(false); X.thomasSit(); },
     steps: (X) => [
@@ -934,7 +934,7 @@ export const EV = {
         until: (r, dt) => { r.t = X.sitting(X.P.fireSeat, 1.8) ? (r.t || 0) + dt : 0; return r.t > 1.2; },
         leave: () => X.verse(['jn-21-9', 'jn-21-12', 'jn-21-13'], '와서 아침을 먹어라') },
       { hint: '조반을 먹은 뒤, 베드로에게 말을 걸어요', go: () => X.npcAt('peter'), where: '디베랴 바닷가 숯불 곁', talk: 'peter',
-        told: (r) => !!r.asking, // 물음 사이(토스트가 사라질 때까지)에는 다시 말 걸기를 띄우지 않음
+        told: (r) => !!r.asking, // 물음 사이(대답 뒤 해설 말풍선을 닫을 때까지)에는 다시 말 걸기를 띄우지 않음
         open: (r, next) => loveAsk(X, next, r) },
       { hint: '마음의 소리가 들려요. 어떤 말씀을 붙들까요?', go: X.P.fireSeat, ring: false, where: '디베랴 바닷가',
         enter: (r, next) => X.trial.pick({
@@ -981,9 +981,16 @@ function loveAsk(X, next, r) {
     if (r.love !== tok) return;
     r.asking = false;
     const q = Q[i];
+    // 대답 뒤 해설 말풍선([다음 ▸])을 아이가 읽고 닫으면 다음 물음 (셋째 뒤에는 다음 단계). 예전에는 X.tell 뒤 2.8초에 다음 물음·같은 틱에 다음 단계가 열려 해설이 덮였음 (T02-R1 J-7)
     const go = (shy) => () => {
-      X.tell(shy ? `예수님은 그 대답도 받으시고, 똑같이 맡기세요. ${q.give}` : q.give);
-      if (i < 2) { r.asking = true; X.later(2800, () => ask(i + 1)); } else next(); // 토스트가 사라진 뒤 다음 물음 (가로 폰에서 창 윗단을 덮지 않게)
+      r.asking = true;
+      const cont = () => { if (r.love !== tok) return; if (X.ui.isOpen()) { X.later(400, cont); return; } if (i < 2) ask(i + 1); else { r.asking = false; next(); } };
+      X.ui.open({
+        who: '이야기', sub: `나를 사랑하느냐 · ${i + 1}/3`,
+        text: shy ? `예수님은 그 대답도 받으시고, 똑같이 맡기세요. ${q.give}` : `예수님이 맡기셨어요. ${q.give}`,
+        buttons: [{ t: '다음 ▸', cls: 'next' }],
+        onClose: () => X.later(0, cont), // 단추·Esc·다른 창에 덮임 어느 쪽이든 이어감 (덮였으면 그 창이 닫힌 뒤)
+      });
     };
     X.ui.open({
       who: '시몬 베드로', sub: `나를 사랑하느냐 · ${i + 1}/3`, text: q.t, quote: q.v,
