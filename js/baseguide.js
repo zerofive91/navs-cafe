@@ -9,6 +9,7 @@ import { walkToward } from './questlog.js';
 export function initBaseGuide(K) {
   const { me, profile, tut, wayguide, region, quests, questLog, walkTo, toast, busy } = K;
   let cur = null;
+  let way = null, wayAt = 0; // 가 볼 만한 곳: 바뀐 뒤 10초는 같은 글로 둠 (걸을 때 카드가 깜빡이지 않게)
 
   function now() {
     if (!profile.name) return null; // 만들기 창이 있음
@@ -17,7 +18,12 @@ export function initBaseGuide(K) {
     const q = quests()?.info?.();
     if (q) return { k: 'quest', t: `부탁 · ${q.name}`, h: q.hint, w: q.where ? `어디: ${q.where}` : '' };
     const s = wayguide.suggest()[0];
-    if (s) return { k: 'way', t: '가 볼 만한 곳', h: s.label, w: s.why };
+    if (s) {
+      const t = performance.now();
+      if (!way || (way.label !== s.label && t - wayAt >= 10000)) { way = s; wayAt = t; }
+      return { k: 'way', t: '가 볼 만한 곳', h: way.label, w: way.why };
+    }
+    way = null;
     return { k: 'rest', t: '오늘도 반가워요', h: '쉬다가 걷다가 말씀을 묵상해요', w: '' };
   }
 

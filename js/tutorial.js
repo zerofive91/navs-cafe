@@ -75,7 +75,7 @@ export function initTutorial(K) {
     { aim: ['walk', 'run'], say: '정원에서는 저절로 달려요. 천천히 걷고 싶으면 걷기로 바꿔요.', keys: [['Shift', '걷기 ↔ 달리기']], touch: '오른쪽의 걷기 단추를 눌러 보세요.', done: () => marks.has('walk') || marks.has('run') },
     { aim: ['jump'], say: '뛰어 볼까요? 공중에서 또 누르면 두 번, 세 번 뛰어요.', keys: [['Space', '점프']], touch: '오른쪽의 점프 단추를 눌러 보세요.', done: () => marks.has('jump') },
     { aim: ['map'], say: '지도를 열어 봐요. 가운데가 카페, 둘레가 정원이에요. 바깥 숲에는 성경 이야기 길이 있어요. 지금은 둘러보기만 해도 돼요.', keys: [['M', '지도'], ['마우스', '가고 싶은 곳 누르기']], touch: '위쪽의 지도 단추를 눌러 보세요.', done: () => marks.has('mapOpen') && map.el.hidden },
-    { say: '금빛으로 반짝이는 단추는 그 자리에서만 하는 체험이에요. 꽃밭에서 꽃을 들어 봐요.', keys: [['E', '그 자리 체험']], touch: '꽃밭이나 성경 이야기 터로 가서 반짝이는 단추를 눌러 보세요.', done: () => marks.has('place') },
+    { say: '금빛으로 반짝이는 단추는 그 자리에서만 하는 체험이에요. 꽃밭에서 꽃을 들어 봐요.', keys: [['E', '그 자리 체험']], touch: '꽃밭으로 가서 반짝이는 단추를 눌러 보세요.', done: () => marks.has('place') },
     { aim: ['recline', 'stars'], say: '풀밭에 누워 하늘을 볼까요? 누운 채로 별을 볼 수 있어요.', keys: [['K', '눕기'], ['N', '별 보기']], touch: '눕기 단추를 누른 다음, 반짝이는 별 단추를 눌러 보세요.', done: () => marks.has('stars') },
     { aim: ['photo'], say: '마음에 드는 풍경은 사진으로 남겨요.', keys: [['P', '사진 모드'], ['Space', '찰칵'], ['Esc', '나오기']], touch: '위쪽의 사진기 단추를 눌러 보세요.', done: () => marks.has('photo') && !photoOn() },
     { auto: true, end: true, say: () => `이제 마음껏 다녀 보세요, ${nm()}님. 이 겨자씨를 드릴게요. 어디로 갈지 모르겠으면 왼쪽 위 카드를 누르거나 문 앞 안내자에게 물어봐요.`, reward: ['mustard'] },
