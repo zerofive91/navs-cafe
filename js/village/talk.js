@@ -16,6 +16,8 @@ export function createTalk({ id, cls }) {
   let spec = null;
   const ui = {
     open(s) {
+      // 열린 말풍선을 새 말풍선이 덮으면 앞 것의 onClose를 먼저 (onClose(true): 덮여서 닫힘. 이야기 줄은 덮인 글을 줄 앞에 되돌려 넣음, T02-R1 J-4)
+      while (spec && spec !== s) { const prev = spec; spec = null; prev.onClose?.(true); } // onClose가 곧바로 연 것이 있으면 그것도
       spec = s;
       box.className = cls + (s.dark ? ' trial' : '') + (s.soft ? ' soft' : '');
       const q = s.quote && VERSES[s.quote];
