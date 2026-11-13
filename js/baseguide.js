@@ -3,11 +3,15 @@
 //   하던 부탁이 있으면 📜 #questChip은 숨기고 이 카드 하나만 (quests.js는 그대로, 여기서 감춤)
 //   누르면: 부탁 → 부탁 창, 카페 안내 → 바나바가 다가와 안내 시작, 정원 안내 → 가장 가까운 문 밖 안내자에게 걸어감, 그 밖 → 길 안내 고르기 창
 //   숨김: 요한 마을 등 다른 마을, 입장 화면, 안내 말풍선(tut.active), 다른 창이 열려 있을 때(busy)
+//   T03 A (2026-11-13): 부탁을 하는 동안에도 보임(부탁 말풍선이 열린 때만 숨김). 부탁·가 볼 만한 곳은 누르면 바로 그곳으로 걸어가고,
+//   오른쪽 '≡' 단추로 자세히(부탁 창·길 안내 고르기)
 import { createChip } from './village/talk.js';
 import { walkToward } from './questlog.js';
 
 export function initBaseGuide(K) {
   const { me, profile, tut, wayguide, region, quests, questLog, walkTo, toast, busy } = K;
+  // '에스라로', '바울로', '마태로' (받침이 있으면 으로, ㄹ 받침은 로)
+  const ro = (w) => { const c = String(w).charCodeAt(String(w).length - 1) - 0xac00; return c >= 0 && c < 11172 && c % 28 && c % 28 !== 8 ? '으로' : '로'; };
   let cur = null;
   let way = null, wayAt = 0; // 가 볼 만한 곳: 바뀐 뒤 10초는 같은 글로 둠 (걸을 때 카드가 깜빡이지 않게)
 
@@ -16,34 +20,58 @@ export function initBaseGuide(K) {
     if (!profile.tut?.cafe) return { k: 'cafe', t: '카페 안내', h: '바나바에게 말을 걸어요', w: '어디: 카페 입구, 머리 위 ••• 표시' };
     if (!profile.tut?.garden) return { k: 'garden', t: '정원 안내', h: '문 밖 안내자에게 말을 걸어요', w: '어디: 가까운 문 밖, 머리 위 ••• 표시' };
     const q = quests()?.info?.();
-    if (q) return { k: 'quest', t: `부탁 · ${q.name}`, h: q.hint, w: q.where ? `어디: ${q.where}` : '' };
+    if (q) return { k: 'quest', t: `부탁 · ${q.name}`, h: q.hint, w: q.where ? `어디: ${q.where}` : '', q };
     const s = wayguide.suggest()[0];
     if (s) {
       const t = performance.now();
       if (!way || (way.label !== s.label && t - wayAt >= 10000)) { way = s; wayAt = t; }
-      return { k: 'way', t: '가 볼 만한 곳', h: way.label, w: way.why };
+      return { k: 'way', t: '가 볼 만한 곳', h: way.label, w: way.why, p: way.p };
     }
     way = null;
     return { k: 'rest', t: '오늘도 반가워요', h: '쉬다가 걷다가 말씀을 묵상해요', w: '' };
   }
 
+  // 그 자리까지 걸어감 (나무 위·길 못 찾음은 알림만)
+  function goTo(p, say) {
+    if (!p) return false;
+    if (me.climb) { toast('먼저 나무에서 내려와요', 3); return false; }
+    if (Math.hypot(p.x - me.x, p.z - me.z) < 1.5) { toast('이미 그곳이에요', 2.5); return true; }
+    if (walkToward(me, walkTo, p)) { toast(say, 3); return true; }
+    toast('그곳으로 가는 길을 찾지 못했어요. 지도에서 가까운 곳으로 가 보세요', 4);
+    return false;
+  }
   function press() {
     const c = now();
     if (!c) return;
-    if (c.k === 'quest') { questLog()?.open('q'); return; }
+    if (c.k === 'quest') { // 부탁: 바로 그 자리로 (마쳤으면 부탁한 사람에게)
+      const q = c.q;
+      if (!q.target) { questLog()?.open('q'); return; }
+      goTo(q.target, `그곳으로 걸어가요 · ${q.back ? `${q.name}에게` : q.where || `${q.name}에게`}`);
+      return;
+    }
     if (c.k === 'cafe') { tut.start('cafe'); return; } // 바나바에게는 말 걸기 단추가 없음: 바나바가 다가와 안내를 시작
     if (c.k === 'garden') {
       let best = null, bd = 1e9;
       for (const n of wayguide.tutors()) { const d = Math.hypot(n.x - me.x, n.z - me.z); if (d < bd) { bd = d; best = n; } }
-      if (!best) return;
-      if (me.climb) { toast('먼저 나무에서 내려와요', 3); return; }
-      if (walkToward(me, walkTo, best)) toast(`${best.tutName}에게 걸어가요`, 3);
-      else toast('그곳으로 가는 길을 찾지 못했어요. 지도에서 가까운 곳으로 가 보세요', 4);
+      if (best) goTo(best, `${best.tutName}에게 걸어가요`);
       return;
     }
+    if (c.k === 'way' && c.p) { goTo(c.p, `${c.h}${ro(c.h)} 걸어가요`); return; } // 카드에 적힌 그곳으로 바로
     wayguide.openHere();
   }
+  // 자세히: 부탁 → 부탁 창(그만두기 포함), 가 볼 만한 곳·쉬기 → 길 안내 고르기
+  function more() {
+    const c = now();
+    if (!c) return;
+    if (c.k === 'quest') questLog()?.open('q');
+    else if (c.k === 'way' || c.k === 'rest') wayguide.openHere();
+  }
   const chip = createChip('baseChip', press);
+  const moreBtn = document.createElement('button');
+  moreBtn.type = 'button'; moreBtn.className = 'more'; moreBtn.setAttribute('aria-label', '자세히 보기'); moreBtn.textContent = '≡';
+  moreBtn.addEventListener('pointerdown', (e) => e.stopPropagation()); // 카드 누름(바로 걸어가기)으로 번지지 않게
+  moreBtn.addEventListener('keydown', (e) => e.stopPropagation());
+  moreBtn.addEventListener('click', (e) => { e.stopPropagation(); more(); });
 
   // 왼쪽 위 칩이 겹치지 않게: 카드 아래로 큰 이야기 칩·두루마리 칩을 내림 (카드보다 위에 있는 칩은 그대로)
   const below = ['storyChip', 'scrollChip'];
@@ -71,8 +99,16 @@ export function initBaseGuide(K) {
     if (t - T < 500) return;
     T = t;
     const show = home && !document.body.classList.contains('at-door') && !tut.active() && !busy();
-    cur = show ? now() : null;
-    if (cur) chip.set(cur.t, cur.h, cur.w); else chip.hide();
+    if (show && quests()?.talking?.()) cur = null; // 부탁 말풍선이 열린 동안만 숨김 (부탁 진행 중에는 보임)
+    else cur = show ? now() : null;
+    if (cur) {
+      chip.set(cur.t, cur.h, cur.w);
+      const go = cur.k === 'quest' || cur.k === 'way', hasMore = go || cur.k === 'rest';
+      chip.el.classList.toggle('go', go);
+      chip.el.classList.toggle('more', hasMore);
+      if (hasMore && moreBtn.parentNode !== chip.el) chip.el.appendChild(moreBtn); // 글이 바뀌면 카드 속이 다시 그려지므로 다시 붙임
+      if (!hasMore) moreBtn.remove();
+    } else chip.hide();
     stack();
   }
 
