@@ -162,6 +162,14 @@ export const ICONS = {
 };
 // 요한복음 마을 사건 단추의 읽어 주는 이름 (화면 낭독기용 aria-label). 없는 단추는 이름(id) 그대로
 export const ICON_LABELS = {
+  // 처음 마을 단추 (화면 낭독기와 길게 누르기 설명용. 글에서 "두 손 모은 단추"처럼 모양으로 부르는 것과 같은 이름)
+  talk: '말 걸기', keys: '단축키', jcart: '마을 수레 타기', map: '지도', cafe: '카페 단추', garden: '정원으로', first: '내 눈으로 보기', third: '뒤에서 보기',
+  music: '음악', musicOff: '음악 끄기', photo: '사진', stars: '별 보기', stay: '머무르기', shop: '가게 열기', bundle: '보따리 들기', care: '동물 돌보기',
+  pray: '기도하기', share: '빛 건네기', praise: '찬양하기', read: '말씀 읽기', wave: '손 흔들기', light: '빛 바라보기', gaze: '빛 바라보기',
+  sit: '앉기', stand: '일어서기', recline: '눕기', jump: '뛰기', walk: '걷기', run: '달리기', rotate: '화면 돌리기', climb: '나무에 오르기', down: '내려가기',
+  order: '주문하기', sip: '마시기', eat: '먹기', putdown: '내려놓기', tray: '쟁반에 놓기', boat: '배 타기', fish: '낚시하기', calm: '손 들어 잠잠하게', loaves: '바구니 열기',
+  goback: '입구로 돌아가기', q_give: '건네기', q_pick: '줍기', q_eat: '먹기', q_dove: '비둘기 날리기', q_net: '그물 던지기',
+  seed: '씨앗 심기', flower: '꽃 들기', giveflower: '꽃 건네기', kite: '연 날리기', skip: '물수제비', solo: '혼자', together: '다같이', invite: '초대하기', people: '사람들',
   jn_lamp: '등불 받기', jn_water: '물 긷기·붓기', jn_draw: '떠 마시기', jn_give: '건네기', jn_look: '바라보기', jn_wash: '씻기',
   jn_put: '내려놓기', jn_boat: '배 타기', jn_row: '노 젓기', jn_call: '무리를 앉히기',
   jn_clear: '장사판 치우기', jn_lift: '자리 들기', jn_push: '돌 옮기기', jn_untie: '베 풀어 주기', jn_pour: '향유 붓기', jn_plant: '밀 심기',
