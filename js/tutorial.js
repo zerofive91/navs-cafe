@@ -182,6 +182,7 @@ export function initTutorial(K) {
     let best = null, bd = Infinity;
     for (const n of tutors()) { const d = Math.hypot(me.x - n.x, me.z - n.z); if (d < bd) { bd = d; best = n; } }
     if (!best) return;
+    if (t - outAt > outDelay + 8000 && bd > 8) return; // 나선 지 오래고 멀리 가 있으면 숲 깊은 곳까지 걸어오지 않음 (가까이 오면 그때, T03 검토 B-1)
     autoGarden = true;
     start('garden', best);
   }
