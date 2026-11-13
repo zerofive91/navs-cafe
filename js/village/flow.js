@@ -454,7 +454,7 @@ export function initFlow(cfg) {
     if (run) { ui.open({ who: e.who, sub: e.title, text: `지금은 "${run.ev.title}"을(를) 따라가고 있군요. 그 일을 마치고 다시 와 주세요.`, buttons: [{ t: '알겠어요', cls: 'next' }] }); return; }
     if (!isOpen(e)) {
       const nx = nextEv(); // 어디로 가야 하는지 알려 줌 (금빛 기둥이 그 자리를 비춰요)
-      const where = nx ? ` 지금은 ${ZONES[nx.start || nx.zone].name}의 ${nx.who}에게 가 봐요. 금빛 기둥이 길을 알려 줘요.` : '';
+      const where = nx ? ` 지금은 ${whoAt(nx)}에게 가 봐요. 금빛 기둥이 길을 알려 줘요.` : '';
       ui.open({ who: e.who, sub: e.title, text: `반가워요! 이 이야기는 "${EV[e.after].title}"을(를) 마친 뒤에 들려줄게요.${where}`, buttons: [{ t: '알겠어요', cls: 'next' }] });
       return;
     }
