@@ -62,7 +62,7 @@ export const EV = {
 
   // ---------- ② 가나의 혼인잔치 (2:1-11, Z3): 첫 표적, 순종의 기쁨 ----------
   cana: {
-    id: 'cana', ch: '2:1-11', zone: 'cana', title: '가나의 혼인잔치', sign: 1, who: '하인', npc: 'servant',
+    id: 'cana', ch: '2:1-11', zone: 'cana', title: '가나의 혼인잔치', sign: 1, who: '하인', npc: 'servant', scene: 'cana', // 장면 영상 (js/john/scenes.js, 미리 보기 기기에서만)
     stat: 'obey', reward: { steps: 12, stat: 3, coin: 3, items: ['jn_jar'] }, after: 'come', time: 'feast',
     listen: '저는 잔치 집 하인이에요. 잔치에 포도주가 다 떨어지자, 예수님의 어머니가 우리에게 "그분이 시키시는 대로 하세요" 하셨어요. 예수님은 돌항아리 여섯에 물을 채우라고 하셨지요. 오늘은 당신도 하인이에요. 함께 우물에서 물을 길어 볼래요?',
     read: ['jn-2-1', 'jn-2-5', 'jn-2-7', 'jn-2-8', 'jn-2-9', 'jn-2-10', 'jn-2-11'],
