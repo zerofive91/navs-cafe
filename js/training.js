@@ -296,7 +296,7 @@ export function initTraining(K) {
   }
   // 훈련장 안내: 하는 방법·진행 정도·이 덕목에 맞는 부탁 (2026-11)
   const HOW = {
-    word: '① 기둥 앞 빛나는 자리에 서요. ② 기둥마다 말씀 한 구절이 떠요. ③ 다섯 기둥을 다 들르면 끝! 곱씹기는 말씀을 곱씹어 생각하는 거예요.',
+    word: '① 기둥 앞 빛나는 자리에 서요. ② 기둥마다 말씀 한 구절이 떠요. ③ 다섯 기둥을 다 들르면 끝! 곱씹기는 들은 말씀을 마음에서 되새기며 깊이 생각하는 거예요.',
     pray: '① 빛 동그라미에 서요. ② 두 손 모은 단추를 꾹 눌러요 (X). ③ 다섯 제단을 다 하면 끝!',
     fellow: '① 보따리 곁에 멈춰 서요. ② 반짝이는 단추를 눌러 보따리를 들어요 (E). ③ 탁자로 날라요. 세 번 하면 끝!',
     witness: '① 흙길을 걷는 사람 곁으로 가요. ② 두 사람 사이 빛 단추를 눌러요 (V). ③ 세 사람에게 건네면 끝!',
@@ -395,7 +395,6 @@ export function initTraining(K) {
     for (const sp of [todo, done]) { sp.position.y = 2.75; sp.renderOrder = 5; d.who.av.add(sp); }
     signs[id] = { todo, done, called: false };
   }
-  const CALL = { word: '말씀을 듣고 읽고 공부하고 외우고 곱씹는 다섯 기둥을 함께 돌아요', pray: '찬양·감사·자백·중보·간구, 다섯 제단에서 함께 기도해요', fellow: '서로 짐을 지는 법을 함께 배워요. 보따리 나르기를 도와줄래요?', witness: '길 가는 사람들에게 빛을 건네는 법을 알려 줄게요', obey: '갈 바를 몰라도 앞서가는 등불을 따라 걸어 봐요' };
   function callOut(t) {
     if (run || busy()) return;
     for (const [id, n] of trainers) {
