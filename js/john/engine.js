@@ -22,6 +22,8 @@ import { initBeacon } from '../village/beacon.js'; // 금빛 기둥·자리 고�
 import { initSky } from '../village/sky.js'; // 그 시각의 빛 (마을 공용)
 import { initCarry, initProps } from '../village/things.js'; // 들고 다니기·놓는 물건 (마을 공용)
 import { initFlow, townTools } from '../village/flow.js'; // 사건 진행·마침·졸업·말 걸기 (마을 공용)
+import { initScene } from '../village/scene.js'; // 장면 영상 재생기 (마을 공용, T04)
+import { SCENES } from './scenes.js'; // 요한 마을 장면 자료 (가나)
 // events·trials·modes는 region.js가 불러와 넘김 (불러오기에 실패해 다시 시도할 때 주소 끝을 바꿀 수 있게)
 
 const NOBLUR = 'navs-cafe-noblur';
@@ -319,10 +321,46 @@ export function initJohn(K, built, { EV, ORDER, initTrials, initModes }) {
     eventRunning: () => !!runNow(),
   });
 
+  // ---------- 장면 영상 (T04, js/village/scene.js): 미리 보기를 켠 기기에서만 (scene.js previewOn) ----------
+  //   따뜻한 빛은 장면 전용 복제 하나 (그림만, 조명 없음). k: 빛 크기 배율 (환해짐). 사람 몸에 겹쳐 보이지 않게 조금 작게(0.85배)·높게(자료의 h)
+  const warmS = parts.warm.clone(); warmS.visible = false; built.root.add(warmS);
+  const warmO = parts.warm.children[0].position, warmBase = warmS.children.map((c) => c.scale.clone());
+  const sceneWarm = (p, h = 1.5, k = 1) => {
+    if (!p) { warmS.visible = false; return; }
+    warmS.position.set(p.x - warmO.x, G(p) + h - warmO.y, p.z - warmO.z);
+    warmS.children.forEach((c, i) => c.scale.copy(warmBase[i]).multiplyScalar(k * 0.85));
+    warmS.visible = true;
+  };
+  // 돌항아리: 여는 장면은 빈 항아리, 맺는 장면은 포도주 (다시 보기에서도 맞게). 돌려준 함수가 장면 앞 모습으로 되돌림
+  const jarsAs = (kind) => {
+    const keep = jars.map((j) => ({ level: j.level, target: j.target, wine: j.wine, vis: j.water.visible, y: j.water.position.y, c: j.wm.color.getHex() })), cups = parts.cups.map((c) => c.visible);
+    for (const j of jars) {
+      const full = kind === 'wine';
+      j.level = j.target = full ? 1 : 0; j.wine = full ? 1 : 0; j.water.visible = full; j.water.position.y = 0.04 + j.level * 0.86;
+      if (full) j.wm.color.setRGB(0.48, 0.1, 0.18); else j.wm.color.set(0x6fb2c8);
+    }
+    parts.cups.forEach((c) => { c.visible = kind === 'wine'; });
+    return () => {
+      jars.forEach((j, i) => { const k = keep[i]; j.level = k.level; j.target = k.target; j.wine = k.wine; j.water.visible = k.vis; j.water.position.y = k.y; j.wm.color.setHex(k.c); });
+      parts.cups.forEach((c, i) => { c.visible = cups[i]; });
+    };
+  };
+  // 1인칭 시점이면 장면 동안 3인칭으로: 화면의 시점 단추(1인칭/3인칭)를 눌러 바꾸고, 끝나면 다시 눌러 되돌림 (main.js는 그대로)
+  const viewBtn = () => [...document.querySelectorAll('#places .place.view')].find((b) => /person/.test(b.getAttribute('aria-label') || ''));
+  const third = () => {
+    const b = viewBtn(); if (!b || b.getAttribute('aria-label') !== 'third person') return null; // 'third person' 단추가 보이면 지금 1인칭
+    const press = () => b.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+    press();
+    return () => { const v = viewBtn(); if (v && v.getAttribute('aria-label') === 'first person') press(); };
+  };
+  const scenes = initScene({
+    me, people, SCENES, P: SP, shot, sfx, warm: sceneWarm, fx: { jars: jarsAs }, inTown, standUp, seenKey: 'navs-cafe-john-scenes', third,
+  });
+
   // ---------- 사건 진행·마침·졸업·말 걸기 (js/village/flow.js). 여기에는 요한 마을의 글과 자리만 ----------
   const signsN = () => ORDER.filter((id) => EV[id].sign && flow.isDone(EV[id])).length;
   flow = initFlow({
-    me, profile, save, onChange, toast, sfx, burst, busy, standUp, inTown,
+    me, profile, save, onChange, toast, sfx, burst, busy, standUp, inTown, scenes,
     ui, chip, whisper, sky, beacon, people, X, EV, ORDER, openOrder: JOHN_EVENTS, store: J, trials, modes, er, ER, SP, ZONES,
     name: '요한복음 마을', book: '요한복음', talkKey: 'jn:', endKey: END_SEEN, introKey: INTRO_SEEN, acts: JN_ACTS,
     greet: GREET, errandTitle: '증인의 작은 부탁', quietAgain: '다시 걸어 주었군요. 그 밤과 그 아침을 다시 기억했어요',

@@ -33,6 +33,8 @@
 //     ride(zoneId)        다음 이야기 카드의 [병거 타기]: 그 구역으로 병거 (요한: shop.rideTo('j:' + zone)). 없으면 병거 단추 없음
 //     toldAgain           여럿에게 전하는 단계에서 이미 전한 사람에게 다시 말을 걸 때 글 (기본 '벌써 전해 주었어요. 고마워요! 이제 다른 사람에게 가요.')
 //     id                  sessionStorage 키 이름 (navs-cafe-<id>-recap · navs-cafe-<id>-run). 없으면 endKey의 마을 이름 (navs-cafe-john-end → john)
+//   2026-11 T04 장면 영상 (선택): scenes = js/village/scene.js initScene 결과. 사건 자료 scene: '장면 id'면 처음 [따라 해 보기] 때 여는 장면 → 놀이,
+//     처음 마칠 때 마침 카드 앞에 맺는 장면, 마친 증인의 더 깊이 보기에 [🎬 장면 다시 보기]. 장면 동안 엔진은 멈추고(step) 조작이 잠김(locked)
 //   사건 자료(EV)에 더할 수 있는 것 (J2): role '하인' (오늘 나는 ○○ 배지), recap (되짚기 한 줄), bridge (다음 이야기 카드의 이유 한 줄)
 //   X 도구 더함: X.tell(글) 해설 말풍선 · X.role(글) 오늘 나는 ○○을 사건 도중에 바꿈 (그 사건이 끝날 때까지) · X.story 이야기 줄 (townTools)
 import { offerTalk } from '../talkgate.js';
@@ -146,7 +148,10 @@ export function initFlow(cfg) {
     name, book, guide, greet = {}, talkKey, endKey, introKey, acts = [], seatOf, resetKeys = {}, errandTitle = '작은 부탁',
     quietAgain = '다시 걸어 주었군요. 그 이야기를 다시 기억했어요', hooks = {}, systems = [],
     walkTo = null, ride = null, toldAgain = '벌써 전해 주었어요. 고마워요! 이제 다른 사람에게 가요.',
+    scenes = null,
   } = cfg;
+  const sceneOf = (e) => (scenes && e?.scene && scenes.has(e.scene) ? e.scene : null); // 장면 영상이 있나 (미리 보기 기기에서만)
+  const startEv = (e) => { const id = sceneOf(e); if (id && !scenes.seen(id)) scenes.play(id, { part: 'open', then: (why) => { if (why !== 'away') begin(e); } }); else begin(e); }; // 처음이면 여는 장면 → 놀이 (마을을 떠나 끝났으면 시작하지 않음)
   const townId = cfg.id || String(endKey || '').replace(/^navs-cafe-/, '').split('-')[0] || 'town';
   const RUN_KEY = `navs-cafe-${townId}-run`, RECAP_KEY = `navs-cafe-${townId}-recap`; // 이 탭에서만 (sessionStorage)
   const story = X.story || null; // 이야기 줄 (townTools): 사건을 그만두면 비우고, 마침 카드는 줄이 다 보인 뒤에
@@ -283,6 +288,7 @@ export function initFlow(cfg) {
       got = `받은 것: 걸음 +${R.steps}, ${statName(e.stat)} +${R.stat}, ${R.coin} 데나리온, ${R.items.map((x) => ITEMS[x]?.name || x).join('·')}`;
     } else if (e.quiet) msg = quietAgain;
     else { grew(addSteps(profile, 2)); msg = `다시 걸어 주었군요. 말씀은 할 때마다 새로워요`; got = '걸음 +2'; }
+    let closeScene = first && sceneOf(e) && !scenes.seen(e.scene, 'close') ? e.scene : null; // 처음 마치면 마침 카드 앞에 맺는 장면
     const grad = first && allDone() && j.mark !== '졸업'; // ORDER를 다 마침 → 마을 졸업 표지
     if (grad) j.mark = '졸업';
     save(); onChange?.();
@@ -292,7 +298,8 @@ export function initFlow(cfg) {
     updateChip();
     const showDone = () => {
       // 다른 창이 닫힐 때까지 (마을을 떠났으면 돌아올 때). 마지막 단계의 말·말씀(이야기 줄)이 다 보인 뒤에
-      if (busy() || ui.isOpen() || !inTown() || story?.pending()) { setTimeout(showDone, 800); return; }
+      if (busy() || ui.isOpen() || !inTown() || story?.pending() || scenes?.playing()) { setTimeout(showDone, 800); return; }
+      if (closeScene) { const id = closeScene; closeScene = null; scenes.play(id, { part: 'close', then: showDone }); return; }
       ui.open({
         who: e.who, sub: `${e.title} · 마침`, text: msg, badge: role, note: [got, '깊이 보기(공부·암송·묵상)는 언제든 이 증인에게 다시 말을 걸면 해요.'].filter(Boolean).join(' · '),
         buttons: [{ t: '감사해요', cls: 'next' }],
@@ -436,6 +443,7 @@ export function initFlow(cfg) {
       buttons: [
         { t: '돌아가기', cls: 'later', fn: () => deep(e) },
         ...others.map((o) => ({ t: `"${o.title}" 이야기`, fn: () => deep(o) })),
+        ...(sceneOf(e) ? [{ t: '🎬 장면 다시 보기', fn: () => scenes.play(e.scene, { part: 'all' }) }] : []),
         { t: '본문 읽기', fn: () => { X.verse(e.read, e.title); } },
         { t: `${m.includes('s') ? '✓ ' : ''}공부`, fn: () => modes.study(e, fin('s', '공부')) },
         { t: `${m.includes('m') ? '✓ ' : ''}암송`, fn: () => modes.memo(e, fin('m', '암송')) },
@@ -461,7 +469,7 @@ export function initFlow(cfg) {
     if (isDone(e)) return deep(e);
     ui.open({
       who: e.who, sub: `${book} ${e.ch} · ${e.title}`, text: e.listen, note: rewardNote(e), badge: e.role || '',
-      buttons: [{ t: '🔈 읽어 주기', cls: 'speak', keep: true, fn: () => speak(e.listen) }, { t: '나중에', cls: 'later' }, { t: '따라 해 보기', cls: 'next', fn: () => begin(e) }],
+      buttons: [{ t: '🔈 읽어 주기', cls: 'speak', keep: true, fn: () => speak(e.listen) }, { t: '나중에', cls: 'later' }, { t: '따라 해 보기', cls: 'next', fn: () => startEv(e) }],
     });
     n.face = Math.atan2(me.x - n.x, me.z - n.z);
   }
@@ -553,6 +561,7 @@ export function initFlow(cfg) {
   // ---------- 그 시각의 빛: 사건 구역 안에서만 ----------
   function skyWant() {
     if (!inTown()) return null;
+    const ss = scenes?.sky(); if (ss !== undefined) return ss; // 장면이 원하는 시각
     const inZone = (zid, pad = 26) => { const z = typeof zid === 'string' ? ZONES[zid] : zid; return z && Math.hypot(me.x - z.x, me.z - z.z) < z.r + pad; };
     if (run && run.sky && inZone(run.sky.zone, run.sky.pad ?? (sky.dim(run.sky.p) ? 40 : 26))) return run.sky.p;
     for (const id of ORDER) {
@@ -619,6 +628,7 @@ export function initFlow(cfg) {
     fire('pre', dt, town, now);
     people.step(town);
     fire('frame', dt, town, now);
+    if (scenes?.playing()) { scenes.step(dt); chip.hide(); beacon.hide(); return; } // 장면 동안: 단계·말 걸기·금빛 기둥 멈춤 (마을을 떠나면 장면이 스스로 끝남)
     if (!town) { chip.hide(); beacon.hide(); return; }
     trials.step(); modes.step();
     if (!run) er.step(dt);
@@ -670,9 +680,11 @@ export function initFlow(cfg) {
     errands: er, // 작은 부탁 (마을 밖 사람은 errands.register(key, npc) 뒤 errands.talk(key)). 부탁 자료가 없는 마을은 빈 부탁 (null 아님)
     // 공용 장치 꽂기 (엔진을 지은 뒤): sys = { away, pre, frame, cleanup, reset, quit, first, done } 가운데 쓰는 것만. 돌려준 함수를 부르면 뺌
     use(sys) { plugged.push(sys); return () => { const i = plugged.indexOf(sys); if (i >= 0) plugged.splice(i, 1); }; },
-    active: () => ui.isOpen(),
+    active: () => ui.isOpen() || !!scenes?.playing(),
+    locked: () => !!scenes?.playing(), // 장면 동안 걷기·단추·단축키 잠금 (region.locked)
+    scenes, // 장면 영상 (시험용)
     notice, // 알림을 사건 마침 카드 뒤로 미룸 (카드가 없으면 바로). 오늘의 마을 등 공용 장치가 씀
-    get holding() { return holding; }, // 마침 카드를 기다리는 중 (main.js toast가 시스템 알림을 미룸)
+    get holding() { return holding || !!scenes?.playing(); }, // 마침 카드를 기다리는 중 (main.js toast가 시스템 알림을 미룸)
     inTown,
     get run() { return run; }, N, EV, ui, X, modes, trials,
     debug: { begin: (id) => begin(EV[id]), advance, complete: () => run && complete() },
