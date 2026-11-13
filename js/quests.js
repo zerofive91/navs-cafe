@@ -546,5 +546,6 @@ export function initQuests(K) {
   const ignoreRun = (fn) => { quiet = true; try { return fn(); } finally { quiet = false; } };
   const active = () => !!shown || (!!run && !quiet && !(run.q.id === 'samaritan' && run.i === 0 && dist(P.market) < 10.5));
 
-  return { info, quit, step, actions, available, active, ignoreRun, Q, BY, doneCount, get run() { return run; }, spots: { brook, ears, doveSpot, meal, restSpot, broomAt, netL, netR } };
+  const talking = () => !!shown; // 부탁 말풍선이 열린 때만 (지금 할 일 카드는 부탁 중에도 보임, T03 A)
+  return { info, quit, step, actions, available, active, talking, ignoreRun, Q, BY, doneCount, get run() { return run; }, spots: { brook, ears, doveSpot, meal, restSpot, broomAt, netL, netR } };
 }

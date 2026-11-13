@@ -1818,7 +1818,7 @@ story = initStory({
 });
 questLog = initQuestLog({ me, quests, story, walkTo, toast, john: () => region.engineHere(), town: () => region.here() });
 // 처음 마을 "지금 할 일" 카드 (왼쪽 위, T02 B1)
-baseGuide = initBaseGuide({ me, profile, tut, wayguide, region: () => region, quests: () => quests, questLog: () => questLog, walkTo, toast, busy: busyOf('baseguide') });
+baseGuide = initBaseGuide({ me, profile, tut, wayguide, region: () => region, quests: () => quests, questLog: () => questLog, walkTo, toast, busy: busyOf('baseguide', 'quests') }); // 부탁 중에도 카드는 보임: 부탁 말풍선만 baseguide.js에서 따로 봄 (T03 A)
 requestAnimationFrame(frame);
 if (window.__pick) choose(window.__pick);
 // 첫 화면이 뜬 뒤 소품 모델을 천천히 불러와 바꿔 끼움
