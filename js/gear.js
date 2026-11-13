@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import { setOutfit } from './avatar.js';
 import { R_PARK, FAR_X } from './layout.js';
-import { saveProfile } from './profile.js';
+import { jo, saveProfile } from './profile.js';
 import { initCosmetic } from './cosmetic.js';
 
 const done = (o) => Object.keys(o || {}).length;
@@ -16,7 +16,7 @@ export const GEAR = {
   shoes: { why: '증거 훈련을 마쳐서', name: '복음의 신', how: '증거 훈련을 마치면', does: '숲길에서 더 빨리 걸어요', verse: ['평안의 복음의 예비한 것으로 신을 신고', '에베소서 6:15'], got: (p) => !!p.train?.witness },
   shield: { why: '★★ 숲길 하나를 이겨서', name: '믿음의 방패', how: '★★ 숲길 하나를 이기면', does: '한 길에 한 번, 틀린 말씀을 골라도 넘어지지 않아요', verse: ['모든 것 위에 믿음의 방패를 가지고 이로써 능히 악한 자의 모든 화전을 소멸하고', '에베소서 6:16'], got: (p, T) => tierWins(p, T, 2) > 0 },
   helmet: { why: '부탁 다섯을 들어주어서', name: '구원의 투구', how: '부탁 다섯을 들어주면', does: '넘어져도 앞 정거장으로 돌아가지 않고 그 자리에서 일어나요', verse: ['구원의 투구와 성령의 검 곧 하나님의 말씀을 가지라', '에베소서 6:17'], got: (p) => Object.values(p.quests || {}).filter((v) => v === 'done').length >= 5 },
-  sword: { why: '숲길 셋을 이겨서', name: '성령의 검', how: '숲길 셋을 이기면', does: '한 길에 한 번, 작은 속삭임을 말씀으로 단번에 물리쳐요', verse: ['구원의 투구와 성령의 검 곧 하나님의 말씀을 가지라', '에베소서 6:17'], got: (p) => done(p.dungeon) >= 3 },
+  sword: { why: '숲길 셋을 이겨서', name: '성령의 검', how: '숲길 셋을 이기면', does: '한 길에 한 번, 마음의 소리를 말씀으로 단번에 물리쳐요', verse: ['구원의 투구와 성령의 검 곧 하나님의 말씀을 가지라', '에베소서 6:17'], got: (p) => done(p.dungeon) >= 3 },
   lamp: { why: '순종 훈련에서 받아서', name: '등불', how: '순종 훈련에서 받은 등불', does: '어두운 숲길을 밝혀요', verse: ['주의 말씀은 내 발에 등이요 내 길에 빛이니이다', '시편 119:105'], got: (p) => p.items.includes('lamp') },
 };
 export const ARMOR6 = ['belt', 'breast', 'shoes', 'shield', 'helmet', 'sword'];
@@ -32,7 +32,7 @@ export function initGear({ me, profile, scene, toast, sfx, burst, TIER }) {
   const tell = (list) => {
     const what = list.map((g) => `${g.why} ${g.name}`).join(', ');
     toast(list.length === 1
-      ? `${what}을(를) 받아 갖추었어요 (${list[0].verse[1]}). ${list[0].does}. 내 카드에서 벗을 수 있어요`
+      ? `${what}${jo(what, '을', '를')} 받아 갖추었어요 (${list[0].verse[1]}). ${list[0].does}. 내 카드에서 벗을 수 있어요`
       : `그동안 해 온 일로 장비 ${list.length}개를 받아 갖추었어요: ${what}. 내 카드에서 하나씩 보고 벗을 수 있어요`, 7 + list.length);
   };
   function check(first) {
@@ -79,7 +79,7 @@ export function initGear({ me, profile, scene, toast, sfx, burst, TIER }) {
     if (worn(id)) G.worn = G.worn.filter((x) => x !== id); else G.worn.push(id);
     saveProfile(profile); apply(true);
     const g = GEAR[id];
-    toast(worn(id) ? `${g.name}을(를) 갖추었어요 (${g.verse[1]}). ${g.does}` : `${g.name}을(를) 벗었어요`, 4);
+    toast(worn(id) ? `${g.name}${jo(g.name, '을', '를')} 갖추었어요 (${g.verse[1]}). ${g.does}` : `${g.name}${jo(g.name, '을', '를')} 벗었어요`, 4);
   }
   check(true); apply(true);
   return { step, toggle, worn, owned, full: () => ARMOR6.every(worn), apply };

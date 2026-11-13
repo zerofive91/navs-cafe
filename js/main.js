@@ -1607,7 +1607,8 @@ function goIn() {
   setTimeout(() => { for (const [m, sec] of doorToasts.splice(0)) toast(m, sec); }, 2500);
   setTimeout(() => enter.remove(), 700);
   // 지난번에 다른 마을(요한복음 마을 등)에 있었으면 그 마을 도착 자리(빛의 광장)에서 시작
-  if (lastTown(profile) !== 'base' && profile.name) { region.go(lastTown(profile), { fromDoor: true }); character.showChip(); setTimeout(maybeHint, 1200); return; }
+  // 아직 짓는 중인 마을(soon)에 가 본 저장이면 처음 마을로
+  if (lastTown(profile) !== 'base' && profile.name && !village(lastTown(profile))?.soon) { region.go(lastTown(profile), { fromDoor: true }); character.showChip(); setTimeout(maybeHint, 1200); return; }
   // 처음 오면 이름과 모습을 정하고, 바나바의 카페 안내를 받음
   walkTo(me, { x: 0, z: 19 }, () => {
     if (!profile.name) character.openCreator(true);
@@ -1672,7 +1673,7 @@ stillness = initStillness({ me, profile, save: () => saveProfile(profile), busy:
 Object.assign(ACTIONS, stillness.actions);
 // 오늘 만난 말씀 (2026-11, js/met.js): 화면에 떠오른 말씀을 하루치 모아 내 카드 '오늘 말씀' 탭에
 onVerseShown((key) => { if (recordMet(profile.met, key)) saveProfile(profile); });
-const scrolls = initScrolls({ scene, me, sfx, fxSprite, burst, icon: ICONS.scroll });
+const scrolls = initScrolls({ scene, me, sfx, fxSprite, burst, icon: ICONS.scroll, toast });
 // 마을 사이 다니기: 정원 길목의 수레 ↔ 요한복음 마을 (2026-11). 마을마다 하늘·안개, 지도, 함께 있는 사람이 바뀜
 const ENV0 = { fog: null, near: 0, far: 0, hemiSky: hemi.color.clone(), hemiGround: hemi.groundColor.clone() };
 function setEnv(env) {

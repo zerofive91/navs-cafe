@@ -98,7 +98,7 @@ canvas { display: block; width: 100%; height: 100%; touch-action: none; }
   opacity: 0.85;
   margin-bottom: 0.6em;
 }
-/* 들어가는 방법 세 가지: 혼자 · 함께 · 초대 */
+/* 들어가는 방법: 혼자(기본, 큰 단추) · 모임 · 초대 */
 #enter .modes {
   position: absolute;
   left: 0;
@@ -524,6 +524,7 @@ body:has(#creator) #actions, body:has(#creator) #stick, body:has(#creator) #meCh
 .npcb .row { display: flex; justify-content: flex-end; gap: 6px; margin-top: 8px; }
 .npcb .row button { border: 0; border-radius: 12px; height: 32px; padding: 0 12px; background: transparent; color: #a08868; font: 600 13px "Noto Serif KR", serif; cursor: pointer; }
 .npcb .row button[hidden] { display: none; }
+.npcb .row button[aria-disabled="true"] { opacity: 0.55; }
 .npcb .row .next { background: #8f6744; color: #fffaf0; padding: 0 16px; }
 .npcb.ok .row .skip { visibility: hidden; }
 .npcb:focus { outline: none; } /* 말풍선 상자 자체(dialog.js tabindex=-1)는 테두리 없이, 단추는 기본 포커스 표시 */

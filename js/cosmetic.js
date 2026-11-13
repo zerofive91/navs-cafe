@@ -3,7 +3,7 @@
 //   탈것은 바깥(카페 건물 밖)에서 서 있거나 걸을 때만 타고, 앉거나 무언가를 하면 내림. 빌린 나귀(shop.js)를 쓰는 동안은 그 나귀를 탐
 import * as THREE from 'three';
 import { R_HALL } from './layout.js';
-import { saveProfile, spend, stageOf, STAGES } from './profile.js';
+import { jo, saveProfile, spend, stageOf, STAGES } from './profile.js';
 
 export const COS_KINDS = [['wing', '날개'], ['mount', '탈것'], ['head', '머리 장식']];
 // need: 이 단계(STAGES의 이름)부터 살 수 있음
@@ -287,19 +287,19 @@ export function initCosmetic({ me, profile, toast, sfx, burst }) {
     profile.cos[g.kind] = worn(id) ? '' : id;
     saveProfile(profile); apply();
     if (worn(id)) { sfx?.('orb', 0.18, 1.2); burst?.(me.x, me.y + 1, me.z); }
-    return worn(id) ? `${g.name}을(를) 갖추었어요 (${g.verse[1]})${g.kind === 'mount' ? '. 카페 밖에서 서 있거나 걸을 때 타요' : ''}` : `${g.name}을(를) 벗었어요`;
+    return worn(id) ? `${g.name}${jo(g.name, '을', '를')} 갖추었어요 (${g.verse[1]})${g.kind === 'mount' ? '. 카페 밖에서 서 있거나 걸을 때 타요' : ''}` : `${g.name}${jo(g.name, '을', '를')} 벗었어요`;
   }
   function buy(id) {
     const g = COS[id];
     if (!g || owned(id)) return '';
     const lock = cosLocked(profile, id);
-    if (lock) return `${g.name}은(는) ${lock} 단계부터 살 수 있어요`;
+    if (lock) return `${g.name}${jo(g.name, '은', '는')} ${lock} 단계부터 살 수 있어요`;
     if (!spend(profile, g.price)) return '돈이 모자라요.';
     profile.cos.owned.push(id);
     profile.cos[g.kind] = id;
     saveProfile(profile); apply();
     burst?.(me.x, me.y + 1.2, me.z);
-    return `${g.name}을(를) 사서 갖추었어요. 내 카드의 꾸미기에서 벗거나 바꿀 수 있어요`;
+    return `${g.name}${jo(g.name, '을', '를')} 사서 갖추었어요. 내 카드의 꾸미기에서 벗거나 바꿀 수 있어요`;
   }
   // 내 카드 속 모습: 탈것이 있으면 카페 안에서도 탄 모습으로 찍어 보여 줌
   //   앞에서만 찍으면 탈것 머리에 가리고 날개가 안 보이므로, 찍는 동안만 비스듬히 돌리고 키만큼 내려 화면에 다 들어오게 함

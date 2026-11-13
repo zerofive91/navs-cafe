@@ -8,6 +8,7 @@
 import { offerTalk } from './talkgate.js';
 import { createDialog } from './dialog.js';
 import { nameTag } from './tutorial.js';
+import { jo } from './profile.js';
 import { VILLAGES, village, destinations } from './villages/registry.js';
 
 // 마친 사건 수 (요한복음 마을: 사건 'word'는 '와 보라'에 합쳐져 있어 22개). 등록부 progress
@@ -113,7 +114,9 @@ export function initCartGuide(K) {
       guide: [info ? { label: '돌아가기', on: () => talkPick(false, g, outs) } : { label: '마을들은 어떤 곳이에요?', on: () => talkPick(true, g, outs) }],
       choices: [
         { label: '다음에요', cls: 'later', on: hide },
-        ...outs.map((v, i) => ({ label: (v.short || v.name) + (fresh(v) ? ' · 처음' : ''), cls: 'go', main: i === 0, on: () => board(v.id) })), // 폰 세로 한 줄에 맞게 짧은 이름
+        ...outs.map((v, i) => v.soon
+          ? { label: (v.short || v.name) + ' · 짓는 중', cls: 'later soon', soon: true, on: () => toast?.(`${v.name}${jo(v.name, '은', '는')} 지금 짓고 있어요. 조금만 기다려요`, 3) }
+          : { label: (v.short || v.name) + (fresh(v) ? ' · 처음' : ''), cls: 'go', main: outs.findIndex((o) => !o.soon) === i, on: () => board(v.id) }), // 폰 세로 한 줄에 맞게 짧은 이름
       ],
       esc: hide,
     });

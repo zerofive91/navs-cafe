@@ -8,7 +8,7 @@ import { PARK, isFree, floorY, regionIdAt } from './layout.js';
 import { village } from './villages/registry.js';
 import { nearestFree } from './nav.js';
 import { nameTag } from './tutorial.js';
-import { GOODS, ITEMS, MONEY, SELL, fmtMoney, earn, spend, addGood, useGood, sellItem, openWallet, addStat } from './profile.js';
+import { jo, GOODS, ITEMS, MONEY, SELL, fmtMoney, earn, spend, addGood, useGood, sellItem, openWallet, addStat } from './profile.js';
 import { showVerse, VERSES } from './verses.js';
 import { COS, COS_KINDS, cosApi, cosLocked } from './cosmetic.js';
 
@@ -20,7 +20,11 @@ for (const [id, g] of Object.entries(COS)) VERSES['cos-' + id] = g.verse;
 export function initShop(K) {
   const { scene, me, makeChar, npcs, profile, save, toast, sfx, burst, act, busy, onChange, guides } = K;
   const granted = openWallet(profile); // 지갑이 처음 생기면 그동안 한 일만큼 채워 줌
-  if (granted) setTimeout(() => toast(`지갑이 생겼어요! 그동안 한 일로 ${fmtMoney(granted)}를 받았어요. 정원 동쪽 가게의 루디아에게 가 보세요.`, 6), 6000);
+  // 새 저장(받은 돈이 처음 5뿐, 한 일 없음)에는 알림 없음: 지갑은 나 카드에 있음. 한 일이 있는 옛 저장에만 알리되, 정원 안내 전에는 뒤로 미룸
+  if (granted > 5) {
+    const tellWallet = () => { if (!profile.tut?.garden || busy?.()) { setTimeout(tellWallet, 4000); return; } toast(`지갑이 생겼어요! 그동안 한 일로 ${fmtMoney(granted)}${jo(fmtMoney(granted), '을', '를')} 받았어요. 간식 가게 곁 루디아에게 가 보세요`, 6); };
+    setTimeout(tellWallet, 6000);
+  }
 
   // ---------- 루디아 ----------
   const zn = PARK.market;
@@ -48,7 +52,7 @@ export function initShop(K) {
     if (only) {
       box.innerHTML = `<div class="pad"><button class="close" aria-label="닫기">×</button>
       <h3>수레 짐</h3>
-      <p class="sub">루디아의 가게에서 받아 온 짐이에요. 값도 같고 지갑도 하나예요. 팔기와 꾸미기는 정원 동쪽 루디아에게서만 해요.</p>
+      <p class="sub">루디아의 가게에서 받아 온 짐이에요. 값도 같고 지갑도 하나예요. 팔기와 꾸미기는 간식 가게 곁 루디아에게서만 해요.</p>
       <p class="purse">지갑 <b>${fmtMoney(profile.coins)}</b></p>
       <div class="list">${only.ids.filter((id) => GOODS[id]).map((id) => { const g = GOODS[id]; return `<div class="it"><div><b>${g.name}</b> <span class="have">${bag[id] ? `가진 것 ${bag[id]}` : ''}</span><small>${g.use}</small></div><button data-buy="${id}" ${profile.coins < g.price ? 'disabled' : ''}>${g.price} 데나리온</button></div>`; }).join('')}</div>
       <p class="msg">${msg}</p></div>`;
@@ -56,7 +60,7 @@ export function initShop(K) {
     }
     box.innerHTML = `<div class="pad"><button class="close" aria-label="닫기">×</button>
       <h3>루디아의 가게</h3>
-      <p class="sub">두아디라에서 온 자주 장사 루디아예요. 주께서 제 마음을 열어 주셨지요. 필요한 것을 골라 보세요.</p>
+      <p class="sub">저는 루디아예요. 고운 자주색 천을 파는 장사였어요. 필요한 것을 골라 봐요.</p>
       <p class="purse">지갑 <b>${fmtMoney(profile.coins)}</b></p>
       <div class="tabs"><button data-tab="buy" class="${tab === 'buy' ? 'on' : ''}">사기</button><button data-tab="cos" class="${tab === 'cos' ? 'on' : ''}">꾸미기</button><button data-tab="sell" class="${tab === 'sell' ? 'on' : ''}">팔기</button><button data-tab="money" class="${tab === 'money' ? 'on' : ''}">성경의 돈</button></div>
       <div class="list">${tab === 'buy'
@@ -80,7 +84,7 @@ export function initShop(K) {
       if (only && !only.ids.includes(id)) return;
       if (!spend(profile, g.price)) return render('돈이 모자라요.');
       addGood(profile, id); sfx('cup', 0.2, 1.3); save(); onChange?.();
-      return render(`${g.name}을(를) 샀어요. ${g.use}.`);
+      return render(`${g.name}${jo(g.name, '을', '를')} 샀어요. ${g.use}.`);
     }
     const cb = e.target.closest('[data-cos]');
     if (cb && !cb.disabled && cosApi) {
@@ -92,10 +96,10 @@ export function initShop(K) {
     if (wb && cosApi) return render(cosApi.toggle(wb.dataset.wear));
     const s = e.target.closest('[data-sell]');
     if (s) {
-      const id = s.dataset.sell, v = sellItem(profile, id);
+      const id = s.dataset.sell, itemName = ITEMS[id] ? ITEMS[id].name : id, v = sellItem(profile, id);
       if (!v) return;
       sfx('share', 0.2); save(); onChange?.();
-      return render(`${ITEMS[id] ? ITEMS[id].name : id}을(를) 팔고 ${v} 데나리온을 받았어요.`);
+      return render(`${itemName}${jo(itemName, '을', '를')} 팔고 ${v} 데나리온을 받았어요.`);
     }
   });
   addEventListener('keydown', (e) => { if (!box.hidden && e.code === 'Escape') { e.stopPropagation(); close(); } }, true);

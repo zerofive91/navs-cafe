@@ -6,7 +6,7 @@ import { PARK, floorY, isFree } from './layout.js';
 import { loadFresh } from './park.js';
 import { nameTag } from './tutorial.js';
 import { VERSES, showVerse } from './verses.js';
-import { useGood, saveProfile } from './profile.js';
+import { jo, useGood, saveProfile } from './profile.js';
 
 export const PETS = {
   chick: { name: '병아리', h: 0.36, u: -8, v: -3, verse: ['암탉이 그 새끼를 날개 아래 모음 같이', '마태복음 23:37'] },
@@ -58,10 +58,10 @@ export function initPets({ scene, me, profile, toast, sfx, burst, onChange }) {
   // 돌보기: 꼴을 먹임
   function care() {
     const e = nearest(); if (!e) return;
-    if (tamed(e.id)) { play(e, 'gesture-positive', true); e.wait = 2; toast(`${e.P.name}가 반가워해요. 내 카드에서 데리고 다닐 수 있어요`, 3.5); return; }
+    if (tamed(e.id)) { play(e, 'gesture-positive', true); e.wait = 2; toast(`${e.P.name}${jo(e.P.name, '이', '가')} 반가워해요. 내 카드에서 데리고 다닐 수 있어요`, 3.5); return; }
     const now = performance.now() / 1000;
-    if (now < e.restUntil) { toast(`${e.P.name}가 아직 먹고 있어요. 조금 있다가 다시 돌봐 주세요`, 3); return; }
-    if (!useGood(profile, 'fodder')) { toast('꼴이 없어요. 정원 동쪽 루디아의 가게에서 꼴 한 단(1 데나리온)을 살 수 있어요', 4.5); return; }
+    if (now < e.restUntil) { toast(`${e.P.name}${jo(e.P.name, '이', '가')} 아직 먹고 있어요. 조금 있다가 다시 돌봐 주세요`, 3); return; }
+    if (!useGood(profile, 'fodder')) { toast('꼴이 없어요. 간식 가게 곁 루디아의 가게에서 꼴 한 단(1 데나리온)을 살 수 있어요', 4.5); return; }
     e.restUntil = now + REST;
     profile.pets[e.id] = (profile.pets[e.id] | 0) + 1;
     e.face = Math.atan2(me.x - e.x, me.z - e.z);
@@ -71,18 +71,18 @@ export function initPets({ scene, me, profile, toast, sfx, burst, onChange }) {
     if (tamed(e.id)) {
       if (!profile.pet) profile.pet = e.id;
       saveProfile(profile); onChange?.();
-      showVerse('pet-' + e.id, { cooldown: 0, title: `${e.P.name}가 길들었어요` });
-      setTimeout(() => toast(profile.pet === e.id ? `${e.P.name}가 이제 나를 따라와요. 내 카드에서 바꿀 수 있어요` : `${e.P.name}가 길들었어요. 내 카드에서 데리고 다닐 수 있어요`, 5), 2500);
+      showVerse('pet-' + e.id, { cooldown: 0, title: `${e.P.name}${jo(e.P.name, '이', '가')} 길들었어요` });
+      setTimeout(() => toast(profile.pet === e.id ? `${e.P.name}${jo(e.P.name, '이', '가')} 이제 나를 따라와요. 내 카드에서 바꿀 수 있어요` : `${e.P.name}${jo(e.P.name, '이', '가')} 길들었어요. 내 카드에서 데리고 다닐 수 있어요`, 5), 2500);
     } else {
       saveProfile(profile); onChange?.();
       if ((profile.pets[e.id] | 0) === 1) showVerse('pet-care', { cooldown: 60 });
-      toast(`${e.P.name}를 돌봤어요 (${profile.pets[e.id]} / ${NEED})`, 3);
+      toast(`${e.P.name}${jo(e.P.name, '을', '를')} 돌봤어요 (${profile.pets[e.id]} / ${NEED})`, 3);
     }
   }
   function choose(id) {
     profile.pet = profile.pet === id ? '' : id;
     saveProfile(profile); onChange?.();
-    toast(profile.pet ? `${PETS[id].name}와 함께 다녀요` : `${PETS[id].name}는 들판에서 쉬어요`, 3);
+    toast(profile.pet ? `${PETS[id].name}${jo(PETS[id].name, '과', '와')} 함께 다녀요` : `${PETS[id].name}${jo(PETS[id].name, '은', '는')} 들판에서 쉬어요`, 3);
   }
 
   function step(dt) {

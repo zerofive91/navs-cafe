@@ -5,6 +5,7 @@
 //   마을 모형은 처음 들어갈 때만 불러와 지음 (마을 항목의 load, dynamic import) → 첫 접속은 지금과 같음
 import * as THREE from 'three';
 import { floorY, regionIdAt } from './layout.js';
+import { jo } from './profile.js';
 import { ensureNav, nearestFree } from './nav.js';
 import { VILLAGES, village, destinations, markTown } from './villages/registry.js';
 import { VERSES, showVerse } from './verses.js';
@@ -103,6 +104,7 @@ export function initRegion(K) {
     if (busy) return;
     const list = destinations(state.id);
     let V = to ? village(to) : list.length === 1 ? list[0] : null;
+    if (V?.soon) { toast(`${V.name}${jo(V.name, '은', '는')} 지금 짓고 있어요. 조금만 기다려요`, 3); return; }
     if (!V) { if (chooseTown) chooseTown(list.map((v) => v.id)); else toast('어느 마을로 갈지 수레꾼에게 물어봐요', 3); return; }
     // 열린 마을에 entry가 없으면 누구나 들어감. 닫힌 마을은 entry 문구 또는 기본 문구
     const ok = V.status === 'open' ? (V.entry ? V.entry(profile) : true) : V.entry?.(profile) || '아직 갈 수 없는 마을이에요';
@@ -139,7 +141,7 @@ export function initRegion(K) {
       if (me.seat) standUp(me);
       me.path = []; me.task = null; me.action = null; me.state = 'idle'; me.jumps = 0; me.vy = 0; me.hop = 0;
       const T0 = performance.now();
-      veil.querySelector('small').textContent = V.travel?.going || `${V.name}(으)로 가는 중`;
+      veil.querySelector('small').textContent = V.travel?.going || `${V.name}${jo(V.name, '으로', '로')} 가는 중`;
       veilVerse(V);
       veil.classList.add('on');
       if (!fromDoor) sfx?.('impact/impactSoft_medium_000', 0.2, 0.9);
