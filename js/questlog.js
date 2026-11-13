@@ -45,13 +45,14 @@ export function initQuestLog({ me, quests, story, walkTo, toast, john = () => nu
     }
     if (q) {
       h += `<section><h3>📜 ${esc(q.name)}의 부탁 · ${esc(q.title)}</h3>
-        <p class="now"><b>지금 할 일 ${q.back ? '(마지막)' : `${q.step} / ${q.steps}`}</b>${esc(q.hint)}</p>
+        <p class="now">${q.back ? `<b>지금 할 일: ${esc(q.name)}에게 돌아가요</b>` : `<b>지금 할 일 ${q.step} / ${q.steps}</b>${esc(q.hint)}`}</p>
         ${q.where ? `<p class="where">어디서: ${esc(q.where)}</p>` : ''}
         <details><summary>부탁 내용</summary><p class="ask">${esc(q.ask)}</p>${verse(q.verse)}</details>
         <div class="row"><button class="quit">그만두기</button><button class="go" data-go="q">그곳으로 가기</button></div></section>`;
     }
     if (s) {
       h += `<section class="st"><h3>✦ 큰 이야기 ${s.k} / ${s.total} · ${esc(s.title)}</h3>
+        ${s.do ? `<p class="now"><b>지금 할 일</b>${esc(s.where)}에 가서 ${esc(s.do)}</p>` : ''}
         <p class="where">어디서: ${esc(s.where)} (금빛 기둥)</p>${verse(s.verse)}
         <div class="row"><button class="go" data-go="s">그곳으로 가기</button></div></section>`;
     }
@@ -64,8 +65,8 @@ export function initQuestLog({ me, quests, story, walkTo, toast, john = () => nu
   function go(kind) {
     const it = kind.startsWith('d:') ? john()?.daily?.task(kind.slice(2)) : kind === 'q' ? quests.info() : kind === 'j' ? john()?.info() : story.info();
     if (!it || !it.target) return;
-    if (me.climb) { toast('먼저 나무에서 내려와요', 3); return; }
-    if (!walkToward(me, walkTo, it.target)) { toast('그곳으로 가는 길을 찾지 못했어요. 지도에서 가까운 곳으로 가 보세요', 4); return; }
+    if (me.climb) { toast('나무에서 먼저 내려와요 (내려가기 단추)', 3); return; }
+    if (!walkToward(me, walkTo, it.target)) { toast('길을 못 찾았어요. 지도 단추를 눌러 가까운 곳을 골라요', 4); return; }
     close();
     toast(`그곳으로 걸어가요 · ${kind === 'q' ? it.where || it.name + '에게' : kind === 'j' || kind.startsWith('d:') ? it.where || it.title : `큰 이야기 ${it.k}장 금빛 기둥`}`, 3);
   }
@@ -77,6 +78,10 @@ export function initQuestLog({ me, quests, story, walkTo, toast, john = () => nu
     if (!b) return;
     if (b.classList.contains('x')) close();
     else if (b.classList.contains('go')) go(b.dataset.go);
+    else if (b.classList.contains('quit') && !b.dataset.sure) { // 한 번 더 눌러야 그만둠
+      b.dataset.sure = '1'; b.textContent = '정말 그만둘까요?';
+      setTimeout(() => { if (b.isConnected && b.dataset.sure) { delete b.dataset.sure; b.textContent = '그만두기'; } }, 4000);
+    }
     else if (b.classList.contains('quit') && b.dataset.q === 'j') { john()?.quit(); render(); }
     else if (b.classList.contains('quit')) { quests.quit(); toast('부탁을 그만두었어요. 다시 그 사람에게 가면 처음부터 할 수 있어요', 4); render(); }
   });

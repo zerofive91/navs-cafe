@@ -1,13 +1,13 @@
 // 숲길 던전 (2026-11): 숲 코스마다 난이도(별 하나~셋)와 들어갈 수 있는 단계가 있음
-//   대적은 사람이 아니라 어둠의 속삭임 (엡 6:12). 속삭임이 길을 막으면 세 구절 중 맞는 말씀을 골라 물리침
+//   대적은 사람이 아니라 어둠의 마음의 소리 (엡 6:12). 마음의 소리이 길을 막으면 세 구절 중 맞는 말씀을 골라 물리침
 //   (예수님의 광야 시험처럼, 암송 없이 고르기만). 막히면 기도(X)하면 맞는 말씀이 떠오름
 //   잘못 고르면 넘어지지만 바로 앞 정거장에서 다시 일어남 (미 7:8)
-//   길의 속삭임을 모두 물리치면 걸음·말씀·순종이 자람. 생명의 다리·복음·고난의 길은 누구나 걷는 열린 길
+//   길의 마음의 소리을 모두 물리치면 걸음·말씀·순종이 자람. 생명의 다리·복음·고난의 길은 누구나 걷는 열린 길
 //   형식 (2026-11 단위 5): 작은 시험은 고르기, 길 끝 큰 시험은 채우기(구절 빈칸 낱말 고르기) 또는
-//   버티기(속삭임이 되풀이되는 동안 말씀을 붙들고 그 자리에 서 있기, 떠나면 넘어지지 않고 "다시 서기").
+//   버티기(마음의 소리이 되풀이되는 동안 말씀을 붙들고 그 자리에 서 있기, 떠나면 넘어지지 않고 "다시 서기").
 //   틀린 보기를 고르면 "왜 아닌가" 한 줄(그 구절이 실제로 말하는 바)을 보여 줌
-//   자료집 (2026-11 단위 10): 시험 자료는 js/trials.js 하나 (훈련소와 같이 씀). 속삭임마다 문항은 처음 만날 때 고름
-//   (이번 걸음에 나온 것·최근 본 것은 뒤로). 길을 다 이긴 뒤 입구로 돌아오면 속삭임이 새로 생겨 다시 걸을 때 다른 시험을 만남
+//   자료집 (2026-11 단위 10): 시험 자료는 js/trials.js 하나 (훈련소와 같이 씀). 마음의 소리마다 문항은 처음 만날 때 고름
+//   (이번 걸음에 나온 것·최근 본 것은 뒤로). 길을 다 이긴 뒤 입구로 돌아오면 마음의 소리이 새로 생겨 다시 걸을 때 다른 시험을 만남
 import * as THREE from 'three';
 import { TRAILS, R_PARK, floorY } from './layout.js';
 import { showVerse } from './verses.js';
@@ -20,9 +20,9 @@ let MOD = null;
 import('./bible-modern.js').then(({ MODERN }) => { MOD = new Map(MODERN); }).catch(() => { /* 개역한글로 */ });
 const KIND_NAME = { fill: '채우기', hold: '버티기' };
 const PROMPT = {
-  pick: '어떤 말씀으로 대답할까요? (1·2·3, 막히면 X 기도)',
-  fill: '빈칸에 들어갈 낱말을 골라 말씀을 완성해요 (1·2·3, 막히면 X 기도)',
-  hold: '그 자리에 서서 이 말씀을 붙들어요. 등불이 다 차면 속삭임이 물러가요',
+  pick: '어떤 말씀으로 대답할까요? 보기를 눌러요. 모르겠으면 두 손 모은 단추 (X)',
+  fill: '빈칸에 맞는 낱말을 눌러요. 모르겠으면 두 손 모은 단추 (X)',
+  hold: '움직이지 말고 서 있어요. 등불이 다 차면 이겨요',
 };
 const HOLD_R = 1.2; // 버티기: 이만큼 벗어나면 자리를 떠난 것
 
@@ -33,10 +33,11 @@ export const TIER = {
   armor: 3, revelation: 3,
 };
 export const TIER_STAGE = { 1: '새싹', 2: '제자', 3: '일꾼' };
+const jo = (w, a, b) => { const c = (w || '').charCodeAt(w.length - 1) - 0xac00; return c >= 0 && c < 11172 && c % 28 ? a : b; }; // 받침 있으면 a, 없으면 b (profile.js에 같은 함수가 없어 여기 둠)
 export const stars = (id) => (TIER[id] ? '★'.repeat(TIER[id]) : '');
 const REWARD = { 1: 30, 2: 50, 3: 80 };
 
-// 시험 자료(속삭임·틀린 보기·이기는 까닭·갈래·형식)는 js/trials.js, 말씀은 verseOf(id) (숲길 'dg-<id>', 훈련소 장면 'wf-<id>')
+// 시험 자료(마음의 소리·틀린 보기·이기는 까닭·갈래·형식)는 js/trials.js, 말씀은 verseOf(id) (숲길 'dg-<id>', 훈련소 장면 'wf-<id>')
 //   길마다 자기 세트(길 문항 + 그 길에 맞는 훈련소 장면, 없으면 common). 출제는 trials.js draw
 
 const hash = (s) => { let h = 7; for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; };
@@ -72,7 +73,7 @@ export function initDungeon(K) {
     signs.push({ sp, p });
   }
 
-  // ---------- 어둠의 속삭임 ----------
+  // ---------- 어둠의 마음의 소리 ----------
   const darkMat = () => new THREE.MeshBasicMaterial({ color: 0x1c1626, transparent: true, opacity: 0.55, depthWrite: false });
   const shades = [];
   const byCourse = {};
@@ -98,15 +99,15 @@ export function initDungeon(K) {
     });
   }
 
-  // 이 속삭임의 문항 고르기: 작은 시험은 그 길의 작은 문항(+맞는 훈련소 장면), 큰 시험은 그 길의 큰 문항 (세트가 없으면 common)
-  //   같은 걸음의 다른 속삭임에 이미 정해진 문항은 피함. 한 번 정하면 이길 때까지 그대로 (넘어져 다시 와도 같은 시험)
+  // 이 마음의 소리의 문항 고르기: 작은 시험은 그 길의 작은 문항(+맞는 훈련소 장면), 큰 시험은 그 길의 큰 문항 (세트가 없으면 common)
+  //   같은 걸음의 다른 마음의 소리에 이미 정해진 문항은 피함. 한 번 정하면 이길 때까지 그대로 (넘어져 다시 와도 같은 시험)
   function assign(S) {
     const used = byCourse[S.id].map((x) => x.lie).filter(Boolean);
     const own = (at) => { const l = pool(at, { path: S.id, tier: TIER[S.id] || 3 }); return l.length ? l : pool(at, { path: 'common' }); };
     const T = (!S.big && draw(own('small'), S.id, { avoid: used })[0]) || draw(own('big'), S.id, { avoid: used })[0];
     return T.id;
   }
-  // 다시 걷기: 길을 다 이긴 뒤 입구 가까이 오면 속삭임이 새로 생김 (문항은 다시 고름, 최근 본 것은 뒤로)
+  // 다시 걷기: 길을 다 이긴 뒤 입구 가까이 오면 마음의 소리이 새로 생김 (문항은 다시 고름, 최근 본 것은 뒤로)
   function revive(id) {
     for (const S of byCourse[id]) {
       Object.assign(S, { beaten: false, fade: -1, lie: null, sz: null, wait: false, belt: false });
@@ -119,7 +120,7 @@ export function initDungeon(K) {
   // ---------- 시험 말풍선 ----------
   const box = document.createElement('div');
   box.className = 'npcb trial'; box.id = 'trial'; box.hidden = true;
-  box.innerHTML = '<div class="who"><b></b><span class="n"></span></div><p class="scene" hidden></p><p class="say"></p><div class="verse" hidden></div><div class="opts"></div><div class="row"><button class="later">물러나기</button><button class="again" hidden>다시 서기</button><button class="oil" hidden></button></div>';
+  box.innerHTML = '<div class="who"><b></b><span class="n"></span></div><p class="scene" hidden></p><p class="say"></p><div class="verse" hidden></div><div class="opts"></div><div class="row"><button class="later">나중에 할래요</button><button class="again" hidden>다시 서기</button><button class="oil" hidden></button></div>';
   document.body.appendChild(box);
   const $ = (s) => box.querySelector(s);
   let cur = null, closedFor = null, opts = [];
@@ -140,7 +141,7 @@ export function initDungeon(K) {
   }, true);
   const close = () => { box.hidden = true; cur = null; document.body.classList.remove('talking', 'trialing'); bigOff(); };
   function meet(S) {
-    // 성령의 검: 한 길에 한 번 작은 속삭임을 단번에 (히 4:12)
+    // 성령의 검: 한 길에 한 번 작은 마음의 소리을 단번에 (히 4:12)
     if (!S.big && wears('sword') && !swordUsed.has(S.id)) {
       swordUsed.add(S.id);
       S.beaten = true; S.fade = 0;
@@ -158,8 +159,8 @@ export function initDungeon(K) {
     S.kind = T.kind || 'pick';
     markSeen(S.id, T.id);
     const list = byCourse[S.id];
-    $('.who b').textContent = (S.big ? '큰 시험 · ' : '') + '어둠의 속삭임' + (KIND_NAME[S.kind] ? ' · ' + KIND_NAME[S.kind] : '') + (T.who ? ' · ' + T.who : '');
-    const sc = $('.scene'); sc.hidden = !T.scene; sc.textContent = T.scene ? `${T.scene} (${T.at})` : ''; // 훈련소 장면이 숲길에 나올 때
+    $('.who b').textContent = (S.big ? '큰 시험 · ' : '') + '마음의 소리' + (KIND_NAME[S.kind] ? ' · ' + KIND_NAME[S.kind] : '') + (T.who ? ' · ' + T.who : '');
+    const sc = $('.scene'); sc.hidden = !T.scene; sc.textContent = T.scene || ''; // 훈련소 장면이 숲길에 나올 때
     $('.n').textContent = `${courseName(S.id)} · ${list.indexOf(S) + 1} / ${list.length}`;
     say(T.lie, PROMPT[S.kind]);
     const vb = $('.verse'); vb.textContent = ''; vb.hidden = S.kind === 'pick';
@@ -181,15 +182,15 @@ export function initDungeon(K) {
       lampB = vb.querySelector('.lamp b');
     } else {
       S.right = T.id;
-      opts = shuffle([T.id, ...T.no], hash(S.id + S.k + performance.now()));
-      $('.opts').innerHTML = opts.map((k, i) => `<button class="opt" data-i="${i}"><kbd>${i + 1}</kbd><span>${verseOf(k)[0]} <em>${verseOf(k)[1]}</em></span></button>`).join('');
+      opts = shuffle([T.id, 'n0', 'n1'], hash(S.id + S.k + performance.now())); // n0·n1 = 마음의 소리에 넘어간 대답 (T.no 글)
+      $('.opts').innerHTML = opts.map((k, i) => `<button class="opt" data-i="${i}"><kbd>${i + 1}</kbd><span>${k === T.id ? verseOf(k)[0] : T.no[Number(k[1])]}</span></button>`).join('');
     }
     box.hidden = false; box.classList.remove('ok');
     S.oiled = false; oilBtn();
     document.body.classList.add('talking', 'trialing');
     sfx('impact/impactSoft_heavy_000', 0.2, 0.5);
   }
-  // 속삭임 한 줄 + 그 아래 작은 글(물음 / 왜 이기는지 / 왜 아닌가)
+  // 마음의 소리 한 줄 + 그 아래 작은 글(물음 / 왜 이기는지 / 왜 아닌가)
   function say(line, note) {
     const el = $('.say'), q = document.createElement('span'), sm = document.createElement('small');
     q.className = 'q'; q.textContent = `"${line}"`; sm.textContent = note;
@@ -200,10 +201,11 @@ export function initDungeon(K) {
     const krv = verseOf(T.id)[0], mod = bibleMode() === 'modern' && MOD && MOD.get(krv);
     return mod && T.fill.m ? { text: mod, words: T.fill.m } : { text: krv, words: T.fill.k };
   }
-  // 틀린 보기를 골랐을 때: 그 구절이 실제로 말하는 바 (채우기는 그 낱말이 왜 아닌지)
+  // 틀린 보기를 골랐을 때: 고르기는 한 문장, 채우기는 그 낱말이 왜 아닌지
+  const WRONG_NOTE = '음, 다시 골라 봐요. 그 말은 마음의 소리가 바라는 대답이에요.';
   function whyNot(S, k) {
     if (S.kind === 'fill') return BY[S.lie].fill.why[Number(k[1]) - 1] || '';
-    return BY[k]?.about ? `그 말씀은 ${BY[k].about}` : '';
+    return WRONG_NOTE; // 틀린 보기는 마음의 소리에 넘어간 대답 (trials.js no)
   }
   function winTrial(S, i) {
     S.beaten = true; S.fade = 0; S.wait = true; S.sz = S.g.scale.x; // 버티며 줄어든 크기에서 흩어지게
@@ -240,7 +242,7 @@ export function initDungeon(K) {
       veil.style.opacity = '0.85';
       setTimeout(() => {
         let p = S.back;
-        if (wears('helmet')) { // 구원의 투구: 앞 정거장까지 돌아가지 않고 속삭임 몇 걸음 앞에서 일어남
+        if (wears('helmet')) { // 구원의 투구: 앞 정거장까지 돌아가지 않고 마음의 소리 몇 걸음 앞에서 일어남
           const dx = S.back.x - S.x, dz = S.back.z - S.z, l = Math.hypot(dx, dz) || 1, k = Math.min(1, 6.5 / l);
           p = { x: S.x + dx * k, z: S.z + dz * k, dir: S.back.dir };
         }
@@ -251,7 +253,7 @@ export function initDungeon(K) {
       }, why ? 2200 : 1300); // "왜 아닌가"를 읽을 틈 (창은 막보다 위에 있음)
     }
   }
-  // ---------- 버티기: 속삭임이 되풀이되는 동안 말씀을 붙들고 서 있기 ----------
+  // ---------- 버티기: 마음의 소리이 되풀이되는 동안 말씀을 붙들고 서 있기 ----------
   let lampB = null; // 등불 막대 (meet에서 찾아 둠)
   const lamp = (k) => { if (lampB) lampB.style.width = `${Math.round(k * 100)}%`; };
   function holdStep(S) {
@@ -263,7 +265,7 @@ export function initDungeon(K) {
     if (Math.hypot(me.x - S.ax, me.z - S.az) > HOLD_R) {
       // 자리를 떠남: 넘어지지 않고 처음부터 다시 서기
       S.broken = true; S.p = 0; lamp(0);
-      note('자리를 떠났어요. 괜찮아요, 다시 서서 말씀을 붙들어요 (1 또는 다시 서기)', 'why');
+      note('자리를 떠났어요. 괜찮아요! \'다시 서기\'를 눌러요', 'why');
       $('.again').hidden = false;
       sfx('impact/impactSoft_medium_000', 0.15, 0.9);
       return;
@@ -284,7 +286,7 @@ export function initDungeon(K) {
     $('.again').hidden = true; note(PROMPT.hold); lamp(0);
   }
 
-  // ---------- 큰 시험 연출: 길 끝의 큰 속삭임 ----------
+  // ---------- 큰 시험 연출: 길 끝의 큰 마음의 소리 ----------
   //   숲이 어두워지고 화면 가장자리가 짙어지며, 큰 그림자가 숨 쉬듯 부풀고 천둥이 울림. 이기면 빛이 터지며 걷힘
   let fog0 = null;
   const dusk = new THREE.Color(0x2a2236);
@@ -313,7 +315,7 @@ export function initDungeon(K) {
     sfx('orb', 0.35, 0.7);
   }
 
-  // 등잔 기름: 틀린 말씀 하나를 걷어 냄 (한 속삭임에 한 번)
+  // 등잔 기름: 틀린 말씀 하나를 걷어 냄 (한 마음의 소리에 한 번)
   function oilBtn() {
     const b = $('.oil'), n = (profile.bag && profile.bag.oil) | 0;
     b.hidden = !cur || cur.kind === 'hold' || cur.oiled || !n;
@@ -325,7 +327,7 @@ export function initDungeon(K) {
     if (!wrong.length || !useGood(profile, 'oil')) return;
     cur.oiled = true;
     const b = $(`.opt[data-i="${wrong[0][1]}"]`); if (b) { b.classList.add('no'); b.disabled = true; }
-    sfx('orb', 0.2, 1.4); toast(cur.kind === 'fill' ? '등불이 밝아져 맞지 않는 낱말 하나가 드러났어요' : '등불이 밝아져 거짓 말씀 하나가 드러났어요', 3);
+    sfx('orb', 0.2, 1.4); toast(cur.kind === 'fill' ? '등불이 밝아져 맞지 않는 낱말 하나가 드러났어요' : '등불이 밝아져, 마음의 소리가 바라는 대답 하나가 흐려졌어요', 3);
     save(); onChange?.(); oilBtn();
   }
   function hint() {
@@ -338,7 +340,7 @@ export function initDungeon(K) {
   function checkWin(id) {
     const list = byCourse[id];
     const left = list.filter((S) => !S.beaten).length;
-    if (left) { toast(`이 길에 남은 속삭임 ${left}`, 2.5); return; }
+    if (left) { toast(`이 길에 남은 마음의 소리 ${left}곳`, 2.5); return; }
     shieldUsed.delete(id); swordUsed.delete(id);
     const bigS = list.find((S) => S.big); if (bigS) victory(bigS);
     profile.dungeon = profile.dungeon || {};
@@ -356,7 +358,7 @@ export function initDungeon(K) {
     setTimeout(() => {
       showVerse('dg-win', { cooldown: 0, title: `${courseName(id)} ${stars(id)} 이겼어요` });
       // 알림은 하나로 (R3): 보상과 성장 소식을 한 번에. 쉼 모드(앉아 쉬는 중)에서는 반짝임을 절반으로
-      toast(`걸음 +${n}, 말씀 +5, 순종 +5, ${pay} 데나리온` + (up ? ` · ${profile.name || '나'}님이 ${up.name}${josa(up.name)} 자랐어요! 이제 ${stars2(up)} 길이 열려요` : ''), up ? 7 : 5);
+      toast(`${courseName(id)} 길을 이겼어요! 잘했어요. (걸음 +${n}, 말씀 +5, 순종 +5, ${pay} 데나리온)` + (up ? ` · ${profile.name || '나'}님이 ${up.name}${josa(up.name)} 자랐어요! 이제 ${stars2(up)} 길이 열려요` : ''), up ? 7 : 5);
       for (let q = 0; q < (K.resting?.() ? 5 : 10); q++) setTimeout(() => burst(me.x + (Math.random() - 0.5) * 3, me.y + 1 + Math.random() * 2, me.z + (Math.random() - 0.5) * 3), q * 120);
     }, 2400);
   }
@@ -374,7 +376,7 @@ export function initDungeon(K) {
   let enterSaid = false;
   function step(dt, t) {
     const now = performance.now() / 1000;
-    // 표지와 속삭임은 가까이 있을 때만 그림
+    // 표지와 마음의 소리은 가까이 있을 때만 그림
     for (const s of signs) s.sp.visible = Math.abs(s.p.x - me.x) < 70 && Math.abs(s.p.z - me.z) < 70;
     for (const S of shades) {
       const d = Math.hypot(me.x - S.x, me.z - S.z);
@@ -383,11 +385,11 @@ export function initDungeon(K) {
       if (S.fade >= 0) { S.fade += dt; const k = Math.max(0, 1 - S.fade / 1.2); S.g.scale.setScalar((S.sz || (S.big ? 1.9 : 1)) * (1 + (1 - k) * 0.6)); S.parts.forEach((m) => { m.material.opacity = (m.isSprite ? 0.45 : 0.55) * k; }); if (k <= 0) { S.fade = -1; S.g.visible = false; } continue; }
       S.parts.forEach((m, q) => { if (m.isMesh) m.position.set(Math.sin(t * (1.1 + q * 0.3) + q) * 0.45, 0.8 + q * 0.32 + Math.sin(t * 2 + q) * 0.12, Math.cos(t * (0.9 + q * 0.25) + q * 2) * 0.45); else m.material.rotation = t * 0.3 * (q % 2 ? 1 : -1); });
     }
-    // 시험: 속삭임 곁에 오면 길을 막고 물음
+    // 시험: 마음의 소리 곁에 오면 길을 막고 물음
     if (cur) {
       if (!cur.wait && Math.hypot(me.x - cur.x, me.z - cur.z) > 8) close();
       else if (cur.kind === 'hold') { if (!cur.wait) holdStep(cur); }
-      else if (cur && !cur.wait && !cur.belt && wears('belt') && performance.now() - cur.metAt > 8000) { cur.belt = true; hint(); toast('진리의 허리띠: 진리가 비쳐요', 2.5); }
+      else if (cur && !cur.wait && !cur.belt && wears('belt') && performance.now() - cur.metAt > 8000) { cur.belt = true; hint(); toast('진리의 허리띠가 맞는 말씀을 비춰 줘요', 2.5); }
       if (cur && cur.big) bigPulse(t);
     } else if (!busy()) {
       let near = null;
@@ -398,7 +400,7 @@ export function initDungeon(K) {
     // 잠긴 길과 처음 들어선 길 (0.3초마다)
     if (now - lockAt < 0.3) return;
     lockAt = now;
-    // 다 이긴 길의 입구 가까이 오면 속삭임이 새로 생김 (입구는 정원 둘레 바로 바깥이라 아래 정원 안 검사보다 먼저 봄)
+    // 다 이긴 길의 입구 가까이 오면 마음의 소리이 새로 생김 (입구는 정원 둘레 바로 바깥이라 아래 정원 안 검사보다 먼저 봄)
     if (!cur) for (const [cid, list] of Object.entries(byCourse)) {
       if (!list.every((S) => S.beaten)) continue; // 흩어지는 중인 것도 됨 (멀리 있으면 흩어짐이 끝나지 않으므로, revive가 되돌림)
       const g = gateOf(TRAILS[cid]); if (Math.hypot(me.x - g.x, me.z - g.z) < 6) revive(cid);
@@ -417,14 +419,14 @@ export function initDungeon(K) {
     if (!open(id)) {
       const g = gateOf(TRAILS[id]), k = (R_PARK - 1.2) / Math.hypot(g.x, g.z);
       me.x = g.x * k; me.z = g.z * k; me.path = []; me.state = 'idle'; me.task = null; me.face = Math.atan2(-g.x, -g.z);
-      if (now - lockSaid > 4) { lockSaid = now; toast(`${courseName(id)} ${stars(id)}: ${TIER_STAGE[TIER[id]]}부터 들어갈 수 있어요. 정원 훈련장에서 자라 보세요.`, 5); sfx('impact/impactSoft_medium_000', 0.2, 0.8); }
+      if (now - lockSaid > 4) { lockSaid = now; toast(`${courseName(id)} ${stars(id)}: '${TIER_STAGE[TIER[id]]}'${jo(TIER_STAGE[TIER[id]], '이', '가')} 되면 들어와요. 걸음이 ${STAGES[needIx(id)].need}이 되어야 해요 (지금 ${profile.steps | 0}). 정원 훈련장이나 부탁을 해 봐요.`, 6); sfx('impact/impactSoft_medium_000', 0.2, 0.8); }
       return;
     }
     if (!entered.has(id)) {
-      if (!enterSaid) { enterSaid = true; showVerse('dg-enter', { cooldown: 0, title: '숲길 던전' }); }
+      if (!enterSaid) { enterSaid = true; showVerse('dg-enter', { cooldown: 0, title: '숲길에 들어왔어요' }); }
       entered.add(id);
       const n = byCourse[id].filter((S) => !S.beaten).length;
-      if (n) setTimeout(() => toast(`${courseName(id)} ${stars(id)}: 이 길에 어둠의 속삭임 ${n}이 있어요. 말씀으로 이겨요.`, 5), 600);
+      if (n) setTimeout(() => toast(`${courseName(id)} ${stars(id)}: 이 길에 마음의 소리가 ${['', '한', '두', '세', '네'][n] || n} 군데 있어요. 가까이 가면 말씀으로 이겨요.`, 5), 600);
     }
   }
 
@@ -444,7 +446,7 @@ export function initDungeon(K) {
   function endHint() {
     const e = nearEnd(); if (!e || e.said) return;
     e.said = true;
-    setTimeout(() => toast('길 끝까지 왔어요! E(또는 반짝이는 단추)로 입구로 돌아갈 수 있어요', 5), 4000);
+    setTimeout(() => toast('길 끝까지 왔어요! 반짝이는 문 단추를 누르면 입구로 가요 (E)', 5), 4000);
   }
 
   return {

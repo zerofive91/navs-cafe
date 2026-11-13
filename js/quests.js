@@ -16,7 +16,7 @@ const STEP_REWARD = 20, STAT_REWARD = 10;
 const V = (k, text, ref) => { VERSES[k] = [text, ref]; return k; };
 
 Object.assign(ITEMS, {
-  gourd: { name: '박넝쿨 그늘', verse: ['주께서는 은혜로우시며 자비로우시며 노하기를 더디하시며 인애가 크시사 뜻을 돌이켜 재앙을 내리지 아니하시는 하나님이신 줄을 내가 알았음이니이다', '요나 4:2'] },
+  gourd: { name: '박넝쿨 잎', verse: ['주께서는 은혜로우시며 자비로우시며 노하기를 더디하시며 인애가 크시사 뜻을 돌이켜 재앙을 내리지 아니하시는 하나님이신 줄을 내가 알았음이니이다', '요나 4:2'] },
   lily: { name: '들의 백합화', verse: ['그러나 내가 너희에게 말하노니 솔로몬의 모든 영광으로도 입은 것이 이 꽃 하나만 같지 못하였느니라', '마태복음 6:29'] },
   mustard: { name: '겨자씨 한 알', verse: ['이는 모든 씨보다 작은 것이로되 자란 후에는 나물보다 커서 나무가 되매 공중의 새들이 와서 그 가지에 깃들이느니라', '마태복음 13:32'] },
   grapes: { name: '포도송이', verse: ['너희가 과실을 많이 맺으면 내 아버지께서 영광을 받으실 것이요 너희가 내 제자가 되리라', '요한복음 15:8'] },
@@ -24,7 +24,7 @@ Object.assign(ITEMS, {
   water: { name: '생수', verse: ['나를 믿는 자는 성경에 이름과 같이 그 배에서 생수의 강이 흘러나리라', '요한복음 7:38'] },
   horn: { name: '양각 나팔', verse: ['백성이 나팔 소리를 듣는 동시에 크게 소리질러 외치니 성벽이 무너져 내린지라', '여호수아 6:20'] },
   sling: { name: '물매와 돌', verse: ['전쟁은 여호와께 속한 것인즉 그가 너희를 우리 손에 붙이시리라', '사무엘상 17:47'] },
-  barley: { name: '보리 한 에바', verse: ['룻이 밭에서 저녁까지 줍고 그 주운 것을 떠니 보리가 한 에바쯤 되는지라', '룻기 2:17'] },
+  barley: { name: '보리 한 자루', verse: ['룻이 밭에서 저녁까지 줍고 그 주운 것을 떠니 보리가 한 에바쯤 되는지라', '룻기 2:17'] },
   mantle: { name: '엘리야의 겉옷', verse: ['엘리야의 몸에서 떨어진 겉옷을 주워가지고 돌아와서 요단 언덕에 서서', '열왕기하 2:13'] },
   ear: { name: '듣는 귀', // 예전 사무엘 부탁의 물품 (받은 사람 기록 보존용)
     verse: ['사무엘이 가로되 말씀하옵소서 주의 종이 듣겠나이다', '사무엘상 3:10'] },
@@ -222,161 +222,163 @@ export function initQuests(K) {
   const Q = [
     {
       id: 'sheep', who: shepherd, name: '목자', title: '잃은 양 한 마리', stat: 'witness', item: 'staff',
-      ask: '양 한 마리가 우리 밖으로 나가 길을 잃었어요. 아흔아홉 마리를 두고라도 찾아야 해요. 방울 소리가 들리는 쪽으로 가 보세요. 가까이 가면 따라올 거예요.',
+      ask: '저는 양치기예요. 양 한 마리가 길을 잃었어요! 방울 소리나 하얀 양을 찾아 가까이 가 줄래요?',
       verse: V('q-sheep', '너희 중에 어느 사람이 양 일백 마리가 있는데 그 중에 하나를 잃으면 아흔 아홉 마리를 들에 두고 그 잃은 것을 찾도록 찾아 다니지 아니하느냐', '누가복음 15:4'),
-      steps: [{ hint: '정원에서 잃은 양을 찾아 우리로 데려와요. 방울 소리를 따라가요.', ev: 'sheepHome', go: () => P.fold, where: '목자의 양 우리 둘레 (방울 소리를 따라가요)' }],
-      done: '찾았군요! 하늘에서는 회개할 것 없는 아흔아홉보다 죄인 하나가 회개하는 것을 더 기뻐한대요. 이 지팡이를 가져가요.',
+      steps: [{ hint: '길 잃은 양 곁에 가면 따라와요. 우리로 데려와요', ev: 'sheepHome', go: () => P.fold, where: '양 우리 둘레 (방울 소리나 하얀 양을 찾아요)' }],
+      done: '찾았어요, 고마워요! 길 잃은 한 사람이 돌아와도 하나님은 아주 기뻐하신대요. 이 지팡이를 선물로 줄게요.',
     },
     {
       id: 'well', who: woman, name: '사마리아 여인', title: '야곱의 우물가에서', stat: 'prayer', item: 'water', back: false,
-      ask: '한낮이라 목이 말라요. 우물에서 물 한 그릇 길어 주실래요? 예전에 이 우물가에서 어떤 분이 저에게 물을 청하시며 영원히 목마르지 않는 물 이야기를 해 주셨어요.',
+      ask: '저는 사마리아 여인이에요. 예전에 여기서 예수님이 \'목마르지 않는 물\' 이야기를 해 주셨어요. 물 한 그릇 떠 줄래요?',
       verse: V('q-well', '내가 주는 물을 먹는 자는 영원히 목마르지 아니하리니 나의 주는 물은 그 속에서 영생하도록 솟아나는 샘물이 되리라', '요한복음 4:14'),
       steps: [
-        { hint: '우물에서 물을 길어요 (우물 곁 반짝이는 단추).', until: () => me.item === 'cup' && me.drink === 'water', go: () => P.well, where: '야곱의 우물' },
-        { hint: '여인에게 물을 건네요 (E 또는 반짝이는 단추).', place: 'q_give', at: () => woman, r: 2.6, act: () => { me.item = null; me.drink = null; sfx('cup', 0.2); burst(woman.x, woman.y + 1.3, woman.z); } },
+        { hint: '우물 곁 반짝이는 단추를 눌러 물을 떠요 (E)', until: () => me.item === 'cup' && me.drink === 'water', go: () => P.well, where: '야곱의 우물' },
+        { hint: '여인 곁에서 반짝이는 단추를 눌러요 (E)', place: 'q_give', at: () => woman, r: 2.6, act: () => { me.item = null; me.drink = null; sfx('cup', 0.2); burst(woman.x, woman.y + 1.3, woman.z); } },
       ],
-      done: '고마워요. 이 물도 시원하지만, 그분이 주시는 생수는 다시 목마르지 않는대요. 이 생수를 가져가 기도할 때마다 마셔요.',
+      done: '고마워요! 이 물도 시원하지만, 예수님이 주시는 생수는 다시 목마르지 않대요. 이 생수를 선물로 줄게요.',
     },
     {
       id: 'jericho', who: joshua, name: '여호수아', title: '여리고를 일곱 바퀴', stat: 'obey', item: 'horn',
-      ask: '여리고 성은 굳게 닫혀 있어요. 칼로 치라는 말씀이 아니라, 성을 일곱 바퀴 돌고 나팔을 불라 하셨어요. 이상해 보여도 말씀대로 해 볼래요?',
+      ask: '저는 여호수아예요. 이 성은 문이 꽁꽁 닫혀 있어요. 하나님 말씀대로 일곱 바퀴 돌고 나팔을 불어 볼래요?',
       verse: V('q-jericho', '제 칠일에는 성을 일곱번 돌며 제사장들은 나팔을 불 것이며', '여호수아 6:4'),
-      steps: [{ hint: '성 둘레를 일곱 바퀴 돌아요. 일곱 등불이 켜지면 나팔(반짝이는 단추)을 불어요.', ev: 'jerichoFall', go: () => P.jericho, where: '여리고 성' }],
-      done: '말씀대로 했더니 성벽이 무너졌어요! 이 양각 나팔을 가져가요.',
+      steps: [{ hint: '성을 한 바퀴씩 돌아요. 등불 일곱이 켜지면 나팔 단추를 눌러요 (E)', ev: 'jerichoFall', go: () => P.jericho, where: '여리고 성' }],
+      done: '해냈어요! 말씀대로 했더니 성벽이 무너졌어요. 이 양각 나팔을 선물로 줄게요.',
     },
     {
       id: 'david', who: david, name: '다윗', title: '매끄러운 돌 다섯', stat: 'word', item: 'sling',
-      ask: '저 거인 골리앗 앞에서 다들 떨고 있어요. 저는 갑옷 대신 시냇가의 돌 다섯을 골랐어요. 여호와의 이름으로 나아가면 돼요. 시냇가에서 돌 다섯을 골라 볼래요?',
+      ask: '저는 양치기 소년 다윗이에요. 거인 골리앗이 무서워 다들 떨지만, 저는 하나님을 믿어요. 같이 시냇가에서 돌 다섯을 주워 볼래요?',
       verse: V('q-david', '시내에서 매끄러운 돌 다섯을 골라서 자기 목자의 제구 곧 주머니에 넣고 손에 물매를 가지고 블레셋 사람에게로 나아가니라', '사무엘상 17:40'),
       steps: [
-        { hint: (r) => `시냇가에서 매끄러운 돌을 주워요 (E) ${r.n || 0}/5`, collect: brook, place: 'q_pick' },
-        { hint: '이제 골리앗 앞에서 물매를 던져요 (반짝이는 단추).', ev: 'goliathFall', go: () => P.david, where: '골리앗 앞' },
+        { hint: (r) => `반짝이는 돌 곁에서 반짝이는 단추를 눌러요 (E) ${r.n || 0}/5`, collect: brook, place: 'q_pick' },
+        { hint: '골리앗 앞에서 반짝이는 단추를 눌러 물매를 던져요 (E). 단추가 안 보이면 골리앗이 다시 일어날 때까지 조금 기다려요', ev: 'goliathFall', go: () => P.david, where: '골리앗 앞' },
       ],
-      done: '보세요, 전쟁은 여호와께 속했어요! 이 물매를 가져가요.',
+      done: '해냈어요! 하나님이 이기게 해 주셨어요. 이 물매를 선물로 줄게요.',
     },
     {
       id: 'ruth', who: ruth, name: '룻', title: '보아스의 밭에서', stat: 'fellow', item: 'barley',
-      ask: '어머님 나오미와 저는 먹을 것이 없어요. 밭에 가서 떨어진 이삭을 주우려 해요. 함께 주워 줄래요?',
+      ask: '저는 룻이에요. 시어머니 나오미와 저는 먹을 게 없어요. 보아스 아저씨 밭에 떨어진 보리 이삭을 같이 주워 줄래요?',
       verse: V('q-ruth', '나로 밭에 가게 하소서 내가 뉘게 은혜를 입으면 그를 따라서 이삭을 줍겠나이다', '룻기 2:2'),
-      steps: [{ hint: (r) => `밭가에 떨어진 이삭을 주워요 (E) ${r.n || 0}/6`, collect: ears, place: 'q_pick' }],
-      done: '이렇게나 많이! 보리가 한 에바쯤 되겠어요. 어머님과 함께 나눠요. 한 에바 가져가요.',
+      steps: [{ hint: (r) => `밭가의 반짝이는 보리 이삭 곁에서 반짝이는 단추를 눌러요 (E) ${r.n || 0}/6`, collect: ears, place: 'q_pick' }],
+      done: '와, 이렇게나 많이 주웠어요! 시어머니와 나눠 먹을게요. 보리 한 자루를 선물로 줄게요.',
     },
     {
       id: 'elijah', who: elijah, name: '엘리야', title: '로뎀나무 아래', stat: 'prayer', item: 'mantle',
-      ask: '너무 지쳐서 더는 못 가겠어요. 그때 하나님은 꾸짖지 않으시고 먼저 재우시고 먹이셨어요. 지쳤을 때는 쉬는 것도 순종이에요. 로뎀나무 그늘에 누워 쉬어 볼래요?',
+      ask: '저는 엘리야예요. 너무 지쳐서 이 나무 아래 쓰러졌을 때, 하나님은 저를 재우고 먹이셨어요. 같이 그늘에 누워 볼래요?',
       verse: V('q-elijah', '로뎀나무 아래 누워 자더니 천사가 어루만지며 이르되 일어나서 먹으라 하는지라', '열왕기상 19:5'),
       steps: [
-        { hint: '로뎀나무 그늘에 누워 쉬어요 (K 또는 눕기).', go: () => restSpot, where: '로뎀나무 그늘', until: (r, dt) => { if (lying() && near(broomAt, 4.5)) r.rest = (r.rest || 0) + dt; else r.rest = 0; if (r.rest > 4) { meal.visible = true; sfx('orb', 0.2, 1.3); return true; } return false; } },
-        { hint: '일어나서 먹어요 (E 또는 반짝이는 단추).', place: 'q_eat', at: () => meal.position, r: 2.4, act: () => { sfx('cup', 0.2); } },
-        { hint: '한 번 더 먹어요. 길을 이기지 못할까 하노라 (왕상 19:7)', place: 'q_eat', at: () => meal.position, r: 2.4, act: () => { sfx('cup', 0.2); meal.visible = false; showVerse(V('q-elijah2', '여호와의 사자가 또 다시 와서 어루만지며 이르되 일어나서 먹으라 네가 길을 이기지 못할까 하노라 하는지라', '열왕기상 19:7'), { cooldown: 0 }); } },
+        { hint: '나무 그늘에서 누운 사람 단추를 눌러요 (K)', go: () => restSpot, where: '로뎀나무 그늘', until: (r, dt) => { if (lying() && near(broomAt, 4.5)) r.rest = (r.rest || 0) + dt; else r.rest = 0; if (r.rest > 4) { meal.visible = true; sfx('orb', 0.2, 1.3); return true; } return false; } },
+        { hint: '반짝이는 단추를 눌러 먹어요 (E)', place: 'q_eat', at: () => meal.position, r: 2.4, act: () => { sfx('cup', 0.2); } },
+        { hint: '반짝이는 단추를 눌러 한 번 더 먹어요 (E). 갈 길이 멀거든요!', place: 'q_eat', at: () => meal.position, r: 2.4, act: () => { sfx('cup', 0.2); meal.visible = false; showVerse(V('q-elijah2', '여호와의 사자가 또 다시 와서 어루만지며 이르되 일어나서 먹으라 네가 길을 이기지 못할까 하노라 하는지라', '열왕기상 19:7'), { cooldown: 0 }); } },
       ],
-      done: '이제 힘이 나죠? 그 힘으로 사십 주야를 걸어갔어요. 이 겉옷을 가져가요.',
+      done: '이제 힘이 나죠? 그 힘으로 아주 먼 길을 걸었어요. 이 겉옷을 선물로 줄게요.',
     },
     {
       id: 'noah', who: noah, name: '노아', title: '비둘기를 내어 놓으매', stat: 'obey', item: 'olive',
-      ask: '물이 줄었는지 알고 싶어요. 방주 앞에서 비둘기를 날려 보내 볼래요? 돌아오면 칠 일을 기다렸다가 다시 보내요.',
+      ask: '저는 노아예요. 큰 홍수 물이 줄었는지 궁금해요. 큰 배 앞에서 비둘기를 날려 볼래요?',
       verse: V('q-noah', '또 칠일을 기다려 다시 비둘기를 방주에서 내어놓으매', '창세기 8:10'),
       steps: [
-        { hint: '방주 앞에서 비둘기를 날려 보내요 (E 또는 반짝이는 단추).', place: 'q_dove', at: () => doveSpot, r: 3, act: () => { flight = { T: 0, leaf: false }; } },
-        { hint: '비둘기가 돌아오고 있어요...', until: landed, go: () => doveSpot, where: '방주 앞' },
-        { hint: (r) => `칠 일을 기다려요... ${Math.max(0, 7 - Math.floor(r.wait || 0))}`, until: (r, dt) => (r.wait = (r.wait || 0) + dt) > 7, go: () => doveSpot, where: '방주 앞' },
-        { hint: '다시 비둘기를 날려 보내요 (E 또는 반짝이는 단추).', place: 'q_dove', at: () => doveSpot, r: 3, act: () => { flight = { T: 0, leaf: true }; } },
-        { hint: '저녁때가 되었어요...', until: landed, go: () => doveSpot, where: '방주 앞' },
+        { hint: '배 앞 반짝이는 단추를 눌러 비둘기를 날려요 (E)', place: 'q_dove', at: () => doveSpot, r: 3, act: () => { flight = { T: 0, leaf: false }; } },
+        { hint: '비둘기가 돌아오고 있어요…', until: landed, go: () => doveSpot, where: '큰 배(방주) 앞' },
+        { hint: (r) => `이레(7일)를 기다려요… ${Math.max(0, 7 - Math.floor(r.wait || 0))}`, until: (r, dt) => (r.wait = (r.wait || 0) + dt) > 7, go: () => doveSpot, where: '큰 배(방주) 앞' },
+        { hint: '배 앞 반짝이는 단추를 눌러 비둘기를 한 번 더 날려요 (E)', place: 'q_dove', at: () => doveSpot, r: 3, act: () => { flight = { T: 0, leaf: true }; } },
+        { hint: '저녁때가 되었어요…', until: landed, go: () => doveSpot, where: '큰 배(방주) 앞' },
       ],
-      done: '감람 새 잎사귀예요! 땅에 물이 줄었군요. 기다리는 것도 믿음이에요. 이 잎사귀를 가져가요.',
+      done: '감람 새 잎사귀예요! 기다리니 물이 줄었어요. 이 잎사귀를 선물로 줄게요.',
     },
     {
       id: 'zacc', who: zacc, name: '삭개오', title: '뽕나무에 올라가', stat: 'obey', item: 'purse',
-      ask: '예수님이 이 길로 지나가신대요. 그런데 저는 키가 작아서 사람들에 가려 보이지가 않아요. 저기 큰 뽕나무에 같이 올라가 볼래요?',
+      ask: '저는 삭개오예요. 예수님이 이 길로 지나가신대요. 키가 작아서 안 보이니 저 큰 뽕나무에 같이 올라가 볼래요?',
       verse: V('q-zacc', '앞으로 달려가 보기 위하여 뽕나무에 올라가니 이는 예수께서 그리로 지나가시게 됨이러라', '누가복음 19:4'),
       steps: [
-        { hint: '길가의 큰 뽕나무에 올라가요 (나무 곁에서 오르기).', go: () => SYCAMORE, where: '길가의 큰 뽕나무', until: () => !!me.climb && Math.hypot(me.x - SYCAMORE.x, me.z - SYCAMORE.z) < 2.5 && me.climb.phase === 'hang' },
-        { hint: '내려와서 삭개오와 함께 가난한 이웃에게 나눠요 (1 데나리온, E 또는 반짝이는 단추).', place: 'q_give', at: () => zacc, r: 2.6,
-          act: () => { if (!spend(profile, 1)) { toast('지갑이 비었어요. 훈련장이나 다른 부탁을 마치면 돈을 받아요', 4); return false; } sfx('share', 0.2); showVerse(V('q-zacc2', '삭개오가 서서 주께 여짜오되 주여 보시옵소서 내 소유의 절반을 가난한 자들에게 주겠사오며 만일 뉘 것을 토색한 일이 있으면 사배나 갚겠나이다', '누가복음 19:8'), { cooldown: 0 }); } },
+        { hint: '큰 뽕나무 곁에서 나무 그림 단추를 눌러 올라가요', go: () => SYCAMORE, where: '길가의 큰 뽕나무', until: () => !!me.climb && Math.hypot(me.x - SYCAMORE.x, me.z - SYCAMORE.z) < 2.5 && me.climb.phase === 'hang' },
+        { hint: '내려와서 삭개오 곁 반짝이는 단추를 눌러 1 데나리온을 나눠요 (E)', need: () => ((profile.coins | 0) < 1 ? '1 데나리온이 있어야 해요 · 부탁을 그만두고 훈련장에서 받은 뒤 다시 와요' : ''), place: 'q_give', at: () => zacc, r: 2.6,
+          act: () => { if (!spend(profile, 1)) { toast('1 데나리온이 모자라요. 부탁을 그만두고 훈련장에서 받은 뒤 다시 와요', 4); return false; } sfx('share', 0.2); showVerse(V('q-zacc2', '삭개오가 서서 주께 여짜오되 주여 보시옵소서 내 소유의 절반을 가난한 자들에게 주겠사오며 만일 뉘 것을 토색한 일이 있으면 사배나 갚겠나이다', '누가복음 19:8'), { cooldown: 0 }); } },
       ],
-      done: '오늘 구원이 이 집에 이르렀대요! 움켜쥐던 손을 펴니 마음이 이렇게 가벼울 줄 몰랐어요. 이 돈주머니를 가져가요.',
+      done: '고마워요! 나누니까 마음이 이렇게 가벼워요. 예수님이 우리 집에 오셨어요. 이 돈주머니를 선물로 줄게요.',
     },
     {
       id: 'samaritan', who: samaritan, name: '사마리아인', title: '강도 만난 이웃', stat: 'fellow', item: 'wine', back: false,
-      ask: '여리고로 내려가는 길에 강도 만난 사람이 쓰러져 있어요. 다들 피해 지나갔대요. 우리가 가서 돌봐 줄래요? 상처에 부을 기름이 있어야 해요.',
+      ask: '저는 사마리아인이에요. 다친 사람을 같이 돌봐 줄래요? 상처에 바를 등잔 기름은 금화가 떠 있는 루디아 가게에서 사요.',
       verse: V('q-sam', '어떤 사마리아인은 여행하는 중 거기 이르러 그를 보고 불쌍히 여겨', '누가복음 10:33'),
       steps: [
-        { hint: '쓰러진 나그네의 상처에 기름을 붓고 싸매요 (등잔 기름 1, E 또는 반짝이는 단추).', place: 'q_give', at: () => wounded, r: 2.4,
-          act: () => { if (!useGood(profile, 'oil')) { toast('기름이 없어요. 정원 동쪽 루디아의 가게에서 등잔 기름(2 데나리온)을 사 오세요', 4.5); return false; } sfx('cup', 0.2, 1.1); burst(wounded.x, G(wounded) + 0.8, wounded.z); wounded.seat = null; wounded.state = 'idle'; } },
-        { hint: '나그네와 함께 주막(정원 동쪽 가게)까지 걸어가요.', go: () => P.market, where: '정원 동쪽 루디아의 가게', until: () => {
+        { hint: '다친 사람 곁 반짝이는 단추를 눌러요 (E)', need: () => ((profile.bag?.oil | 0) > 0 ? '' : '등잔 기름이 필요해요 · 금화가 떠 있는 루디아 가게에서 사요 (2 데나리온)'),
+          go: () => ((profile.bag?.oil | 0) > 0 ? wounded : P.market), where: () => ((profile.bag?.oil | 0) > 0 ? '다친 나그네' : '가게 · 루디아 (금화가 떠 있어요)'),
+          place: 'q_give', at: () => wounded, r: 2.4,
+          act: () => { if (!useGood(profile, 'oil')) { toast('기름이 없어요. 금화가 떠 있는 루디아 가게에서 사 오세요 (2 데나리온)', 4.5); return false; } sfx('cup', 0.2, 1.1); burst(wounded.x, G(wounded) + 0.8, wounded.z); wounded.seat = null; wounded.state = 'idle'; } },
+        { hint: '다친 사람과 함께 루디아의 가게까지 걸어가요', go: () => P.market, where: '가게 · 루디아 (지도에서 \'가게 · 루디아\')', until: () => {
           const d = Math.hypot(me.x - wounded.x, me.z - wounded.z);
           if (d > 2.2 && wounded.state !== 'walk') { const a = Math.atan2(wounded.x - me.x, wounded.z - me.z); const p = nearestFree({ x: me.x + Math.sin(a) * 1.4, z: me.z + Math.cos(a) * 1.4 }); if (p) { wounded.path = [p]; wounded.state = 'walk'; } }
           wounded.home = { x: wounded.x, z: wounded.z };
           return Math.hypot(wounded.x - P.market.x, wounded.z - P.market.z) < 8;
         } },
       ],
-      done: '주막에 잘 데려왔어요. 자비를 베푼 자가 이웃이래요. 가서 너도 이와 같이 하라 (눅 10:37). 이 기름과 포도주를 가져가요.',
+      done: '잘 데려왔어요! 어려운 사람을 돕는 사람이 진짜 이웃이래요. 이 기름과 포도주를 선물로 줄게요.',
       reset: () => { const h = P.road.at(1.5, 0.5); wounded.x = h.x; wounded.z = h.z; wounded.home = { ...h }; wounded.path = []; lieDown(); },
     },
     {
       id: 'loaves', who: andrew, name: '안드레', title: '보리떡 다섯과 물고기 둘', stat: 'witness', item: 'twelve',
-      ask: '들녘에 오천 명이 모였는데 먹을 것이 없어요. 여기 한 아이가 보리떡 다섯과 물고기 둘을 가졌다는데... 이것이 이 많은 사람에게 얼마나 되겠어요? 그래도 아이에게 가 볼래요?',
+      ask: '저는 안드레예요. 사람이 아주 많은데 먹을 게 없어요. 작은 아이가 가진 도시락을 같이 보러 갈래요?',
       verse: V('q-loaves', '여기 한 아이가 있어 보리떡 다섯 개와 물고기 두 마리를 가졌나이다 그러나 그것이 이 많은 사람에게 얼마나 되겠삽나이까', '요한복음 6:9'),
       steps: [
-        { hint: '아이에게서 보리떡과 물고기가 든 바구니를 받아요 (E 또는 반짝이는 단추).', place: 'q_pick', at: () => boy, r: 2.4, act: () => { sfx('cup', 0.2); showVerse(V('q-loaves2', '예수께서 떡을 가져 축사하신 후에 앉은 자들에게 나눠 주시고 고기도 그렇게 저희의 원대로 주시다', '요한복음 6:11'), { cooldown: 0 }); } },
-        { hint: (r) => `풀밭에 앉은 무리에게 나눠 주어요 (E) ${r.n || 0}/5`, collect: crowd, place: 'q_give' },
+        { hint: '아이 곁 반짝이는 단추를 눌러요 (E)', place: 'q_pick', at: () => boy, r: 2.4, act: () => { sfx('cup', 0.2); showVerse(V('q-loaves2', '예수께서 떡을 가져 축사하신 후에 앉은 자들에게 나눠 주시고 고기도 그렇게 저희의 원대로 주시다', '요한복음 6:11'), { cooldown: 0, title: '축사: 감사 기도' }); } },
+        { hint: (r) => `빛나는 돗자리 곁에서 반짝이는 단추를 눌러요 (E) ${r.n || 0}/5`, collect: crowd, place: 'q_give' },
       ],
-      done: '모두 배불리 먹고도 남은 조각이 열두 바구니예요! 작은 것을 드리니 주께서 넉넉히 하셨어요. 이 바구니를 가져가요.',
+      done: '모두 배불리 먹고도 열두 바구니가 남았어요! 작은 도시락도 주께서 넉넉히 쓰셨어요. 이 바구니를 선물로 줄게요.',
     },
   ];
   Q.push(
     {
       id: 'peter', who: peter, name: '베드로', title: '배 오른편에 그물을', stat: 'witness', item: 'net', back: false,
-      ask: '밤새 그물을 던졌는데 한 마리도 못 잡았어요. 그런데 물가에 계신 그분이 "그물을 배 오른편에 던지라" 하셨어요. 어부인 제가 보기엔 이상하지만... 같이 던져 볼래요?',
+      ask: '저는 어부 베드로예요. 밤새 한 마리도 못 잡았는데, 예수님이 \'오른쪽에 던져라\' 하셨어요. 같이 던져 볼래요?',
       verse: V('q-peter', '가라사대 그물을 배 오른편에 던지라 그리하면 얻으리라 하신대 이에 던졌더니 고기가 많아 그물을 들 수 없더라', '요한복음 21:6'),
       steps: [
-        { hint: '물가에서 그물을 던져요. 왼편도 오른편도 있어요 (E 또는 반짝이는 단추).', place: 'q_net', at: () => (dist(netL) < dist(netR) ? netL : netR), r: 2.2,
+        { hint: '물가에서 반짝이는 단추를 눌러 그물을 던져요 (E). 노란 \'오른편\' 동그라미에서요', place: 'q_net', at: () => (dist(netL) < dist(netR) ? netL : netR), r: 2.2,
           act: () => {
-            if (dist(netL) < dist(netR)) { sfx('impact/impactSoft_medium_000', 0.2, 0.7); showVerse(V('q-peter0', '나가서 배에 올랐으나 이 밤에 아무 것도 잡지 못하였더니', '요한복음 21:3'), { cooldown: 0, title: '빈 그물' }); return false; }
+            if (dist(netL) < dist(netR)) { sfx('impact/impactSoft_medium_000', 0.2, 0.7); showVerse(V('q-peter0', '나가서 배에 올랐으나 이 밤에 아무 것도 잡지 못하였더니', '요한복음 21:3'), { cooldown: 0, title: '빈 그물' }); toast('빈 그물이에요. 노란 \'오른편\' 동그라미로 가 봐요', 4); return false; }
             sfx('orb', 0.3, 1.1); fishBurst(netR); return true;
           } },
       ],
-      done: '그물이 터질 것 같아요! 말씀대로 했더니 일백 쉰 세 마리나! 이 그물을 가져가요. 이제 사람을 낚는 어부가 되어요.',
+      done: '153마리나 잡았어요! 말씀대로 했더니 그물이 터질 것 같아요. 이 그물을 선물로 줄게요.',
     },
   );
   const onSeat = (kind) => !!me.seat && me.seat.kind === kind;
   Q.push(
     {
       id: 'jonah', who: jonah, name: '요나', title: '일어나 니느웨로', stat: 'obey', item: 'gourd', back: false,
-      ask: '저는 하나님의 낯을 피해 다시스로 가는 배를 탔다가 큰 물고기 배 속에 들어갔어요. 그 속에서 기도했더니 말씀이 두 번째 임했어요. 이번에는 순종하려 해요. 물가에서 함께 기도하고, 니느웨 쪽 팻말 앞에서 손 흔들어 외쳐 줄래요?',
+      ask: '저는 요나예요. 도망가다 큰 물고기 배 속에 들어갔다가 말씀대로 하기로 했어요. 물가에서 같이 기도하고, 니느웨 팻말 앞에서 손을 흔들어 줄래요?',
       verse: V('q-jonah', '일어나 저 큰 성읍 니느웨로 가서 내가 네게 명한 바를 그들에게 선포하라 하신지라', '요나 3:2'),
       steps: [
-        { hint: '물가 모래밭에서 기도해요 (X 또는 기도 단추, 잠시 손 모으기).', go: () => shore, where: '요나의 바다 물가', until: (r, dt) => { if (me.action === 'pray' && near(shore, 6)) r.t = (r.t || 0) + dt; else r.t = 0; return r.t > 3; } },
-        { hint: '니느웨 팻말 앞에서 손을 흔들어 외쳐요 (빛 건네기 또는 손 흔들기).', go: () => nineveh, where: '니느웨 팻말', until: () => near(nineveh, 3.2) && (me.action === 'wave' || me.action === 'share') },
+        { hint: '모래밭에서 두 손 모은 단추를 꾹 눌러요 (X)', go: () => shore, where: '요나의 바다 물가', until: (r, dt) => { if (me.action === 'pray' && near(shore, 6)) r.t = (r.t || 0) + dt; else r.t = 0; return r.t > 3; } },
+        { hint: '\'니느웨\' 팻말 앞에서 손 흔드는 단추를 눌러요', go: () => nineveh, where: '니느웨 팻말', until: () => near(nineveh, 3.2) && (me.action === 'wave' || me.action === 'share') },
       ],
-      done: '니느웨 사람들이 말씀을 듣고 돌이켰대요! 하나님은 은혜로우시고 자비로우셔요. 이 박넝쿨 그늘을 가져가요.',
+      done: '잘했어요! 니느웨 사람들이 하나님께 돌아왔대요. 이 박넝쿨 잎을 선물로 줄게요.',
     },
     {
       id: 'solomon', who: solomon, name: '솔로몬', title: '들의 백합화를 보라', stat: 'prayer', item: 'lily',
-      ask: '저는 온갖 영화를 누린 왕이었지만, 예수님은 들의 백합화 하나가 제 모든 영광보다 낫다고 하셨어요. 무엇을 입을까 염려하지 말고 들꽃이 어떻게 자라는지 들여다보래요. 초장에 핀 백합화 다섯 송이를 함께 들여다볼래요?',
+      ask: '저는 솔로몬 왕이에요. 저는 멋진 옷이 많았지만, 예수님은 들꽃 하나가 더 예쁘다고 하셨어요. 풀밭에 핀 흰 백합 다섯 송이를 같이 볼래요?',
       verse: V('q-solomon', '또 너희가 어찌 의복을 위하여 염려하느냐 들의 백합화가 어떻게 자라는가 생각하여 보라 수고도 아니하고 길쌈도 아니하느니라', '마태복음 6:28'),
-      steps: [{ hint: (r) => `초장의 백합화 곁에서 들여다봐요 (E 또는 반짝이는 단추) ${r.n || 0}/5`, collect: lilies, place: 'q_pick' }],
-      done: '수고도 길쌈도 안 하는데 이렇게 곱죠. 하나님이 들풀도 이렇게 입히시는데 하물며 우리일까요. 염려는 기도로 맡겨요. 이 백합화를 가져가요.',
+      steps: [{ hint: (r) => `흰 백합 곁에서 반짝이는 단추를 눌러요 (E) ${r.n || 0}/5`, collect: lilies, place: 'q_pick' }],
+      done: '꽃은 옷을 만들지 않아도 이렇게 예뻐요. 하나님은 우리도 더 잘 돌봐 주세요. 이 백합을 선물로 줄게요.',
     },
     {
       id: 'isaac', who: isaac, name: '이삭', title: '겨자씨 한 알', stat: 'fellow', item: 'mustard',
-      ask: '저는 흉년에도 그 땅에 농사해서 백 배를 거두었어요. 하나님이 복을 주셨지요. 여기 아주 작은 겨자씨가 있어요. 흙더미에 심고 어떻게 자라는지 함께 지켜볼래요? 새들이 깃들 만큼 큰 나무가 된대요.',
+      ask: '저는 농사를 지은 아브라함의 아들 이삭이에요. 작은 겨자씨를 흙더미에 심어 볼래요? 새들이 쉴 만큼 큰 나무가 된대요.',
       verse: V('q-isaac', '또 비유를 베풀어 가라사대 천국은 마치 사람이 자기 밭에 갖다 심은 겨자씨 한 알 같으니', '마태복음 13:31'),
       steps: [
-        { hint: '흙더미의 반짝이는 씨앗을 심어요 (흙더미 곁에서 심기 단추 또는 씨앗 누르기).', ev: 'mustardPlant', go: () => P.mustard, where: '겨자씨 흙더미' },
-        { hint: '씨가 자라 새들이 깃드는 것을 지켜봐요...', ev: 'mustardGrown', go: () => P.mustard, where: '겨자씨 흙더미' },
+        { hint: '흙더미의 반짝이는 씨앗을 눌러요', ev: 'mustardPlant', go: () => P.mustard, where: '겨자씨 흙더미' },
+        { hint: '씨가 자라 새들이 쉬러 오는 것을 지켜봐요…', ev: 'mustardGrown', go: () => P.mustard, where: '겨자씨 흙더미' },
       ],
-      done: '보셨죠? 가장 작은 씨가 새들이 쉬는 나무가 되었어요. 작은 사랑과 섬김도 그렇게 자라 많은 사람이 깃들어요. 이 겨자씨를 가져가요.',
+      done: '가장 작은 씨가 새들이 쉬는 나무가 되었어요! 작은 사랑도 그렇게 자라요. 이 겨자씨를 선물로 줄게요.',
     },
     {
       id: 'vine', who: johnA, name: '요한', title: '내 안에 거하라', stat: 'word', item: 'grapes',
-      ask: '저는 예수님 품에 기대어 말씀을 듣던 제자예요. 예수님은 "나는 포도나무요 너희는 가지라" 하셨어요. 가지는 애써 열매를 만들지 않고 붙어 있기만 하면 돼요. 포도나무 그늘에 앉아 잠시 머물러 볼래요?',
+      ask: '저는 예수님의 제자 요한이에요. 예수님은 \'나는 포도나무, 너희는 가지\'라고 하셨어요. 포도나무 그늘 의자에 잠깐 앉아 볼래요?',
       verse: V('q-vine', '나는 포도나무요 너희는 가지니 저가 내 안에, 내가 저 안에 있으면 이 사람은 과실을 많이 맺나니 나를 떠나서는 너희가 아무 것도 할 수 없음이라', '요한복음 15:5'),
       steps: [
-        { hint: (r) => `포도나무 그늘 의자에 앉아 머물러요 (빈 자리 누르기) ${Math.min(5, Math.floor(r.t || 0))}/5`, go: () => vineSit, where: '포도나무 그늘', until: (r, dt) => { if (onSeat('vine')) r.t = (r.t || 0) + dt; else r.t = 0; return r.t > 5; } },
+        { hint: (r) => `포도나무 그늘 의자를 눌러 앉아요. 5초만 기다려요 ${Math.min(5, Math.floor(r.t || 0))}/5`, go: () => vineSit, where: '포도나무 그늘', until: (r, dt) => { if (onSeat('vine')) r.t = (r.t || 0) + dt; else r.t = 0; return r.t > 5; } },
         { hint: '이제 맺힌 포도송이를 눌러 봐요.', ev: 'vineFruit', go: () => vineSit, where: '포도나무 그늘' },
       ],
-      done: '머물렀을 뿐인데 열매가 맺혔어요. 말씀 안에 거하는 것이 열매의 비결이에요. 이 포도송이를 가져가요.',
+      done: '앉아 있었을 뿐인데 열매가 맺혔어요! 말씀 안에 머무는 것이 열매의 비결이에요. 이 포도송이를 선물로 줄게요.',
     },
   );
   const BY = Object.fromEntries(Q.map((q) => [q.id, q]));
@@ -390,10 +392,10 @@ export function initQuests(K) {
   // 아래 단추: 감사해요(고마움 인사를 닫음) / 도와줄게요(부탁 시작) / 알겠어요(닫기)
   const onNext = () => { if (thanks) { thanks = null; hide(); } else if (shown && !run) begin(shown); else hide(); };
   const onEnd = () => { if (run) { run = null; updateChip(); } hide(); };
-  function show(q, text, verse, { next = '', later = false, end = false, n = q.title } = {}) {
+  function show(q, text, verse, { next = '', later = false, end = false, n = q.title, how = '' } = {}) {
     shown = q;
     dlg.open({
-      who: q.name, n, say: text, verse,
+      who: q.name, n, say: text, verse, how,
       choices: [
         { label: '그만두기', cls: 'end', hidden: !end, on: onEnd },
         { label: '나중에', cls: 'later', hidden: !later, on: hide },
@@ -402,7 +404,8 @@ export function initQuests(K) {
       esc: () => (thanks ? onNext() : hide()),
     });
   }
-  const hintOf = (r) => { const s = r.q.steps[r.i]; return typeof s.hint === 'function' ? s.hint(r) : s.hint; };
+  const hintOf = (r) => { const s = r.q.steps[r.i]; const need = s.need?.(r); if (need) return need; return typeof s.hint === 'function' ? s.hint(r) : s.hint; };
+  const whereOf = (s) => (typeof s.where === 'function' ? s.where() : s.where) || '';
   function updateChip() {
     if (!run) { chip.hidden = true; return; }
     chip.hidden = false;
@@ -432,13 +435,13 @@ export function initQuests(K) {
     const q = run.q; run = null; updateChip();
     sfx('orb', 0.25, 1.1); burst(me.x, me.y + 1.2, me.z);
     thanks = q;
-    if (profile.quests[q.id] === 'done') { addSteps(profile, 2); earn(profile, 1); save(); onChange?.(); show(q, `${q.done.split('.')[0]}. 또 도와줘서 고마워요! (걸음 +2, 1 데나리온)`, '', { next: '감사해요' }); return; }
+    if (profile.quests[q.id] === 'done') { addSteps(profile, 2); earn(profile, 1); save(); onChange?.(); show(q, '또 해냈어요! 도와줘서 고마워요.', '', { next: '감사해요', how: '연습이라 선물은 없지만 걸음 +2, 1 데나리온을 받았어요' }); return; }
     profile.quests[q.id] = 'done';
     addStat(profile, q.stat, STAT_REWARD); giveItem(profile, q.item); earn(profile, 3);
     const up = addSteps(profile, STEP_REWARD);
     save(); onChange?.();
     const st = STATS.find((x) => x.id === q.stat);
-    show(q, `${q.done} (${st.name} +${STAT_REWARD}, 걸음 +${STEP_REWARD}, ${ITEMS[q.item].name}, 3 데나리온)`, '', { next: '감사해요' });
+    show(q, q.done, '', { next: '감사해요', how: `${st.name} +${STAT_REWARD}, 걸음 +${STEP_REWARD}, ${ITEMS[q.item].name}, 3 데나리온을 받았어요` });
     if (up) setTimeout(() => toast(`${profile.name || '나'}님이 ${up.name}${josa(up.name)} 자랐어요!`, 5), 2500);
   }
   const josa = (w) => { const c = w.charCodeAt(w.length - 1) - 0xac00; return c >= 0 && c < 11172 && c % 28 && c % 28 !== 8 ? '으로' : '로'; };
@@ -507,6 +510,7 @@ export function initQuests(K) {
       if (s.until(run, dt)) advance();
       else if (s.hint instanceof Function) updateChip();
     }
+    if (run && s && s.need) updateChip(); // 기름·돈이 있어야 하는 단계는 있고 없고에 따라 칩 글이 바뀜
     // 인물 곁에 가면 말을 검
     if (busy()) { if (shown && !thanks) hide(); return; }
     let nearQ = null;
@@ -516,7 +520,7 @@ export function initQuests(K) {
     if (nearQ && nearQ !== shown) offerTalk('quest:' + nearQ.id, nearQ.who, () => {
       const q = nearQ, isRun = run && run.q === q;
       if (isRun) show(q, hintOf(run), '', { end: true, next: '알겠어요' });
-      else if (run) show(q, `지금은 ${run.q.name}의 부탁을 하고 있군요. 그 일을 마치고 다시 와 주세요.`, '', { next: '알겠어요' });
+      else if (run) show(q, `지금은 ${run.q.name}의 부탁을 하고 있어요. 왼쪽 위 부탁 표시를 누르면 갈 곳이 나와요.`, '', { next: '알겠어요' });
       else if (profile.quests[q.id] === 'done') show(q, `다시 와 주었군요, ${profile.name || '친구'}님! 한 번 더 도와줄래요? 이번에는 마음으로 하는 연습이에요.`, '', { next: '도와줄게요', later: true });
       else show(q, q.ask, q.verse, { next: '도와줄게요', later: true });
     });
@@ -532,12 +536,15 @@ export function initQuests(K) {
     else if (s.collect) {
       let b = null, bd = 1e9; for (const c of s.collect) if (!c.got) { const d = dist(c.p); if (d < bd) { bd = d; b = c; } }
       target = b && b.p; where = '반짝이는 자리';
-    } else if (s.go) { target = s.go(); where = s.where || ''; }
-    else if (s.at) { target = s.at(); where = s.where || ''; }
+    } else if (s.go) { target = s.go(); where = whereOf(s); }
+    else if (s.at) { target = s.at(); where = whereOf(s); }
     if (!target) { target = q.who; where = `${q.name}에게`; }
     return { q, name: q.name, title: q.title, ask: q.ask, verse: VERSES[q.verse], hint: back ? `${q.name}에게 돌아가 마친 일을 알려요.` : hintOf(run), step: Math.min(run.i + 1, q.steps.length), steps: q.steps.length, back, target: { x: target.x, z: target.z }, where };
   }
   const quit = () => { if (run) { run = null; updateChip(); } };
+  let quiet = false; // 훈련 사부 곁에서 "지금 ○○의 부탁을 하고 있어요" 안내를 띄울 때만 잠깐 run을 빼고 busy를 봄
+  const ignoreRun = (fn) => { quiet = true; try { return fn(); } finally { quiet = false; } };
+  const active = () => !!shown || (!!run && !quiet && !(run.q.id === 'samaritan' && run.i === 0 && dist(P.market) < 10.5));
 
-  return { info, quit, step, actions, available, active: () => !!shown, Q, BY, doneCount, get run() { return run; }, spots: { brook, ears, doveSpot, meal, restSpot, broomAt, netL, netR } };
+  return { info, quit, step, actions, available, active, ignoreRun, Q, BY, doneCount, get run() { return run; }, spots: { brook, ears, doveSpot, meal, restSpot, broomAt, netL, netR } };
 }

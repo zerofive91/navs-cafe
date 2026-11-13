@@ -24,12 +24,13 @@ VERSES['wf-resist'] = ['그런즉 너희는 하나님께 순복할찌어다 마�
 VERSES['wf-fight'] = ['내가 선한 싸움을 싸우고 나의 달려갈 길을 마치고 믿음을 지켰으니', '디모데후서 4:7'];
 
 const ROUND = 3, REAL = 5;
+const FLAG = { tempt: '주황', lie: '보라', fear: '파란', pride: '노란' }; // 시험돌 깃발 색 (trials.js CATS.color)
+const KIND = { tempt: '욕심을 부추기는', lie: '거짓말로 속이는', fear: '겁을 주는', pride: '뽐내게 하는' }; // 틀렸을 때 문장에 쓰는 말
 const shuffle = (a) => { const r = a.slice(); for (let i = r.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [r[i], r[j]] = [r[j], r[i]]; } return r; };
 const jo = (w, a, b) => { const c = (w || '').charCodeAt(w.length - 1) - 0xac00; return c >= 0 && c < 11172 && c % 28 ? a : b; };
 
 export function initWarfare(K) {
   const { scene, me, makeChar, npcs, profile, save, toast, sfx, burst, fxSprite, busy, onChange } = K;
-  const courseName = K.courseName || ((id) => id);
   const Z = WARFARE.zone;
   const G = (p) => floorY(p.x, p.z);
   const M = (c, r = 0.8, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: r, ...o });
@@ -70,10 +71,11 @@ export function initWarfare(K) {
     const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 2.3, 6), M(0x6a5038)); pole.position.y = 1.15; g.add(pole);
     const todo = label(c.name, 0.75), done = label('✓ ' + c.name, 0.75);
     for (const sp of [todo, done]) { sp.position.y = 2.8; g.add(sp); }
+    const again = label('다시 서면 시작해요', 0.62); again.position.y = 2.25; again.visible = false; g.add(again); // 나중에 하기로 한 돌 밑에 계속 보임
     const ring = glowRing(1.0, c.color); ring.position.set(p.stand.x - p.x, 0.05, p.stand.z - p.z); g.add(ring);
     g.position.set(p.x, G(p), p.z); g.rotation.y = Z.rot; scene.add(g);
     g.traverse((m) => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } });
-    return { g, ring, flag, todo, done, p, c };
+    return { g, ring, flag, todo, done, again, p, c };
   });
 
   // ---------- 바울: 그리스도 예수의 좋은 군사 (갑주를 입음) ----------
@@ -84,6 +86,7 @@ export function initWarfare(K) {
   paul.home = { ...WARFARE.npc }; paul.face0 = Math.atan2(Z.x - paul.x, Z.z - paul.z); paul.face = paul.face0;
   npcs.push(paul);
   const paulSign = label('영적 전쟁 훈련', 0.75); paulSign.position.y = 2.75; paulSign.renderOrder = 5; paul.av.add(paulSign);
+  const paulSign2 = label('실전 연습 해 볼래요?', 0.75); paulSign2.position.y = 2.75; paulSign2.renderOrder = 5; paulSign2.visible = false; paul.av.add(paulSign2); // 네 돌을 다 이긴 뒤
 
   // ---------- 어둠의 그림자 (시험이 오면 돌 위로 떠오름) ----------
   const shade = new THREE.Group();
@@ -95,8 +98,8 @@ export function initWarfare(K) {
 
   // ---------- 바울과 말하기 (dialog.js). id는 길잡이(#wtalk)와 겹치지 않게 #ptalk ----------
   const dlg = createDialog({ id: 'ptalk' });
-  let offer = false;
-  const hideTalk = () => { dlg.close(); offer = false; };
+  let offer = false, sticky = false; // sticky: 바울 곁이 아니어도 떠 있는 말풍선 (칭찬·처음 안내)
+  const hideTalk = () => { dlg.close(); offer = false; sticky = false; };
   const allWon = () => CATS.every((c) => won(c.id));
   const GUIDE = [{ label: '하는 방법', on: () => guide('how') }, { label: '진행 보기', on: () => guide('prog') }];
   function offerTalk() {
@@ -104,9 +107,9 @@ export function initWarfare(K) {
     const first = !CATS.some((c) => won(c.id)) && !rec().met;
     rec().met = 1;
     const say = first
-      ? '저는 바울이에요. 우리의 싸움은 혈과 육이 아니라 어둠의 속삭임과의 싸움이에요. 믿음의 선진들과 사도들도 유혹, 미혹, 두려움, 교만의 시험을 겪었어요. 네 시험돌 앞 빛나는 자리에 서면 그들이 겪은 시험이 다가와요. 그들처럼 말씀으로 이겨 봐요.'
-      : allWon() ? `${profile.name || '친구'}님은 네 시험을 다 이겨 봤어요. 실전 연습에서는 네 갈래가 섞여서 다섯 번 와요. 어떤 속삭임인지 먼저 알아채는 게 싸움의 반이에요.`
-        : `다시 왔군요! 아직 이기지 않은 시험돌: ${CATS.filter((c) => !won(c.id)).map((c) => c.name).join(', ')}. 시험돌 앞에 서거나, 섞어서 하는 실전 연습을 해 봐요.`;
+      ? '저는 바울이에요. 마음속에 나쁜 생각을 부추기는 \'마음의 소리\'가 있어요. 깃발 돌 앞 빛 동그라미에 서서 말씀으로 이겨 봐요!'
+      : allWon() ? '와, 네 돌을 다 이겼어요! 이번엔 섞어서 다섯 번 와요. 아래 \'실전 연습\'을 눌러요.'
+        : `다시 왔군요! 아직 ${CATS.filter((c) => !won(c.id)).map((c) => `${FLAG[c.id]} 깃발(${c.name})`).join(', ')} 돌이 남았어요. 그 돌 앞 빛 동그라미에 서 봐요.`;
     dlg.open({
       who: '바울', n: '영적 전쟁 훈련소', say, verse: 'wf-soldier',
       guide: GUIDE,
@@ -118,20 +121,49 @@ export function initWarfare(K) {
     });
   }
   function guide(kind) {
-    let say;
+    let say, how = '';
     if (kind === 'how') {
-      say = `네 시험돌(유혹·미혹·두려움·교만) 앞 빛나는 자리에 서면 성경 속 인물이 겪은 시험 둘과 숲길에서 만나는 속삭임 하나가 차례로 와요. 어둠의 속삭임을 듣고, 세 말씀 가운데 그 속삭임을 이기는 말씀을 골라요 (1·2·3). 막히면 기도(X 또는 기도 단추)하면 맞는 말씀이 떠올라요. 연습이라 틀려도 넘어지지 않고 다시 고를 수 있어요. 처음 이긴 돌마다 말씀 +3, 순종 +2, 걸음 +5, 2 데나리온을 받아요.`;
+      say = '① 깃발 돌 앞 빛 동그라미에 서요. ② 마음의 소리를 이기는 말씀을 눌러요. ③ 모르겠으면 두 손 모은 단추를 눌러요 (X). 틀려도 괜찮아요, 다시 골라요.';
+      how = '네 돌: 유혹은 욕심, 미혹은 참말처럼 꾸민 거짓말, 두려움은 겁, 교만은 내가 최고라는 마음이에요. 처음 이긴 돌마다 말씀 +3, 순종 +2, 걸음 +5, 2 데나리온을 받아요.';
     } else {
       const R = rec();
       say = CATS.map((c) => `${c.name} ${won(c.id) ? `✓ (${R[c.id]}번 이김)` : '아직'}`).join(' · ') + ` · 실전 ${R.real | 0}번 이김` + (allWon() ? '. 네 시험을 다 이겼어요!' : '.');
     }
-    dlg.update({ say, verse: '' });
+    dlg.update({ say, how, verse: '' });
+  }
+
+  // 네 돌을 다 이긴 뒤 바울의 칭찬: 다른 창이 열려 있으면 기다렸다가 말풍선으로 (알림만으로 두지 않음)
+  function praise(tries) {
+    if (offer || run) return;
+    if (busy()) { if (tries < 25) setTimeout(() => praise(tries + 1), 800); return; }
+    offer = true; sticky = true;
+    dlg.open({
+      who: '바울', n: '영적 전쟁 훈련소',
+      say: '네 돌을 모두 말씀으로 이겼군요, 대단해요! 이제 섞어서 오는 실전 연습도 해 볼래요?',
+      how: '말씀 +5, 5 데나리온을 받았어요',
+      choices: [
+        { label: '나중에', cls: 'later', on: hideTalk },
+        { label: '실전 연습', cls: 'next', main: true, on: () => { hideTalk(); start('real'); } },
+      ],
+      esc: hideTalk, focus: false,
+    });
+  }
+  // 바울 말을 듣기 전에 시험돌을 밟았을 때: 처음 한 번만 먼저 알려 줌
+  let introSeen = false;
+  function introBubble(at) {
+    introSeen = true; offer = true; sticky = true;
+    dlg.open({
+      who: '바울', n: '영적 전쟁 훈련소',
+      say: '여기는 영적 전쟁 훈련소예요. 바울에게 먼저 말을 걸어 봐요',
+      choices: [{ label: '알겠어요', cls: 'next', main: true, on: () => { hideTalk(); left = at; } }],
+      esc: () => { hideTalk(); left = at; }, focus: false,
+    });
   }
 
   // ---------- 시험 창 ----------
   const box = document.createElement('div');
   box.className = 'npcb trial'; box.id = 'wtrial'; box.hidden = true;
-  box.innerHTML = '<div class="who"><b></b><span class="n"></span></div><p class="scene"></p><p class="say"></p><div class="opts"></div><p class="why" hidden></p><div class="row"><button class="later">물러나기</button><button class="next" hidden>다음 시험</button></div>';
+  box.innerHTML = '<div class="who"><b></b><span class="n"></span></div><p class="scene"></p><p class="say"></p><div class="opts"></div><p class="why" hidden></p><div class="row"><button class="later">나중에 할래요</button><button class="next" hidden>다음 시험</button></div>';
   document.body.appendChild(box);
   const $ = (s) => box.querySelector(s);
   let run = null, opts = [];
@@ -140,7 +172,7 @@ export function initWarfare(K) {
     e.stopPropagation();
     const o = e.target.closest('.opt');
     if (o) return choose(Number(o.dataset.i));
-    if (e.target.classList.contains('later')) stop('물러났어요. 준비되면 다시 시험돌 앞에 서요');
+    if (e.target.classList.contains('later')) stop('나중에 해요. 돌 앞에서 한 걸음 나왔다가 다시 서면 시작해요');
     if (e.target.classList.contains('next')) next();
   });
   addEventListener('keydown', (e) => {
@@ -172,14 +204,14 @@ export function initWarfare(K) {
     shade.scale.setScalar(run.kind === 'real' ? 1.5 : 1);
     parts.forEach((m) => { m.material.opacity = m.isSprite ? 0.45 : 0.55; });
     me.face = Math.atan2(p.x - me.x, p.z - me.z);
-    const who = s.who || courseName(s.path); // 숲길 속삭임은 길 이름
-    $('.who b').textContent = `${c.name}의 시험 · ${who}`;
+    const who = s.who || '숲길에서 온 마음의 소리'; // 숲길 문항은 사람 대신
+    $('.who b').textContent = `${c.name}의 시험 · ${who}${who === '요셉' ? ' (애굽에 팔려 간 소년)' : ''}`;
     $('.n').textContent = `${run.kind === 'real' ? '실전 연습' : c.name + ' 시험돌'} · ${run.i + 1} / ${run.list.length}`;
-    $('.scene').textContent = s.scene ? `${s.scene} (${s.at})` : `숲길 "${who}"에서 들려오는 어둠의 속삭임이에요. 실전에서는 틀리면 넘어지니 여기서 미리 익혀요.`;
+    $('.scene').textContent = s.scene ? s.scene : '숲길에서 이런 마음의 소리를 만나요. 숲길에서는 틀리면 넘어지니 여기서 연습해요.';
     $('.say').textContent = `"${s.lie}"`;
-    const sm = document.createElement('small'); sm.textContent = run.kind === 'real' ? '어떤 속삭임인지 알아채고, 이기는 말씀을 골라요 (1·2·3, 막히면 X 기도)' : (s.who ? `${s.who}${jo(s.who, '이', '가')} 붙든 말씀은?` : '이 속삭임을 이기는 말씀은?') + ' (1·2·3, 막히면 X 기도)'; $('.say').append(sm);
-    opts = shuffle([s.id, ...s.no]);
-    $('.opts').innerHTML = opts.map((k, i) => `<button class="opt" data-i="${i}"><kbd>${i + 1}</kbd><span>${verseOf(k)[0]} <em>${verseOf(k)[1]}</em></span></button>`).join('');
+    const sm = document.createElement('small'); sm.textContent = run.kind === 'real' ? '어떤 마음의 소리인지 알아채고, 이기는 말씀을 눌러요. 모르겠으면 두 손 모은 단추 (X)' : (s.who ? `${s.who}${jo(s.who, '이', '가')} 붙든 말씀을 눌러요.` : '이 마음의 소리를 이기는 말씀을 눌러요.') + ' 모르겠으면 두 손 모은 단추 (X)'; $('.say').append(sm);
+    opts = shuffle([s.id, 'n0', 'n1']); // n0·n1 = 마음의 소리가 바라는 대답 (trials.js no 글)
+    $('.opts').innerHTML = opts.map((k, i) => `<button class="opt" data-i="${i}"><kbd>${i + 1}</kbd><span>${k === s.id ? verseOf(k)[0] : s.no[Number(k[1])]}</span></button>`).join('');
     $('.why').hidden = true; $('.next').hidden = true;
     box.hidden = false; box.classList.remove('ok');
     document.body.classList.add('talking', 'trialing');
@@ -199,18 +231,15 @@ export function initWarfare(K) {
     }
     run.miss++;
     if (b) { b.classList.add('no'); b.disabled = true; }
-    const other = CAT[BY[opts[i]].cat];
     $('.why').hidden = false;
-    $('.why').textContent = other.id === c.id
-      ? '그 말씀도 귀하지만 이 장면에 꼭 맞는 말씀은 아니에요. 다시 골라 봐요.'
-      : `그 말씀은 ${other.name}${jo(other.name, '을', '를')} 이길 때 붙드는 말씀이에요. 지금 속삭임은 ${c.what}이에요. 다시 골라 봐요.`;
+    $('.why').textContent = '음, 다시 골라 봐요. 그 말은 마음의 소리가 바라는 대답이에요.';
     sfx('impact/impactSoft_medium_000', 0.22, 0.7);
   }
   function hint() {
     if (!run || run.ok) return;
     const i = opts.indexOf(run.list[run.i].id);
     $(`.opt[data-i="${i}"]`)?.classList.add('hint');
-    toast('기도하니 마음에 떠오르는 말씀이 있어요', 3);
+    toast('기도하니 말씀 하나가 반짝여요', 3);
   }
   function next() {
     if (!run || !run.ok) return;
@@ -242,7 +271,7 @@ export function initWarfare(K) {
       else { addSteps(profile, 1); toast(`${c.name}의 시험을 다시 이겼어요.${clean} (걸음 +1)`, 4); }
       if (first && allWon()) {
         earn(profile, 5); addStat(profile, 'word', 5);
-        setTimeout(() => { showVerse('wf-fight', { cooldown: 0, title: '네 시험을 다 이겼어요' }); toast('바울: 유혹·미혹·두려움·교만을 모두 말씀으로 이겼군요! 이제 실전 연습도 해 봐요 (말씀 +5, 5 데나리온)', 7); paul.action = 'wave'; setTimeout(() => { paul.action = null; }, 2400); }, 2600);
+        setTimeout(() => { showVerse('wf-fight', { cooldown: 0, title: '네 시험을 다 이겼어요' }); praise(0); paul.action = 'wave'; setTimeout(() => { paul.action = null; }, 2400); }, 2600);
       } else showVerse('wf-resist', { cooldown: 0, title: '말씀으로 이겼어요' });
     }
     save(); onChange?.();
@@ -259,7 +288,7 @@ export function initWarfare(K) {
     for (const s of stones) {
       s.g.visible = vis; if (!vis) continue;
       const w = won(s.c.id);
-      s.todo.visible = !w; s.done.visible = w;
+      s.todo.visible = !w; s.done.visible = w; s.again.visible = !run && left === s.c.id;
       s.flag.rotation.y = Math.sin(t * 2 + s.p.x) * 0.25;
       s.ring.material.opacity = run ? 0 : 0.35 + Math.sin(t * 3 + s.p.z) * 0.2;
     }
@@ -274,9 +303,11 @@ export function initWarfare(K) {
     // 바울: 가까이 오면 나를 봄, 팻말은 멀리서만
     const dp = Math.hypot(me.x - paul.x, me.z - paul.z);
     if (paul.state !== 'walk') paul.face = dp < 8 ? Math.atan2(me.x - paul.x, me.z - paul.z) : paul.face0;
-    paulSign.visible = dp > 4.5;
+    const all = allWon();
+    paulSign.visible = dp > 4.5 && !all; paulSign2.visible = dp > 4.5 && all;
+    if (sticky && Math.hypot(me.x - Z.x, me.z - Z.z) > 24) hideTalk();
     if (run) {
-      if (Math.hypot(me.x - run.at.x, me.z - run.at.z) > (run.kind === 'real' ? 12 : 7)) stop('시험 자리에서 멀어져 물러났어요');
+      if (Math.hypot(me.x - run.at.x, me.z - run.at.z) > (run.kind === 'real' ? 12 : 7)) stop('돌에서 멀어져서 멈췄어요. 다시 서면 새로 시작해요');
       return;
     }
     // 들어서면 바울이 부름
@@ -284,14 +315,14 @@ export function initWarfare(K) {
     else if (!called && dz < 16 && dp > 4.5 && me.state === 'walk' && !busy()) {
       called = true; paul.action = 'wave'; setTimeout(() => { if (paul.action === 'wave') paul.action = null; }, 2400);
     }
-    if (busy()) { if (offer) hideTalk(); return; }
+    if (busy()) { if (offer && !sticky) hideTalk(); return; }
     // 바울 곁
-    if (dp < 3.6) { if (!offer) offerTalkGate('warfare', paul, () => offerTalk()); } else if (offer) hideTalk(); // 말 걸기 단추를 눌러야 열림
+    if (dp < 3.6) { if (!offer) offerTalkGate('warfare', paul, () => offerTalk()); } else if (offer && !sticky) hideTalk(); // 말 걸기 단추를 눌러야 열림
     // 시험돌 앞 빛나는 자리
     let at = null;
     for (const s of stones) if (Math.hypot(me.x - s.p.stand.x, me.z - s.p.stand.z) < 1.2) at = s.c.id;
     if (!at) left = null;
-    else if (at !== left && !offer) start(at);
+    else if (at !== left && !offer) { if (!rec().met && !introSeen) introBubble(at); else start(at); }
   }
   function pin() { if (paul.state !== 'walk') { paul.x = paul.home.x; paul.z = paul.home.z; } }
 
