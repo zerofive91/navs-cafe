@@ -108,7 +108,7 @@ export function initMap({ me, people, walkTo, say, icon, placesEl, before, towns
   tabs.className = 'towns';
   const renderTabs = () => {
     const list = towns(), cur = here();
-    tabs.innerHTML = `<span>마을</span>${list.map((id) => `<button data-town="${id}" class="${id === cur ? 'on' : ''}">${TOWN_NAME[id] || id}</button>`).join('')}`;
+    tabs.innerHTML = `<span>마을</span>${list.map((id) => `<button data-town="${id}" class="${id === cur ? 'on' : ''}">${TOWN_NAME[id] || id}${village(id)?.soon ? ' · 짓는 중' : ''}</button>`).join('')}`;
     tabs.hidden = list.length < 2;
     pick.hidden = cur !== 'base'; for (const [id, el] of townPicks) el.hidden = cur !== id;
   };
