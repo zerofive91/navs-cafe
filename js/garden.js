@@ -15,26 +15,26 @@ import { addStat, addSteps, earn, STATS } from './profile.js';
 const P = {
   emmaus: {
     name: '엠마오로 가는 길', who: '글로바', color: 0x9a7a54, stat: 'word',
-    about: '저는 예수님이 십자가에 달리신 뒤 엠마오로 내려가던 글로바예요(눅 24:18). 그날 낯선 분이 우리와 함께 걸으며 모세와 모든 선지자의 글로 자기에 관한 것을 풀어 주셨어요. 우리와 함께 이 길을 걸어 저 끝 식탁까지 가 봐요.',
-    how: '"함께 걷기"를 누르고 글로바와 길을 따라 식탁 앞 빛나는 자리까지 가요.',
+    about: '저는 글로바예요. 슬퍼하며 이 길을 걷는데 낯선 분이 함께 걸으며 성경 이야기를 해 주셨어요. 같이 식탁까지 걸어 볼래요?',
+    how: '"함께 걷기"를 누르고 글로바와 길을 따라 식탁 앞 빛 동그라미까지 가요.',
     verses: ['gd-emmaus-1', 'gd-emmaus-2', 'gd-emmaus-3'], title: '엠마오의 식탁',
   },
   mount: {
     name: '산 위의 가르침', who: '마태', color: 0x6a8a5a, stat: 'obey',
-    about: '저는 세리였다가 예수님을 따른 마태예요(마 9:9). 예수님은 무리를 보시고 산에 올라가 앉으셔서 제자들을 가르치셨어요(마 5:1). 그 첫 말씀이 여덟 가지 복이에요.',
-    how: '언덕 앞 빛나는 자리에 잠시 서 있으면 팔복을 차례로 들어요. 말씀 카드를 누르면 다음 복으로 넘어가요.',
+    about: '저는 마태예요. 세금 걷는 일을 하다 예수님을 따랐어요. 예수님이 언덕에서 \'복 있는 사람\' 여덟 가지를 가르치셨어요.',
+    how: '언덕 앞 빛 동그라미에 잠시 서 있으면 팔복을 차례로 들어요. 말씀 카드를 누르면 다음 복으로 넘어가요.',
     verses: ['gd-mount-3', 'gd-mount-4', 'gd-mount-5', 'gd-mount-6', 'gd-mount-7', 'gd-mount-8', 'gd-mount-9', 'gd-mount-10'], title: '팔복',
   },
   prison: {
     name: '빌립보 감옥', who: '실라', color: 0x6a6a8a, stat: 'witness',
-    about: '저는 바울과 함께 매를 맞고 빌립보 깊은 옥에 갇힌 실라예요(행 16:23-24). 발은 차꼬에 채워졌지만 밤중에 우리는 기도하고 하나님을 찬미했어요.',
-    how: '옥 안 빛나는 자리에서 기도(X)하거나 찬양(B)해 보세요. 어떤 형편에서도 하나님을 찬미하면 무슨 일이 일어나는지 봐요.',
+    about: '저는 실라예요. 바울과 함께 감옥에 갇혔어요. 발이 나무 틀에 묶였지만 밤에 기도하고 찬양했어요.',
+    how: '감옥 안 빛 동그라미에서 두 손 모은 단추 (X)나 음표 단추 (B)를 눌러 봐요. 무슨 일이 생길까요?',
     verses: ['gd-prison-1', 'gd-prison-2', 'gd-prison-3'], title: '한밤의 찬송',
   },
   shiloh: {
     name: '실로의 성막', who: '한나', color: 0xb87a8a, stat: 'prayer',
-    about: '저는 아이가 없어 마음이 괴로워 실로의 성막에서 여호와께 통곡하며 기도한 한나예요(삼상 1:10). 입술만 움직이고 소리는 내지 못했지만, 하나님 앞에 제 심정을 통했어요(삼상 1:15).',
-    how: '성막 앞 빛나는 자리에서 기도(X)해 보세요. 마음에 품은 소원을 하나님께 아뢰어요.',
+    about: '저는 한나예요. 아기가 없어 마음이 아팠어요. 실로의 성막, 곧 하나님께 예배하던 천막 앞에서 마음을 다 쏟아 기도했어요.',
+    how: '천막 앞 빛 동그라미에서 두 손 모은 단추를 눌러요 (X). 마음속 소원을 말해 봐요.',
     verses: ['gd-shiloh-1', 'gd-shiloh-2'], title: '한나의 기도',
   },
 };
@@ -165,41 +165,58 @@ export function initGarden(K) {
 
   // ---------- 말풍선 (dialog.js) ----------
   const dlg = createDialog({ id: 'xtalk' });
-  let cur = null;
-  const hide = () => { dlg.close(); cur = null; };
+  let cur = null, mode = ''; // mode: 'talk' 소개 · 'doing' 체험 중 할 일 · 'thanks' 마친 인사
+  const hide = () => { dlg.close(); cur = null; mode = ''; };
   const statName = (s) => STATS.find((x) => x.id === s)?.name || '';
   function talk(x) {
-    cur = x;
+    cur = x; mode = 'talk';
     const done = rec()[x.id];
     // 체험 시작 단추: 엠마오는 함께 걷기, 나머지는 빛나는 자리로 걸어감
     dlg.open({
       who: x.d.who, n: x.d.name, say: x.d.about,
-      how: x.d.how + (done ? ' (이미 체험했어요. 언제든 다시 묵상해요)' : ` 처음 마치면 걸음 +3, ${statName(x.d.stat)} +2, 1 데나리온.`),
+      how: x.d.how + (done ? ' (이미 해 봤어요. 또 해도 좋아요)' : ` 처음 마치면 걸음 +3, ${statName(x.d.stat)} +2, 1 데나리온.`),
       choices: [
         { label: '나중에', cls: 'later', on: hide },
-        { label: x.id === 'emmaus' ? '함께 걷기' : '빛나는 자리로', cls: 'go', main: true, hidden: x.id === 'emmaus' && emm.on, on: () => { hide(); begin(x); } },
+        { label: x.id === 'emmaus' ? '함께 걷기' : '빛 동그라미로', cls: 'go', main: true, hidden: x.id === 'emmaus' && emm.on, on: () => begin(x) },
       ],
       esc: hide,
     });
   }
 
   // ---------- 체험 시작 ----------
-  const TODO = { mount: '잠시 서 있으면 팔복이 들려요', prison: '기도(X)나 찬양(B) 단추를 눌러요', shiloh: '기도(X) 단추를 눌러요' };
+  const TODO = { emmaus: '글로바와 함께 걸어요. 식탁 앞 빛 동그라미까지 가요', mount: '빛 동그라미에 잠시 서 있으면 팔복이 들려요', prison: '빛 동그라미에서 두 손 모은 단추 (X)나 음표 단추 (B)를 꾹 눌러요', shiloh: '빛 동그라미에서 두 손 모은 단추를 꾹 눌러요 (X)' };
+  // 할 일은 말풍선에 계속 남김 (예전에는 4초 알림이 전부였음). [그만두기]로 끝낼 수 있음
+  function doing(x) {
+    cur = x; mode = 'doing';
+    dlg.open({
+      who: x.d.who, n: `${x.d.name} · 할 일`, say: TODO[x.id],
+      choices: [{ label: '그만두기', cls: 'end', on: () => { if (x.id === 'emmaus') stopEmmaus(); hide(); } }],
+      focus: false,
+    });
+  }
   function begin(x) {
     if (x.id === 'emmaus') return walkEmmaus(x);
     const s = x.g.stand;
-    hinted[x.id] = 1; // 도착 알림은 아래 한 번만
-    walkTo?.(me, { x: s.x, z: s.z }, () => { me.face = Math.atan2(x.g.zone.x - s.x, x.g.zone.z - s.z); toast(`${x.d.who}: ${TODO[x.id]}`, 4); });
+    doing(x);
+    walkTo?.(me, { x: s.x, z: s.z }, () => { me.face = Math.atan2(x.g.zone.x - s.x, x.g.zone.z - s.z); });
   }
 
   // ---------- 체험 마침 ----------
   function finish(x) {
     showVerse(x.d.verses[0], { cooldown: 0, delay: 0.6, title: x.d.title, then: x.d.verses.slice(1), stay: () => Math.hypot(me.x - x.g.zone.x, me.z - x.g.zone.z) < 14 });
-    if (rec()[x.id]) return;
-    rec()[x.id] = 1;
-    addSteps(profile, 3); addStat(profile, x.d.stat, 2); earn(profile, 1);
-    save(); onChange?.();
-    setTimeout(() => toast(`${x.d.name} 체험을 마쳤어요 (걸음 +3, ${statName(x.d.stat)} +2, 1 데나리온)`, 4), 1500);
+    const first = !rec()[x.id];
+    if (first) {
+      rec()[x.id] = 1;
+      addSteps(profile, 3); addStat(profile, x.d.stat, 2); earn(profile, 1);
+      save(); onChange?.();
+    }
+    cur = x; mode = 'thanks';
+    dlg.open({
+      who: x.d.who, n: `${x.d.name} · 마침`, say: first ? '같이 해 줘서 고마워요!' : '또 와 줘서 고마워요!',
+      how: first ? `걸음 +3, ${statName(x.d.stat)} +2, 1 데나리온을 받았어요` : '',
+      choices: [{ label: '감사해요', cls: 'next', main: true, on: hide }],
+      esc: hide, focus: false,
+    });
   }
 
   // 엠마오: 글로바가 길을 따라 식탁 곁으로 걸어감
@@ -209,8 +226,9 @@ export function initGarden(K) {
     emm.on = true; emm.t = 0;
     const [a, b] = E.road, side = E.zone.at(4.4, 2.6);
     x.n.path = [a, b, side]; x.n.state = 'walk';
-    toast('글로바: 우리가 함께 걸으며 그 이야기를 나눠요. 식탁 앞 빛나는 자리까지 가요', 4);
+    doing(x);
   }
+  function stopEmmaus() { emm.on = false; emX.n.path = [emX.g.npc]; emX.n.state = 'walk'; }
   function breakBread() {
     emm.on = false;
     for (const h of E.bread) h.material.emissiveIntensity = 0.9;
@@ -228,7 +246,7 @@ export function initGarden(K) {
   function openPrison() {
     quake.on = true; quake.t = 0;
     sfx('impact/impactSoft_heavy_000', 0.5, 0.55); setTimeout(() => sfx('impact/impactMetal_light_000', 0.3, 0.7), 700);
-    toast('홀연히 큰 지진이 나서 옥문이 다 열렸어요!', 3);
+    toast('갑자기 땅이 흔들리고 감옥 문이 다 열렸어요!', 3);
     finish(L.find((x) => x.id === 'prison'));
   }
   function closePrison() {
@@ -269,17 +287,17 @@ export function initGarden(K) {
     if (emm.on) {
       emm.t += dt;
       if (at(E.stand, 1.1)) breakBread();
-      else if (emm.t > 90) { emm.on = false; emX.n.path = [emX.g.npc]; emX.n.state = 'walk'; }
+      else if (emm.t > 90) { stopEmmaus(); if (cur === emX) hide(); toast('글로바가 돌아갔어요. 다시 말을 걸어요', 4); }
     } else if (emX.n.state !== 'walk' && Math.hypot(emX.n.x - emX.g.npc.x, emX.n.z - emX.g.npc.z) > 1 && Math.hypot(me.x - emX.n.x, me.z - emX.n.z) > 12) { emX.n.path = [emX.g.npc]; emX.n.state = 'walk'; }
     // 산 위
-    if (at(Mt.stand)) { hold.mount += dt; if (hold.mount > 1.6 && hold.mount < 100) { hold.mount = 100; finish(L.find((x) => x.id === 'mount')); } }
+    if (at(Mt.stand)) { if (!busy()) hold.mount += dt; if (hold.mount > 1.6 && hold.mount < 100) { hold.mount = 100; finish(L.find((x) => x.id === 'mount')); } } // 부탁·훈련·다른 말풍선 중에는 팔복이 시작되지 않음
     else if (Math.hypot(me.x - Mt.stand.x, me.z - Mt.stand.z) > 6) hold.mount = 0;
     // 감옥
     if (!quake.on && quake.reset === 0) {
       if (at(Pr.stand, 1.0)) {
         if (praying()) { hold.prison += dt; if (hold.prison > 1.6) { hold.prison = 0; openPrison(); } }
-        else if (!hinted.prison) { hinted.prison = 1; toast('실라: 우리와 함께 기도(X)하거나 찬양(B)해요', 3); }
-      } else hold.prison = 0;
+        else if (!hinted.prison) { hinted.prison = 1; toast('실라: 두 손 모은 단추 (X)나 음표 단추 (B)를 눌러요', 3); }
+      } else { hold.prison = 0; hinted.prison = 0; } // 자리에 올 때마다 작은 안내
     }
     if (quake.on) {
       quake.t += dt;
@@ -303,11 +321,15 @@ export function initGarden(K) {
           burst(Sh.stand.x, G(Sh.stand) + 1.4, Sh.stand.z); sfx('orb', 0.25, 1.3);
           finish(L.find((x) => x.id === 'shiloh'));
         }
-      } else if (!hinted.shiloh) { hinted.shiloh = 1; toast('한나: 여기 무릎 꿇고 하나님께 마음을 쏟아 기도(X)해요', 3); }
-    } else if (Math.hypot(me.x - Sh.stand.x, me.z - Sh.stand.z) > 5) { hold.shiloh = 0; Sh.lamp.intensity = Math.max(0, Sh.lamp.intensity - dt); }
+      } else if (!hinted.shiloh) { hinted.shiloh = 1; toast('한나: 두 손 모은 단추를 눌러요 (X)', 3); }
+    } else if (Math.hypot(me.x - Sh.stand.x, me.z - Sh.stand.z) > 5) { hold.shiloh = 0; hinted.shiloh = 0; Sh.lamp.intensity = Math.max(0, Sh.lamp.intensity - dt); }
 
     // 말풍선
-    if (cur) { if (Math.hypot(me.x - cur.n.x, me.z - cur.n.z) > 4.5) hide(); return; }
+    if (cur) {
+      const d = Math.hypot(me.x - cur.n.x, me.z - cur.n.z);
+      if ((mode === 'talk' && d > 4.5) || (mode === 'thanks' && d > 16) || (mode === 'doing' && d > 90)) hide(); // 체험 중 할 일은 [그만두기]나 마침까지 남음
+      return;
+    }
     if (busy()) return;
     let nx = null;
     if ([E.stand, Mt.stand, Pr.stand, Sh.stand].some((q) => at(q, 1.3))) return; // 빛나는 자리에서 체험 중엔 말을 걸지 않음
