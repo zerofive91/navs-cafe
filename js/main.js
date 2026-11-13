@@ -36,7 +36,7 @@ import { initPets } from './pets.js';
 import { TIER } from './dungeon.js';
 import { COURSE_META } from './courses.js';
 import { initQuestLog, walkToward } from './questlog.js';
-import { talkOffer, pressTalk } from './talkgate.js';
+import { talkOffer, pressTalk, autoTalk } from './talkgate.js';
 import { escDialog } from './dialog.js';
 import { initRegion } from './region.js';
 import { VILLAGES, village, visitedTowns, lastTown } from './villages/registry.js';
@@ -1362,6 +1362,7 @@ function frame(now) {
   questLog?.step(dt);
   baseGuide?.step(dt);
   region.step(dt);
+  autoTalk(me, !autoBusy() && !tut.active() && !leisure.photoOn() && !me.climb && !document.body.classList.contains('at-door')); // 안내 캐릭터가 먼저 말 걸기 (T03 C)
   cartGuide?.step(dt);
   for (const n of npcs) { stepChar(n, dt); poseAvatar(n.av, n, t, dt); }
   training.pin();
@@ -1727,6 +1728,7 @@ const busyOf = (self, ...skip) => {
   return () => { for (const k in OPEN_WINDOWS) if (!off.has(k) && OPEN_WINDOWS[k]()) return true; return false; };
 };
 const saveMe = () => saveProfile(profile);
+const autoBusy = busyOf('autotalk'); // 안내 캐릭터 먼저 말 걸기: 열린 창이 하나라도 있으면 안 걺
 tut = initTutorial({
   me, profile, save: saveMe, toast, sfx, burst, walkTo, faceTo, map, lying, outdoors: () => outdoors(me),
   barnabas: owner, adam, tutors: () => (wayguide ? wayguide.tutors() : [adam]), home: { barnabas: ownerPos },

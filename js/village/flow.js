@@ -656,7 +656,7 @@ export function initFlow(cfg) {
       ui.open({ who: best.name, sub: run.ev.title, text: toldAgain, buttons: [{ t: '알겠어요', cls: 'next' }] }); ui.anchor(best);
     });
     else if (ew.includes(k)) offerTalk(talkKey + k, best, () => { best.face = Math.atan2(me.x - best.x, me.z - best.z); er.openTalk(k, best); ui.anchor(best); });
-    else if (k === guide.key) offerTalk(talkKey + k, best, () => { talkGuide(); ui.anchor(best); });
+    else if (k === guide.key) offerTalk(talkKey + k, best, () => { talkGuide(); ui.anchor(best); }, { auto: true }); // 마을 안내자: 곁에 멈추면 먼저 말을 걺 (T03 C)
     else if (ev) offerTalk(talkKey + k, best, () => { talkWitness(ev); ui.anchor(best); });
     else if (er.offers(k)) offerTalk(talkKey + k, best, () => { best.face = Math.atan2(me.x - best.x, me.z - best.z); er.talk(k); ui.anchor(best); }); // 사건 증인이 아닌 부탁하는 사람
     else if (greet[k]) offerTalk(talkKey + k, best, () => { best.face = Math.atan2(me.x - best.x, me.z - best.z); toast(`${best.name}: ${greet[k]}${er.buttons(k).length ? ' (오늘 부탁은 다 해 주었어요. 내일 또 와요)' : ''}`, 4); });

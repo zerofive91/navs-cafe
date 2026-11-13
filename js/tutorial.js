@@ -3,7 +3,7 @@
 //   정원: 정원지기 아담이 걷기·달리기, 점프, 지도로 코스 찾기, 반짝이는 체험(E), 별 보기, 사진을 알려 줌
 // 한 단계씩 말풍선으로 부탁하고, 그 키나 단추를 실제로 눌러 보면 다음으로 넘어감.
 // 휴대폰에서는 키 대신 같은 자리의 단추를 알려 줌. 언제든 넘기거나 끝낼 수 있고, '나' 카드에서 다시 볼 수 있음
-import { offerTalk } from './talkgate.js';
+import { offerTalk, markAutoSaid } from './talkgate.js';
 import * as THREE from 'three';
 import { giveItem, addSteps, ITEMS, jo } from './profile.js';
 import { ICONS } from './icons.js';
@@ -46,7 +46,6 @@ export function initTutorial(K) {
   const { me, profile, save, toast, sfx, burst, walkTo, faceTo, barnabas, adam, tutors = () => [adam], home, near, lying, map, photoOn, outdoors, busy = () => false } = K;
   const marks = new Set();
   let run = null; // { id, npc, list, i, t, moved, done }
-  let lastGuide = null; // 정원 안내를 마지막으로 해 준 안내자와 시각
 
   // ---------- 말풍선 (dialog.js). 안내 중에는 body.talking 대신 body.tutoring ----------
   const dlg = createDialog({ id: 'tut', talking: false });
@@ -137,7 +136,7 @@ export function initTutorial(K) {
     document.body.classList.remove('tutoring');
     if (how) {
       if (!profile.tut[r.id] || how === 'done') profile.tut[r.id] = how;
-      if (r.id === 'garden') lastGuide = { npc: r.npc, at: performance.now() }; // 안내를 해 준 안내자 (T03 C: 곧바로 또 말 걸지 않게)
+      if (r.id === 'garden') markAutoSaid('way:' + (r.npc.tutName || '아담')); // 안내를 해 준 안내자는 곧바로 또 길 안내를 열지 않게 (T03 C)
       if (how === 'done') {
         const last = r.list[r.list.length - 1];
         const got = (last.reward || []).filter((id) => !profile.items.includes(id));
@@ -227,5 +226,5 @@ export function initTutorial(K) {
   }
 
   for (const n of tutors()) n.tag.userData.draw(!profile.tut.garden);
-  return { start, stop, mark, step, onKey, active: () => !!run, lastGuide: () => lastGuide };
+  return { start, stop, mark, step, onKey, active: () => !!run };
 }

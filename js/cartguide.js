@@ -149,7 +149,7 @@ export function initCartGuide(K) {
     }
     if (cur) { if (Math.hypot(me.x - cur.n0.x, me.z - cur.n0.z) > 4.5) hide(); return; }
     if (busy()) return;
-    for (const g of list) if (Math.hypot(me.x - g.n0.x, me.z - g.n0.z) < 3.2) offerTalk('cart:' + g.id, g.n0, () => talk(g));
+    for (const g of list) if (Math.hypot(me.x - g.n0.x, me.z - g.n0.z) < 3.2) offerTalk('cart:' + g.id, g.n0, () => talk(g), { auto: true }); // 안내 캐릭터 (T03 C)
   }
   function pin() { for (const g of list) if (g.n0.state !== 'walk') { g.n0.x = g.n0.home.x; g.n0.z = g.n0.home.z; } }
   // 수레에 올랐는데 갈 마을이 여럿이면 (region.js chooseTown(ids)): 지금 마을 수레꾼이 그 마을들로 고르기 말풍선을 엶
