@@ -128,7 +128,7 @@ export function initGuides(K) {
     if (busy()) return;
     let near = null;
     for (const g of list) if (Math.hypot(me.x - g.n.x, me.z - g.n.z) < 3.2) near = g;
-    if (near) offerTalk('guide:' + near.id, near.n, () => talk(near)); // 말 걸기 단추를 눌러야 열림
+    if (near) offerTalk('guide:' + near.id, near.n, () => talk(near), { auto: true }); // 안내 캐릭터: 곁에 멈추면 먼저 말을 걺 (T03 C)
   }
   function pin() { for (const g of list) if (g.n.state !== 'walk') { g.n.x = g.n.home.x; g.n.z = g.n.home.z; } }
 
