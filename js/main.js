@@ -1362,7 +1362,7 @@ function frame(now) {
   questLog?.step(dt);
   baseGuide?.step(dt);
   region.step(dt);
-  autoTalk(me, !autoBusy() && !tut.active() && !leisure.photoOn() && !me.climb && !document.body.classList.contains('at-door')); // 안내 캐릭터가 먼저 말 걸기 (T03 C)
+  autoTalk(me, !autoBusy() && !tut.active() && map.el.hidden && !leisure.photoOn() && !me.climb && !document.body.classList.contains('at-door')); // 안내 캐릭터가 먼저 말 걸기 (T03 C)
   cartGuide?.step(dt);
   for (const n of npcs) { stepChar(n, dt); poseAvatar(n.av, n, t, dt); }
   training.pin();
