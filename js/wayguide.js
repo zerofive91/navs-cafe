@@ -27,6 +27,11 @@ const DOOR_GUIDES = [
   },
 ];
 
+// 훈련장 사부 이름 (길 안내에 '말씀 훈련장 · 에스라'처럼, 훈련장 둘이 나와도 구별되게)
+// '에스라로', '바울로', '마태로' (받침이 있으면 으로, ㄹ 받침은 로)
+const ro = (w) => { const c = String(w).charCodeAt(String(w).length - 1) - 0xac00; return c >= 0 && c < 11172 && c % 28 && c % 28 !== 8 ? '으로' : '로'; };
+const SAGE = { word: '에스라', prayer: '다니엘', fellow: '아굴라와 브리스길라', witness: '빌립', obey: '아브라함' };
+
 export function initWayguide(K) {
   const { me, makeChar, npcs, nameTag, adam, profile, sfx, busy, goTo, walkTo, openMap, tutActive } = K;
   const nm = () => profile.name || '손님';
@@ -57,7 +62,7 @@ export function initWayguide(K) {
     const q = K.quests?.()?.info?.();
     if (q) out.push({ prio: 0, label: `하던 부탁 이어 하기 · ${q.name}`, why: q.hint, p: q.target });
     const T = K.training?.()?.T || {};
-    for (const d of Object.values(T)) if (d.who && !profile.train?.[d.stat]) out.push({ prio: 1, label: d.name, why: '수레바퀴 훈련으로 능력치가 크게 자라요', p: d.who });
+    for (const d of Object.values(T)) if (d.who && !profile.train?.[d.stat]) out.push({ prio: 1, label: SAGE[d.stat] ? `${d.name} · ${SAGE[d.stat]}` : d.name, why: '수레바퀴 다섯 가지를 몸으로 배워요', p: d.who });
     for (const x of K.garden?.()?.list || []) if (!profile.garden?.[x.id]) out.push({ prio: 2, label: `${x.d.name} · ${x.d.who}`, why: '카페 가까이에서 말씀을 몸으로 겪어 봐요', p: x.n });
     if (!Object.keys(profile.warfare || {}).length) out.push({ prio: 3, label: '영적 전쟁 훈련소 · 바울', why: '시험을 말씀으로 이기는 연습을 해요', p: WARFARE.npc });
     if (!q) for (const x of K.quests?.()?.Q || []) if (x.who && x.who.av && profile.quests?.[x.id] !== 'done') out.push({ prio: 4, label: `${x.name}의 부탁 · ${x.title}`, why: '성경 인물을 도우면 성서 물품을 받아요', p: x.who });
@@ -67,6 +72,7 @@ export function initWayguide(K) {
     // 같은 갈래는 둘까지만 (훈련장만 셋 나오지 않게)
     const per = {}, pick = [];
     for (const s of out) { if ((per[s.prio] = (per[s.prio] || 0) + 1) > 2) continue; pick.push(s); if (pick.length >= 3) break; }
+    if (pick[0]) pick[0].main = true; // 처음 하나에 추천 표시 "처음이면 여기"
     return pick;
   }
 
@@ -74,16 +80,16 @@ export function initWayguide(K) {
   const dlg = createDialog({ id: 'wtalk' });
   let cur = null;
   const hide = () => { dlg.close(); cur = null; };
-  const go = (s) => { hide(); sfx('tap', 0.2, 1.2); goTo(s.p, `${s.label}${s.label.endsWith('이어 하기') ? '' : '(으)로'} 걸어가요`); };
+  const go = (s) => { hide(); sfx('tap', 0.2, 1.2); goTo(s.p, s.label.endsWith('이어 하기') ? `${s.label} 걸어가요` : `${s.label}${ro(s.label)} 걸어가요`); };
   function talk(n) {
     cur = n;
     const picks = suggest();
     dlg.open({
       who: n.tutName, n: '길 안내',
       say: picks.length
-        ? `${nm()}님, 어디로 가 볼까요? 지금 가 보면 좋은 곳을 골라 봤어요. 누르면 그곳까지 걸어가요.`
+        ? `${nm()}님, 어디로 가 볼까요? 지금 가 보면 좋은 곳이에요. 누르면 그곳까지 걸어가요.`
         : `${nm()}님, 정원의 훈련과 체험, 부탁을 모두 마쳤군요! 이제 쉬다가 걷다가 마음 가는 길을 따라 말씀을 묵상해요.`,
-      pick: picks.map((s) => ({ label: s.label, sub: s.why, on: () => go(s) })),
+      pick: picks.map((s) => ({ label: s.label, sub: s.main ? `처음이면 여기 · ${s.why}` : s.why, cls: s.main ? 'main' : '', on: () => go(s) })),
       choices: [
         { label: '나중에', cls: 'later', on: hide },
         { label: '지도 보기', cls: 'map', on: () => { hide(); openMap?.(); } },
