@@ -250,7 +250,7 @@ export function initQuests(K) {
       verse: V('q-david', '시내에서 매끄러운 돌 다섯을 골라서 자기 목자의 제구 곧 주머니에 넣고 손에 물매를 가지고 블레셋 사람에게로 나아가니라', '사무엘상 17:40'),
       steps: [
         { hint: (r) => `반짝이는 돌 곁에서 반짝이는 단추를 눌러요 (E) ${r.n || 0}/5`, collect: brook, place: 'q_pick' },
-        { hint: '골리앗 앞에서 반짝이는 단추를 눌러 물매를 던져요 (E)', ev: 'goliathFall', go: () => P.david, where: '골리앗 앞' },
+        { hint: '골리앗 앞에서 반짝이는 단추를 눌러 물매를 던져요 (E). 단추가 안 보이면 골리앗이 다시 일어날 때까지 조금 기다려요', ev: 'goliathFall', go: () => P.david, where: '골리앗 앞' },
       ],
       done: '해냈어요! 하나님이 이기게 해 주셨어요. 이 물매를 선물로 줄게요.',
     },
@@ -291,14 +291,14 @@ export function initQuests(K) {
       verse: V('q-zacc', '앞으로 달려가 보기 위하여 뽕나무에 올라가니 이는 예수께서 그리로 지나가시게 됨이러라', '누가복음 19:4'),
       steps: [
         { hint: '큰 뽕나무 곁에서 나무 그림 단추를 눌러 올라가요', go: () => SYCAMORE, where: '길가의 큰 뽕나무', until: () => !!me.climb && Math.hypot(me.x - SYCAMORE.x, me.z - SYCAMORE.z) < 2.5 && me.climb.phase === 'hang' },
-        { hint: '내려와서 삭개오 곁 반짝이는 단추를 눌러 1 데나리온을 나눠요 (E)', need: () => ((profile.coins | 0) < 1 ? '1 데나리온이 있어야 해요 · 훈련장이나 다른 부탁을 마치면 받아요' : ''), place: 'q_give', at: () => zacc, r: 2.6,
-          act: () => { if (!spend(profile, 1)) { toast('1 데나리온이 모자라요. 훈련장이나 다른 부탁을 마치면 받아요', 4); return false; } sfx('share', 0.2); showVerse(V('q-zacc2', '삭개오가 서서 주께 여짜오되 주여 보시옵소서 내 소유의 절반을 가난한 자들에게 주겠사오며 만일 뉘 것을 토색한 일이 있으면 사배나 갚겠나이다', '누가복음 19:8'), { cooldown: 0 }); } },
+        { hint: '내려와서 삭개오 곁 반짝이는 단추를 눌러 1 데나리온을 나눠요 (E)', need: () => ((profile.coins | 0) < 1 ? '1 데나리온이 있어야 해요 · 부탁을 그만두고 훈련장에서 받은 뒤 다시 와요' : ''), place: 'q_give', at: () => zacc, r: 2.6,
+          act: () => { if (!spend(profile, 1)) { toast('1 데나리온이 모자라요. 부탁을 그만두고 훈련장에서 받은 뒤 다시 와요', 4); return false; } sfx('share', 0.2); showVerse(V('q-zacc2', '삭개오가 서서 주께 여짜오되 주여 보시옵소서 내 소유의 절반을 가난한 자들에게 주겠사오며 만일 뉘 것을 토색한 일이 있으면 사배나 갚겠나이다', '누가복음 19:8'), { cooldown: 0 }); } },
       ],
       done: '고마워요! 나누니까 마음이 이렇게 가벼워요. 예수님이 우리 집에 오셨어요. 이 돈주머니를 선물로 줄게요.',
     },
     {
       id: 'samaritan', who: samaritan, name: '사마리아인', title: '강도 만난 이웃', stat: 'fellow', item: 'wine', back: false,
-      ask: '저는 사마리아인이에요. 길에 쓰러진 사람을 같이 돌봐 줄래요? 등잔 기름이 필요한데, 없으면 금화가 떠 있는 루디아 가게에서 사요.',
+      ask: '저는 사마리아인이에요. 다친 사람을 같이 돌봐 줄래요? 상처에 바를 등잔 기름은 금화가 떠 있는 루디아 가게에서 사요.',
       verse: V('q-sam', '어떤 사마리아인은 여행하는 중 거기 이르러 그를 보고 불쌍히 여겨', '누가복음 10:33'),
       steps: [
         { hint: '다친 사람 곁 반짝이는 단추를 눌러요 (E)', need: () => ((profile.bag?.oil | 0) > 0 ? '' : '등잔 기름이 필요해요 · 금화가 떠 있는 루디아 가게에서 사요 (2 데나리온)'),
@@ -544,7 +544,7 @@ export function initQuests(K) {
   const quit = () => { if (run) { run = null; updateChip(); } };
   let quiet = false; // 훈련 사부 곁에서 "지금 ○○의 부탁을 하고 있어요" 안내를 띄울 때만 잠깐 run을 빼고 busy를 봄
   const ignoreRun = (fn) => { quiet = true; try { return fn(); } finally { quiet = false; } };
-  const active = () => !!shown || (!!run && !quiet && !(run.q.id === 'samaritan' && run.i === 0));
+  const active = () => !!shown || (!!run && !quiet && !(run.q.id === 'samaritan' && run.i === 0 && dist(P.market) < 10.5));
 
   return { info, quit, step, actions, available, active, ignoreRun, Q, BY, doneCount, get run() { return run; }, spots: { brook, ears, doveSpot, meal, restSpot, broomAt, netL, netR } };
 }

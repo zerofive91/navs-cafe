@@ -205,7 +205,7 @@ export function initWarfare(K) {
     parts.forEach((m) => { m.material.opacity = m.isSprite ? 0.45 : 0.55; });
     me.face = Math.atan2(p.x - me.x, p.z - me.z);
     const who = s.who || '숲길에서 온 마음의 소리'; // 숲길 문항은 사람 대신
-    $('.who b').textContent = `${c.name}의 시험 · ${who}`;
+    $('.who b').textContent = `${c.name}의 시험 · ${who}${who === '요셉' ? ' (애굽에 팔려 간 소년)' : ''}`;
     $('.n').textContent = `${run.kind === 'real' ? '실전 연습' : c.name + ' 시험돌'} · ${run.i + 1} / ${run.list.length}`;
     $('.scene').textContent = s.scene ? s.scene : '숲길에서 이런 마음의 소리를 만나요. 숲길에서는 틀리면 넘어지니 여기서 연습해요.';
     $('.say').textContent = `"${s.lie}"`;
