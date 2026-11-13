@@ -43,9 +43,10 @@ export function nameTag(text) {
 }
 
 export function initTutorial(K) {
-  const { me, profile, save, toast, sfx, burst, walkTo, faceTo, barnabas, adam, tutors = () => [adam], home, near, lying, map, photoOn, outdoors } = K;
+  const { me, profile, save, toast, sfx, burst, walkTo, faceTo, barnabas, adam, tutors = () => [adam], home, near, lying, map, photoOn, outdoors, busy = () => false } = K;
   const marks = new Set();
   let run = null; // { id, npc, list, i, t, moved, done }
+  let lastGuide = null; // 정원 안내를 마지막으로 해 준 안내자와 시각
 
   // ---------- 말풍선 (dialog.js). 안내 중에는 body.talking 대신 body.tutoring ----------
   const dlg = createDialog({ id: 'tut', talking: false });
@@ -67,7 +68,7 @@ export function initTutorial(K) {
     { aim: ['share', 'wave'], say: '증거는 예수님 이야기를 나누는 거예요. 곁에 사람이 있으면 빛을 건네요. 지금은 손 흔들기 단추로 인사해 봐요.', keys: [['V', '증거']], touch: '오른쪽의 손 흔들기 단추를 눌러 보세요.', done: () => marks.has('KeyV') || marks.has('share') || marks.has('wave') },
     { aim: ['map'], say: '전체 지도를 열어 볼까요? 지도에서 누른 곳으로 걸어가요.', keys: [['M', '지도 열기 · 닫기'], ['Esc', '닫기']], touch: '위쪽의 지도 단추를 눌러 보세요.', done: () => marks.has('mapOpen') && map.el.hidden },
     { auto: true, desk: true, say: '단축키가 생각나지 않으면 언제든 물음표를 누르세요.', keys: [['? / F1', '단축키 안내']] },
-    { auto: true, end: true, say: () => `잘했어요, ${nm()}님! 이 광주리를 드릴게요. 받은 것을 담는 바구니예요. 이제 문 밖으로 나가요. 문 앞에서 정원 안내자가 기다려요 (머리 위 ••• 표시).`, reward: ['basket', 'manna'] },
+    { auto: true, end: true, say: () => `잘했어요, ${nm()}님! 받은 것을 담는 광주리를 드릴게요. 문 밖으로 나가면 정원 안내자가 마중 나와요.`, reward: ['basket', 'manna'] },
   ];
   const GARDEN = [
     // 첫 인사는 말을 건 안내자마다 다름 (아담 또는 입구마다 선 안내자: npc.intro)
@@ -136,6 +137,7 @@ export function initTutorial(K) {
     document.body.classList.remove('tutoring');
     if (how) {
       if (!profile.tut[r.id] || how === 'done') profile.tut[r.id] = how;
+      if (r.id === 'garden') lastGuide = { npc: r.npc, at: performance.now() }; // 안내를 해 준 안내자 (T03 C: 곧바로 또 말 걸지 않게)
       if (how === 'done') {
         const last = r.list[r.list.length - 1];
         const got = (last.reward || []).filter((id) => !profile.items.includes(id));
@@ -167,8 +169,27 @@ export function initTutorial(K) {
     if (place) marks.add('place');
   }
 
+  // 카페를 나서면 정원 안내자가 먼저 다가와 안내 (T03 B, 2026-11-13 사용자 요청)
+  //   실내 → 실외로 나선 순간 곧바로, 처음부터 밖에 있었으면(다른 마을에서 돌아옴 등) 1.5초 뒤. 한 접속에 한 번만 (저장 안 함)
+  //   "안내 끝내기"를 누르면 tut.garden = 'skip' 이라 다시 오지 않음. 그 뒤에도 말 걸기·왼쪽 카드로는 언제든 받음
+  let autoGarden = false, wasOut = null, outAt = 0, outDelay = 0;
+  function autoStartGarden() {
+    if (run || autoGarden || !profile.name || !profile.tut.cafe || profile.tut.garden || document.body.classList.contains('at-door')) { wasOut = null; return; }
+    const out = outdoors(), t = performance.now();
+    if (!out) { wasOut = false; return; }
+    if (wasOut !== true) { outDelay = wasOut === false ? 0 : 1500; outAt = t; wasOut = true; }
+    if (t - outAt < outDelay) return;
+    if (busy() || photoOn() || me.climb || me.state === 'sit' || lying()) return; // 하던 일이 끝나면 그때
+    let best = null, bd = Infinity;
+    for (const n of tutors()) { const d = Math.hypot(me.x - n.x, me.z - n.z); if (d < bd) { bd = d; best = n; } }
+    if (!best) return;
+    autoGarden = true;
+    start('garden', best);
+  }
+
   let tick = 0; // 0.2초마다 확인 (실제 시간 기준)
   function step(dt) {
+    autoStartGarden();
     // 아담: 정원 안내를 아직 안 받았으면 금빛 말풍선, 가까이 오면 말을 검
     // 입구마다 선 안내자도 같은 정원 안내를 해 줌 (가장 가까운 안내자가 말을 검)
     if (!run && profile.name && profile.tut.cafe && !profile.tut.garden && outdoors()) {
@@ -206,5 +227,5 @@ export function initTutorial(K) {
   }
 
   for (const n of tutors()) n.tag.userData.draw(!profile.tut.garden);
-  return { start, stop, mark, step, onKey, active: () => !!run };
+  return { start, stop, mark, step, onKey, active: () => !!run, lastGuide: () => lastGuide };
 }
