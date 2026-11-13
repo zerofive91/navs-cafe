@@ -1732,6 +1732,7 @@ tut = initTutorial({
   barnabas: owner, adam, tutors: () => (wayguide ? wayguide.tutors() : [adam]), home: { barnabas: ownerPos },
   near: (k) => Math.hypot(me.x - SPOTS[k].x, me.z - SPOTS[k].z) < SPOTS[k].r,
   photoOn: () => leisure.photoOn(),
+  busy: busyOf('tut'), // 카페를 나설 때 정원 안내를 저절로 열기 전에 다른 창이 없는지 (T03 B)
   onChange: () => character.showChip(),
 });
 character = initCharacter({
@@ -1818,7 +1819,7 @@ story = initStory({
 });
 questLog = initQuestLog({ me, quests, story, walkTo, toast, john: () => region.engineHere(), town: () => region.here() });
 // 처음 마을 "지금 할 일" 카드 (왼쪽 위, T02 B1)
-baseGuide = initBaseGuide({ me, profile, tut, wayguide, region: () => region, quests: () => quests, questLog: () => questLog, walkTo, toast, busy: busyOf('baseguide', 'quests') }); // 부탁 중에도 카드는 보임: 부탁 말풍선만 baseguide.js에서 따로 봄 (T03 A)
+baseGuide = initBaseGuide({ me, profile, tut, wayguide, region: () => region, quests: () => quests, questLog: () => questLog, walkTo, toast, busy: busyOf('baseguide', 'quests'), outdoors: () => outdoors(me) }); // 부탁 중에도 카드는 보임: 부탁 말풍선만 baseguide.js에서 따로 봄 (T03 A)
 requestAnimationFrame(frame);
 if (window.__pick) choose(window.__pick);
 // 첫 화면이 뜬 뒤 소품 모델을 천천히 불러와 바꿔 끼움

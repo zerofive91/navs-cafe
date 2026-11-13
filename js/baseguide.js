@@ -9,7 +9,7 @@ import { createChip } from './village/talk.js';
 import { walkToward } from './questlog.js';
 
 export function initBaseGuide(K) {
-  const { me, profile, tut, wayguide, region, quests, questLog, walkTo, toast, busy } = K;
+  const { me, profile, tut, wayguide, region, quests, questLog, walkTo, toast, busy, outdoors = () => true } = K;
   // '에스라로', '바울로', '마태로' (받침이 있으면 으로, ㄹ 받침은 로)
   const ro = (w) => { const c = String(w).charCodeAt(String(w).length - 1) - 0xac00; return c >= 0 && c < 11172 && c % 28 && c % 28 !== 8 ? '으로' : '로'; };
   let cur = null;
@@ -18,7 +18,9 @@ export function initBaseGuide(K) {
   function now() {
     if (!profile.name) return null; // 만들기 창이 있음
     if (!profile.tut?.cafe) return { k: 'cafe', t: '카페 안내', h: '바나바에게 말을 걸어요', w: '어디: 카페 입구, 머리 위 ••• 표시' };
-    if (!profile.tut?.garden) return { k: 'garden', t: '정원 안내', h: '문 밖 안내자에게 말을 걸어요', w: '어디: 가까운 문 밖, 머리 위 ••• 표시' };
+    if (!profile.tut?.garden) return outdoors() // 안에 있으면 문 밖으로 나가면 안내자가 마중 나옴 (tutorial.js, T03 B)
+      ? { k: 'garden', t: '정원 안내', h: '문 밖 안내자에게 가요', w: '어디: 가까운 문 밖, 머리 위 ••• 표시' }
+      : { k: 'garden', t: '정원 안내', h: '문 밖으로 나가 봐요', w: '어디: 문 밖, 안내자가 마중 나와요' };
     const q = quests()?.info?.();
     if (q) return { k: 'quest', t: `부탁 · ${q.name}`, h: q.hint, w: q.where ? `어디: ${q.where}` : '', q };
     const s = wayguide.suggest()[0];
