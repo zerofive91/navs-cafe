@@ -183,7 +183,7 @@ export function initRegion(K) {
   return {
     go, board, here: currentRegion,
     active: () => busy,
-    locked: () => busy,
+    locked: () => busy || [...engines.values()].some((e) => e?.locked?.()), // 마을을 옮기는 중 · 마을 엔진이 잠금 (장면 영상)
     available: () => (busy || blocked?.() ? [] : [...(nearCart() && me.state !== 'walk' ? [['place', 'jcart']] : []), ...[...engines.values()].flatMap((e) => e?.available() || [])]),
     actions,
     get engine() { return engines.get('john') || null; }, // 요한복음 마을 엔진 (main.js·시험 스크립트가 씀)
