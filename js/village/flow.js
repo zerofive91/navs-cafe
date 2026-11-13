@@ -110,7 +110,8 @@ export function townTools({ me, toast, standUp, shot, people, beacon, run, ui = 
     ui.open({
       who: it.who, sub: r?.ev.title || '', text: it.text,
       buttons: [{ t: '다음 ▸', cls: 'next' }],
-      onClose: () => { showing = false; if (Q.length) later(); },
+      // covered: 다른 창(시험 등)이 이 말풍선을 덮음 → 읽지 못한 글을 줄 앞에 되돌려, 덮은 창이 닫힌 뒤 다시 보임 (T02-R1 J-4)
+      onClose: (covered) => { showing = false; if (covered === true) Q.unshift(it); if (Q.length) later(); },
     });
   }
   const push = (it) => { Q.push(it); if (!qT && !showing) pump(); else if (!qT) later(); };
@@ -314,7 +315,7 @@ export function initFlow(cfg) {
   function roleOf(e = run?.ev) { return (run && run.ev === e && run.role) || e?.role || ''; }
   const refreshBadge = () => { const b = document.querySelector('.npcb:not([hidden]) .who .badge'); if (b && run) b.textContent = `오늘 나는 ${roleOf()}`; };
   X.role = (t) => { if (!run) return; run.role = t || ''; updateChip(); refreshBadge(); };
-  const zoneName = (e) => ZONES[e.start || e.zone]?.name || '';
+  const zoneName = (e) => { const z = ZONES[e.start || e.zone]; return z?.short || z?.name || ''; }; // 글 속 자리 이름: 짧은 이름(short, "수가 · 야곱의 우물" → "우물가")이 있으면 그것 (T02-R1 J-2)
   const whoAt = (e) => { const z = zoneName(e); return z && !e.who.startsWith(z) ? `${z}의 ${e.who}` : e.who; }; // "성전 뜰의 여인"은 "성전 뜰의 성전 뜰의 여인"이 되지 않게
   const zoneHere = () => { let best = null, bd = Infinity; for (const [id, z] of Object.entries(ZONES)) { const d = Math.hypot(me.x - z.x, me.z - z.z) - (z.r || 0); if (d < bd) { bd = d; best = id; } } return best; };
   // 증인 자리까지 걸어감 (길을 못 찾으면 알림)
@@ -374,9 +375,15 @@ export function initFlow(cfg) {
     if (!done.length || !nx) return; // 처음 온 사람은 마을 안내(세 장면)가 있음
     if (busy() || ui.isOpen()) { setTimeout(recapCard, 800); return; }
     const last = done.reduce((a, b) => (+rec(b.id).done > +rec(a.id).done ? b : a));
-    const say = (rc) => `지난번엔 "${last.title}"까지 걸었어요 (${done.length}/${ORDER.length}). ${rc ? rc + ' ' : ''}다음은 "${nx.title}"${ieyo(nx.title)}. ${whoAt(nx)}에게 가 봐요.`;
-    let text = say(last.recap);
-    if (text.length > 90) text = say('');
+    // recap(지난 이야기 한 줄)은 늘 지킴. 90자를 넘으면 "다음은…" 쪽을 줄임: 구역 이름 빼기 → 다음 제목 빼기(칩에 있음) → 둘 다 (T02-R1 J-1)
+    const head = `지난번엔 "${last.title}"까지 걸었어요 (${done.length}/${ORDER.length}). ${last.recap ? last.recap + ' ' : ''}`;
+    const tails = [
+      `다음은 "${nx.title}"${ieyo(nx.title)}. ${whoAt(nx)}에게 가 봐요.`,
+      `다음은 "${nx.title}"${ieyo(nx.title)}. ${nx.who}에게 가 봐요.`,
+      `다음은 ${whoAt(nx)}에게 가 봐요.`,
+      `다음은 ${nx.who}에게 가 봐요.`,
+    ];
+    const text = head + (tails.find((t) => (head + t).length <= 90) || tails[tails.length - 1]);
     ssSet(RECAP_KEY, '1');
     ui.open({
       who: guide.who, sub: '지난 이야기', text,
